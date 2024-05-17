@@ -1,0 +1,20 @@
+{
+	"editor.formatOnSave": true,
+	"[markdown]": {
+		"editor.formatOnSave": false
+	},
+	"search.exclude": {
+		"target": true
+	},
+	"java.configuration.updateBuildConfiguration": "interactive",
+	"files.associations": {
+		"array": "cpp",
+		"string_view": "cpp",
+		"__hash_table": "cpp",
+		"deque": "cpp",
+		"string": "cpp",
+		"unordered_map": "cpp",
+		"vector": "cpp"
+	},
+	"git.ignoreLimitWarning": true
+}

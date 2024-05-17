@@ -1,0 +1,27 @@
+[package]
+name = "cfastlogging"
+version = "0.1.0"
+edition = "2021"
+authors = ["Martin Bammer <mrbm74@gmail.com>"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/brmmm3/fastlogging-rs"
+homepage = "https://github.com/brmmm3/fastlogging-rs"
+readme = "README.md"
+keywords = ["logging"]
+include = [
+    "Cargo.toml",
+    "src/*",
+    "tests/*.rs",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE-MIT",
+    "LICENSE-APACHE",
+]
+
+[lib]
+name = "cfastlogging"
+crate_type = ["rlib", "cdylib", "staticlib"]
+
+[dependencies]
+nix = "0.28"
+fastlogging = { path = "../fastlogging", version = "0.1.0" }

@@ -1,0 +1,13 @@
+[workspace]
+
+resolver = "2"
+
+members = ["fastlogging", "pyfastlogging", "jfastlogging", "cfastlogging"]
+
+[profile.release]
+codegen-units = 1
+debug = false
+incremental = false
+lto = "fat"
+opt-level = 3
+#panic = "abort"

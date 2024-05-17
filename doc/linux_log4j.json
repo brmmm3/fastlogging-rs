@@ -1,0 +1,100 @@
+{
+  "Linux" : {
+    "short" : {
+      "exc" : {
+        "nolog" : {
+          "ERROR" : 0.078,
+          "INFO" : 0.071,
+          "DEBUG" : 0.075,
+          "WARNING" : 0.069,
+          "CRITICAL" : 0.073
+        },
+        "rotate" : {
+          "ERROR" : 1.573,
+          "INFO" : 1.681,
+          "DEBUG" : 1.644,
+          "WARNING" : 1.612,
+          "CRITICAL" : 1.594
+        },
+        "file" : {
+          "ERROR" : 1.574,
+          "INFO" : 1.644,
+          "DEBUG" : 1.704,
+          "WARNING" : 1.683,
+          "CRITICAL" : 1.68
+        }
+      },
+      "noexc" : {
+        "nolog" : {
+          "ERROR" : 0.089,
+          "INFO" : 0.059,
+          "DEBUG" : 0.203,
+          "WARNING" : 0.103,
+          "CRITICAL" : 0.086
+        },
+        "rotate" : {
+          "ERROR" : 1.53,
+          "INFO" : 1.504,
+          "DEBUG" : 1.609,
+          "WARNING" : 1.557,
+          "CRITICAL" : 1.596
+        },
+        "file" : {
+          "ERROR" : 1.544,
+          "INFO" : 1.497,
+          "DEBUG" : 1.828,
+          "WARNING" : 1.511,
+          "CRITICAL" : 1.519
+        }
+      }
+    },
+    "long" : {
+      "exc" : {
+        "nolog" : {
+          "ERROR" : 0.033,
+          "INFO" : 0.032,
+          "DEBUG" : 0.031,
+          "WARNING" : 0.031,
+          "CRITICAL" : 0.035
+        },
+        "rotate" : {
+          "ERROR" : 1.63,
+          "INFO" : 1.666,
+          "DEBUG" : 1.732,
+          "WARNING" : 1.6,
+          "CRITICAL" : 1.596
+        },
+        "file" : {
+          "ERROR" : 1.536,
+          "INFO" : 1.565,
+          "DEBUG" : 1.596,
+          "WARNING" : 1.551,
+          "CRITICAL" : 1.598
+        }
+      },
+      "noexc" : {
+        "nolog" : {
+          "ERROR" : 0.034,
+          "INFO" : 0.035,
+          "DEBUG" : 0.035,
+          "WARNING" : 0.034,
+          "CRITICAL" : 0.033
+        },
+        "rotate" : {
+          "ERROR" : 1.601,
+          "INFO" : 1.559,
+          "DEBUG" : 1.563,
+          "WARNING" : 1.6,
+          "CRITICAL" : 1.592
+        },
+        "file" : {
+          "ERROR" : 1.624,
+          "INFO" : 1.532,
+          "DEBUG" : 1.481,
+          "WARNING" : 1.533,
+          "CRITICAL" : 1.46
+        }
+      }
+    }
+  }
+}

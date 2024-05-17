@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Logging benchmark results</title>
+  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+  <script type="text/javascript">
+    google.charts.load('current', { 'packages': ['bar'] });
+    google.charts.setOnLoadCallback(drawChart);
+
+    function drawChart() {
+      var data = google.visualization.arrayToDataTable([
+        ['Log level', 'logging', 'fastlogging DIRECT', 'fastlogging THREADS', 'fastlogging-rs Logging', 'fastlogging-rs logging'],
+        ['DEBUG',  35.2375,  0.4609,  0.9968,  0.1732,  0.2341],
+        ['INFO',  34.5600,  0.3692,  0.7064,  0.1470,  0.2156],
+        ['WARNING',  31.2000,  0.2864,  0.5635,  0.1079,  0.2085],
+        ['ERROR',  24.0156,  0.2060,  0.3928,  0.0924,  0.1871],
+        ['CRITICAL',  13.6526,  0.1201,  0.2088,  0.0670,  0.1825]
+      ]);
+
+      var options = {
+        chart: {
+          title: 'Rotating log file',
+        },
+        bars: 'horizontal' // Required for Material Bar Charts.
+      };
+
+      var chart = new google.charts.Bar(document.getElementById('barchart_material'));
+
+      chart.draw(data, google.charts.Bar.convertOptions(options));
+    }
+  </script>
+</head>
+
+<body>
+  <div id="barchart_material" style="width: 900px; height: 500px;"></div>
+</body>
+
+</html>

@@ -1,0 +1,36 @@
+[package]
+name = "fastlogging"
+version = "0.1.0"
+edition = "2021"
+authors = ["Martin Bammer <mrbm74@gmail.com>"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/brmmm3/fastlogging-rs"
+homepage = "https://github.com/brmmm3/fastlogging-rs"
+readme = "README.md"
+keywords = ["logging"]
+include = [
+    "Cargo.toml",
+    "src/*",
+    "tests/*.rs",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE-MIT",
+    "LICENSE-APACHE",
+]
+
+[dependencies]
+flume = "0.11"
+chrono = "0.4"
+num_cpus = "1.16"
+threadpool = "1.8"
+termcolor = "1.4"
+zip = { version = "1.1", default-features = false, features = ["deflate"] }
+ring = "0.17"
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+
+#[[bench]]
+#name = "benchmarks"
+#path = "benches/benchmarks.rs"
+#harness = false

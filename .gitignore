@@ -1,0 +1,10 @@
+/target
+*/.idea
+*.lock
+*.class
+*/bin/
+*/lib/
+node_modules/
+jfastlogging/examples/BenchmarksFastLogging/target/
+jfastlogging/examples/BenchmarksLog4j/target/
+jfastlogging/examples/BenchmarksLog4j2/target/
