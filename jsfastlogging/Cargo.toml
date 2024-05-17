@@ -1,0 +1,34 @@
+[package]
+name = "jsfastlogging"
+version = "0.1.0"
+edition = "2021"
+authors = ["Martin Bammer <mrbm74@gmail.com>"]
+description = "A fast logger"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/brmmm3/fastlogging-rs"
+homepage = "https://github.com/brmmm3/fastlogging-rs"
+readme = "README.md"
+keywords = ["logging"]
+include = [
+    "Cargo.toml",
+    "src/*",
+    "tests/*.rs",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE-MIT",
+    "LICENSE-APACHE",
+]
+
+[lib]
+name = "jsfastlogging"
+crate_type = ["cdylib"]
+
+[dependencies]
+nix = "0.28"
+flume = "0.11"
+wasm-bindgen = "0.2"
+web-sys = { version = "0.3", features = ["console"] }
+fastlogging = { path = "../fastlogging", version = "0.1.0" }
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"
