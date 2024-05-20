@@ -2,13 +2,13 @@ use std::io::{ Error, ErrorKind };
 
 use flume::Sender;
 
-use crate::def::{ MessageType, CRITICAL, DEBUG, ERROR, EXCEPTION, FATAL, INFO, WARNING };
+use crate::def::{ MessageTypeEnum, CRITICAL, DEBUG, ERROR, EXCEPTION, FATAL, INFO, WARNING };
 
 #[derive(Debug)]
 pub struct Logger {
     pub level: u8,
     pub domain: String,
-    tx: Option<Sender<MessageType>>,
+    tx: Option<Sender<MessageTypeEnum>>,
 }
 
 impl Logger {
@@ -16,7 +16,7 @@ impl Logger {
         Self { level, domain, tx: None }
     }
 
-    pub fn set_tx(&mut self, tx: Option<Sender<MessageType>>) {
+    pub fn set_tx(&mut self, tx: Option<Sender<MessageTypeEnum>>) {
         self.tx = tx;
     }
 
@@ -35,7 +35,7 @@ impl Logger {
         if let Some(ref tx) = self.tx {
             let message = format!("{}: {}", self.domain, message.into());
             tx
-                .send(Some((DEBUG, message)))
+                .send(MessageTypeEnum::Message((DEBUG, message)))
                 .map_err(|e| Error::new(ErrorKind::NotConnected, e.to_string()))?;
         }
         Err(

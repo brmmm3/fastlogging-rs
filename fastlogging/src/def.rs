@@ -12,8 +12,6 @@ pub const INFO: u8 = 20;
 pub const DEBUG: u8 = 10;
 pub const NOTSET: u8 = 0;
 
-pub const BACKLOG_MAX: usize = 1000;
-
 pub fn level2str(level: u8) -> &'static str {
     match level {
         0..=9 => "NOTSET",
@@ -66,4 +64,10 @@ impl fmt::Display for LevelSyms {
     }
 }
 
-pub type MessageType = Option<(u8, String)>;
+#[derive(Debug)]
+pub enum MessageTypeEnum {
+    Message((u8, String)),
+    Sync(f64),
+    Rotate,
+    Stop,
+}

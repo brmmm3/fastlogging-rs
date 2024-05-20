@@ -4,58 +4,117 @@ use std::{
     net::{ TcpListener, TcpStream },
     sync::{ Arc, Mutex },
     thread::{ self, JoinHandle },
+    time::Duration,
 };
 
 use flume::Sender;
 use ring::aead::{ self, BoundKey };
 
-use crate::def::MessageType;
+use crate::{ def::MessageTypeEnum, AUTH_KEY };
 
-use super::{ def::Config, NonceGenerator };
+use super::{ def::NetConfig, NonceGenerator };
+
+#[derive(Debug, Clone)]
+pub struct ServerConfig {
+    level: u8,
+    address: String,
+    key: Option<Vec<u8>>,
+}
+
+impl ServerConfig {
+    pub fn new(level: u8, address: String, key: Option<Vec<u8>>) -> Self {
+        Self { level, address, key }
+    }
+}
 
 fn handle_client(
-    config: Arc<Mutex<Config>>,
+    config: Arc<Mutex<NetConfig>>,
     mut stream: TcpStream,
-    tx: Sender<MessageType>
+    tx: Sender<MessageTypeEnum>,
+    stop: Arc<Mutex<bool>>
 ) -> Result<bool, Box<dyn std::error::Error>> {
     let mut buffer = [0u8; 4096];
-    let n = stream.read(&mut buffer[0..2])?;
-    if n == 3 {
+    stream.set_read_timeout(Some(Duration::from_secs(5)))?;
+    // If channel is unencrypted then an AUTH_KEY is required first.
+    // Wait up to 5 seconds for auth key.
+    stream.read_exact(&mut buffer[0..AUTH_KEY.len()])?;
+    if !AUTH_KEY.starts_with(&buffer[0..AUTH_KEY.len()]) {
+        Err("Invalid auth key".to_string())?;
+    }
+    loop {
+        if *stop.lock().unwrap() {
+            break;
+        }
+        if let Err(err) = stream.read_exact(&mut buffer[0..2]) {
+            if err.kind() == ErrorKind::TimedOut {
+                continue;
+            }
+        }
         let size = (buffer[0] as usize) | ((buffer[1] as usize) << 8);
-        if size == 0xffff {
+        if size > buffer.len() {
+            //
             return Ok(true);
         }
         let msg_level = buffer[2];
         let data = &mut buffer[..size];
         stream.read_exact(data)?;
-        if let Ok(ref mut config) = config.lock() {
-            let seal = config.seal.clone();
-            let seal = aead::Aad::from(&seal);
-            if config.sk.is_some() {
-                let mut ok = aead::OpeningKey::new(
-                    aead::UnboundKey
-                        ::new(&aead::AES_256_GCM, config.key.as_deref().unwrap())
-                        .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?,
-                    NonceGenerator::new()
-                );
-                let _ = ok
-                    .open_in_place(seal, data)
-                    .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
-            }
-        }
         let message = std::str::from_utf8(data).unwrap().to_string();
         if let Ok(ref mut config) = config.lock() {
             if msg_level >= config.level {
-                tx.send(Some((msg_level, message)))?;
+                tx.send(MessageTypeEnum::Message((msg_level, message)))?;
             }
         }
     }
     Ok(false)
 }
 
-fn logger_thread(
-    config: Arc<Mutex<Config>>,
-    tx: Sender<MessageType>
+fn handle_encrypted_client(
+    config: Arc<Mutex<NetConfig>>,
+    mut stream: TcpStream,
+    tx: Sender<MessageTypeEnum>,
+    stop: Arc<Mutex<bool>>
+) -> Result<bool, Box<dyn std::error::Error>> {
+    let mut buffer = [0u8; 4096];
+    stream.set_read_timeout(Some(Duration::from_secs(5)))?;
+    let mut key = aead::OpeningKey::new(
+        aead::UnboundKey
+            ::new(&aead::AES_256_GCM, config.lock().unwrap().key.as_deref().unwrap())
+            .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?,
+        NonceGenerator::new()
+    );
+    let seal = aead::Aad::from(config.lock().unwrap().seal.clone());
+    loop {
+        if *stop.lock().unwrap() {
+            break;
+        }
+        if let Err(err) = stream.read_exact(&mut buffer[0..2]) {
+            if err.kind() == ErrorKind::TimedOut {
+                continue;
+            }
+        }
+        let size = (buffer[0] as usize) | ((buffer[1] as usize) << 8);
+        if size > buffer.len() {
+            //
+            return Ok(true);
+        }
+        let msg_level = buffer[2];
+        let data = &mut buffer[..size];
+        stream.read_exact(data)?;
+        if msg_level >= config.lock().unwrap().level {
+            let _ = key
+                .open_in_place(seal.clone(), data)
+                .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+            let message = std::str::from_utf8(data).unwrap().to_string();
+            tx.send(MessageTypeEnum::Message((msg_level, message)))?;
+        }
+    }
+    Ok(false)
+}
+
+fn server_thread(
+    config: Arc<Mutex<NetConfig>>,
+    tx: Sender<MessageTypeEnum>,
+    stop: Arc<Mutex<bool>>
 ) -> Result<(), Box<dyn std::error::Error>> {
     let address = config.lock().unwrap().address.clone();
     let listener = TcpListener::bind(address).unwrap();
@@ -65,6 +124,9 @@ fn logger_thread(
     );
 
     for stream in listener.incoming() {
+        if *stop.lock().unwrap() {
+            break;
+        }
         // Message format: [size:u16, level:u8, data]
         let stream = match stream {
             Ok(s) => s,
@@ -76,7 +138,7 @@ fn logger_thread(
         let addr = match stream.peer_addr() {
             Ok(a) => a,
             Err(e) => {
-                eprint!("{e:?}");
+                eprint!("server_thread: {e:?}");
                 continue;
             }
         };
@@ -84,18 +146,24 @@ fn logger_thread(
         if *buggy_clients.lock().unwrap().get(&addr).unwrap_or(&0) > 3 {
             continue;
         }
-        let addr_clone = addr.clone();
-        let config_clone = config.clone();
-        let tx_clone = tx.clone();
-        let buggy_clients_clone = buggy_clients.clone();
+        let config = config.clone();
+        let tx = tx.clone();
+        let buggy_clients = buggy_clients.clone();
+        let stop = stop.clone();
         pool.execute(move || {
-            if let Err(err) = handle_client(config_clone, stream, tx_clone) {
-                eprint!("{err:?}");
-                if let Ok(mut buggy_client) = buggy_clients_clone.lock() {
-                    if let Some(c) = buggy_client.get_mut(&addr_clone) {
+            let is_encrypted = config.lock().unwrap().key.is_some();
+            if
+                let Err(err) = (match is_encrypted {
+                    false => handle_client(config, stream, tx, stop),
+                    true => handle_encrypted_client(config, stream, tx, stop),
+                })
+            {
+                eprint!("server_thread: Error with client {addr}: {err:?}");
+                if let Ok(mut buggy_client) = buggy_clients.lock() {
+                    if let Some(c) = buggy_client.get_mut(&addr) {
                         *c += 1;
                     } else {
-                        buggy_client.insert(addr_clone, 1);
+                        buggy_client.insert(addr, 1);
                     }
                 }
             }
@@ -107,13 +175,19 @@ fn logger_thread(
 
 #[derive(Debug)]
 pub struct LoggingServer {
-    config: Arc<Mutex<Config>>,
+    config: Arc<Mutex<NetConfig>>,
     thr: Option<JoinHandle<()>>,
 }
 
 impl LoggingServer {
-    pub fn new(level: u8, address: String, tx: Sender<MessageType>) -> Result<Self, Error> {
-        let config = Arc::new(Mutex::new(Config::new(level, address)));
+    pub fn new(
+        config: ServerConfig,
+        tx: Sender<MessageTypeEnum>,
+        stop: Arc<Mutex<bool>>
+    ) -> Result<Self, Error> {
+        let config = Arc::new(
+            Mutex::new(NetConfig::new(config.level, config.address, config.key)?)
+        );
         Ok(Self {
             config: config.clone(),
             thr: Some(
@@ -121,7 +195,7 @@ impl LoggingServer {
                     ::new()
                     .name("LoggingServer".to_string())
                     .spawn(move || {
-                        if let Err(err) = logger_thread(config, tx) {
+                        if let Err(err) = server_thread(config, tx, stop) {
                             eprintln!("{err:?}");
                         }
                     })?
@@ -133,7 +207,7 @@ impl LoggingServer {
         if let Some(thr) = self.thr.take() {
             // Send SHUTDOWN (255) to server socket
             let address = self.config.lock().unwrap().address.clone();
-            let mut stream = TcpStream::connect(&address)?;
+            let mut stream = TcpStream::connect(address)?;
             stream.write_all(&[255u8, 255u8, 255u8])?;
             thr.join().map_err(|e|
                 Error::new(ErrorKind::Other, e.downcast_ref::<&str>().unwrap().to_string())
@@ -144,15 +218,14 @@ impl LoggingServer {
     }
 
     pub fn set_level(&mut self, level: u8) {
-        if let Ok(ref mut config) = self.config.lock() {
-            config.level = level;
-        }
+        self.config.lock().unwrap().level = level;
     }
 
     pub fn set_encryption(&mut self, key: Option<Vec<u8>>) -> Result<(), Error> {
-        if let Ok(ref mut config) = self.config.lock() {
-            config.set_encryption(key).map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
-        }
-        Ok(())
+        self.config
+            .lock()
+            .unwrap()
+            .set_encryption(key)
+            .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))
     }
 }
