@@ -1,4 +1,5 @@
 use std::{
+    fmt,
     fs::{ rename, File, OpenOptions },
     io::{ BufWriter, Error, ErrorKind, Read, Seek, SeekFrom, Write },
     path::{ Path, PathBuf },
@@ -10,11 +11,17 @@ use std::{
 use flume::{ bounded, Receiver, RecvTimeoutError, Sender };
 use zip::{ write::SimpleFileOptions, CompressionMethod, ZipWriter };
 
-use crate::MessageTypeEnum;
-
 const BACKLOG_MAX: usize = 1000;
 const QUEUE_CAPACITY: usize = 10000;
 const DEFAULT_DELAY: u64 = 3600;
+
+#[derive(Debug)]
+pub enum FileTypeEnum {
+    Message((u8, String)), // level, message
+    Sync, // timeout
+    Rotate,
+    Stop,
+}
 
 #[derive(Debug, Clone)]
 pub struct FileWriterConfig {
@@ -68,6 +75,12 @@ impl FileWriterConfig {
     }
 }
 
+impl fmt::Display for FileWriterConfig {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
 fn rotate_do(path: &Path, backlog: usize, compression: CompressionMethod) -> Result<(), Error> {
     for num in 1..backlog {
         let mut backlog_path_old = path.to_path_buf();
@@ -102,7 +115,7 @@ fn rotate_do(path: &Path, backlog: usize, compression: CompressionMethod) -> Res
 
 fn file_writer_thread_worker(
     config: Arc<Mutex<FileWriterConfig>>,
-    rx: Receiver<Option<MessageTypeEnum>>,
+    rx: Receiver<FileTypeEnum>,
     stop: Arc<Mutex<bool>>,
     sync_tx: Sender<u8>
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -129,13 +142,7 @@ fn file_writer_thread_worker(
             }
         }
         let message = match rx.recv_deadline(to) {
-            Ok(m) =>
-                match m {
-                    Some(m) => m,
-                    None => {
-                        break;
-                    }
-                }
+            Ok(m) => m,
             Err(err) => {
                 if err == RecvTimeoutError::Disconnected {
                     break;
@@ -143,22 +150,22 @@ fn file_writer_thread_worker(
                 if timeout.is_none() && time.is_none() {
                     continue;
                 }
-                MessageTypeEnum::Rotate
+                FileTypeEnum::Rotate
             }
         };
         let rotate = match message {
-            MessageTypeEnum::Message((_level, message)) => {
+            FileTypeEnum::Message((_level, message)) => {
                 file.write_all(message.as_bytes())?;
                 let _ = file.write(&newline)?;
                 size += message.len();
                 false
             }
-            MessageTypeEnum::Rotate => { true }
-            MessageTypeEnum::Sync(_) => {
+            FileTypeEnum::Rotate => { true }
+            FileTypeEnum::Sync => {
                 sync_tx.send(1)?;
                 false
             }
-            MessageTypeEnum::Stop => {
+            FileTypeEnum::Stop => {
                 break;
             }
         };
@@ -180,7 +187,7 @@ fn file_writer_thread_worker(
 
 fn file_writer_thread(
     config: Arc<Mutex<FileWriterConfig>>,
-    rx: Receiver<Option<MessageTypeEnum>>,
+    rx: Receiver<FileTypeEnum>,
     stop: Arc<Mutex<bool>>,
     sync_tx: Sender<u8>
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -194,8 +201,8 @@ fn file_writer_thread(
 
 #[derive(Debug)]
 pub struct FileWriter {
-    config: Arc<Mutex<FileWriterConfig>>,
-    tx: Sender<Option<MessageTypeEnum>>,
+    pub(crate) config: Arc<Mutex<FileWriterConfig>>,
+    tx: Sender<FileTypeEnum>,
     sync_rx: Receiver<u8>,
     thr: Option<JoinHandle<()>>,
 }
@@ -224,7 +231,9 @@ impl FileWriter {
 
     pub fn shutdown(&mut self) -> Result<(), Error> {
         if let Some(thr) = self.thr.take() {
-            self.tx.send(None).map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+            self.tx
+                .send(FileTypeEnum::Stop)
+                .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
             thr.join().map_err(|e|
                 Error::new(ErrorKind::Other, e.downcast_ref::<&str>().unwrap().to_string())
             )
@@ -255,15 +264,11 @@ impl FileWriter {
     }
 
     pub fn rotate(&self) -> Result<(), Error> {
-        self.tx
-            .send(Some(MessageTypeEnum::Rotate))
-            .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))
+        self.tx.send(FileTypeEnum::Rotate).map_err(|e| Error::new(ErrorKind::Other, e.to_string()))
     }
 
     pub fn sync(&self, timeout: f64) -> Result<(), Error> {
-        self.tx
-            .send(Some(MessageTypeEnum::Sync(timeout)))
-            .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+        self.tx.send(FileTypeEnum::Sync).map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
         self.sync_rx
             .recv_timeout(Duration::from_secs_f64(timeout))
             .map_err(|e| Error::new(ErrorKind::BrokenPipe, e.to_string()))?;
@@ -273,7 +278,7 @@ impl FileWriter {
     #[inline]
     pub fn send(&self, level: u8, message: String) -> Result<(), Error> {
         self.tx
-            .send(Some(MessageTypeEnum::Message((level, message))))
+            .send(FileTypeEnum::Message((level, message)))
             .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))
     }
 }

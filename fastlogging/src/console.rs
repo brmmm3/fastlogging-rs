@@ -1,4 +1,5 @@
 use std::{
+    fmt,
     io::{ Error, ErrorKind, Write },
     sync::{ Arc, Mutex },
     thread::{ self, JoinHandle },
@@ -8,12 +9,25 @@ use std::{
 use flume::{ bounded, Receiver, SendError, Sender };
 use termcolor::{ BufferWriter, Color, ColorChoice, ColorSpec, WriteColor };
 
-use crate::{ MessageTypeEnum, DEBUG, INFO, WARNING, ERROR, CRITICAL, EXCEPTION };
+use crate::{ CRITICAL, DEBUG, ERROR, EXCEPTION, INFO, WARNING };
+
+#[derive(Debug)]
+pub enum ConsoleTypeEnum {
+    Message((u8, String)), // level, message
+    Sync, // timeout
+    Stop,
+}
 
 #[derive(Debug, Clone)]
 pub struct ConsoleWriterConfig {
-    pub level: u8, // Log level
-    colors: bool,
+    pub(crate) level: u8, // Log level
+    pub(crate) colors: bool,
+}
+
+impl fmt::Display for ConsoleWriterConfig {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 impl ConsoleWriterConfig {
@@ -24,7 +38,7 @@ impl ConsoleWriterConfig {
 
 fn console_writer_thread(
     config: Arc<Mutex<ConsoleWriterConfig>>,
-    rx: Receiver<MessageTypeEnum>,
+    rx: Receiver<ConsoleTypeEnum>,
     sync_tx: Sender<u8>,
     stop: Arc<Mutex<bool>>
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -35,7 +49,7 @@ fn console_writer_thread(
             break;
         }
         match rx.recv()? {
-            MessageTypeEnum::Message((level, message)) => {
+            ConsoleTypeEnum::Message((level, message)) => {
                 if let Ok(ref config) = config.lock() {
                     if config.colors {
                         buffer.set_color(
@@ -60,14 +74,11 @@ fn console_writer_thread(
                     break;
                 }
             }
-            MessageTypeEnum::Sync(_) => {
+            ConsoleTypeEnum::Sync => {
                 sync_tx.send(1)?;
             }
-            MessageTypeEnum::Stop => {
+            ConsoleTypeEnum::Stop => {
                 break;
-            }
-            MessageTypeEnum::Rotate => {
-                eprint!("Console received invalid message type Rotate");
             }
         }
     }
@@ -76,8 +87,8 @@ fn console_writer_thread(
 
 #[derive(Debug)]
 pub struct ConsoleWriter {
-    config: Arc<Mutex<ConsoleWriterConfig>>,
-    tx: Sender<MessageTypeEnum>,
+    pub(crate) config: Arc<Mutex<ConsoleWriterConfig>>,
+    tx: Sender<ConsoleTypeEnum>,
     sync_rx: Receiver<u8>,
     thr: Option<JoinHandle<()>>,
 }
@@ -107,7 +118,7 @@ impl ConsoleWriter {
     pub fn shutdown(&mut self) -> Result<(), Error> {
         if let Some(thr) = self.thr.take() {
             self.tx
-                .send(MessageTypeEnum::Stop)
+                .send(ConsoleTypeEnum::Stop)
                 .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
             thr.join().map_err(|e|
                 Error::new(ErrorKind::Other, e.downcast_ref::<&str>().unwrap().to_string())
@@ -123,7 +134,7 @@ impl ConsoleWriter {
 
     pub fn sync(&self, timeout: f64) -> Result<(), Error> {
         self.tx
-            .send(MessageTypeEnum::Sync(timeout))
+            .send(ConsoleTypeEnum::Sync)
             .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
         self.sync_rx
             .recv_timeout(Duration::from_secs_f64(timeout))
@@ -132,7 +143,7 @@ impl ConsoleWriter {
     }
 
     #[inline]
-    pub fn send(&self, level: u8, message: String) -> Result<(), SendError<MessageTypeEnum>> {
-        self.tx.send(MessageTypeEnum::Message((level, message)))
+    pub fn send(&self, level: u8, message: String) -> Result<(), SendError<ConsoleTypeEnum>> {
+        self.tx.send(ConsoleTypeEnum::Message((level, message)))
     }
 }

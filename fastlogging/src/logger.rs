@@ -1,22 +1,32 @@
-use std::io::{ Error, ErrorKind };
+use std::{ io::{ Error, ErrorKind }, thread };
 
 use flume::Sender;
 
-use crate::def::{ MessageTypeEnum, CRITICAL, DEBUG, ERROR, EXCEPTION, FATAL, INFO, WARNING };
+use crate::{
+    def::{ LoggingTypeEnum, CRITICAL, DEBUG, ERROR, EXCEPTION, FATAL, INFO, WARNING },
+    SUCCESS,
+    TRACE,
+};
 
 #[derive(Debug)]
 pub struct Logger {
-    pub level: u8,
-    pub domain: String,
-    tx: Option<Sender<MessageTypeEnum>>,
+    pub(crate) level: u8,
+    pub(crate) domain: String,
+    pub(crate) tname: bool,
+    pub(crate) tid: bool,
+    tx: Option<Sender<LoggingTypeEnum>>,
 }
 
 impl Logger {
     pub fn new(level: u8, domain: String) -> Self {
-        Self { level, domain, tx: None }
+        Self { level, domain, tname: false, tid: false, tx: None }
     }
 
-    pub fn set_tx(&mut self, tx: Option<Sender<MessageTypeEnum>>) {
+    pub fn new_ext(level: u8, domain: String, tname: bool, tid: bool) -> Self {
+        Self { level, domain, tname, tid, tx: None }
+    }
+
+    pub fn set_tx(&mut self, tx: Option<Sender<LoggingTypeEnum>>) {
         self.tx = tx;
     }
 
@@ -31,12 +41,22 @@ impl Logger {
     // Logging calls
 
     #[inline]
-    fn log<S: Into<String>>(&self, message: S) -> Result<(), Error> {
+    fn log<S: Into<String>>(&self, level: u8, message: S) -> Result<(), Error> {
         if let Some(ref tx) = self.tx {
             let message = format!("{}: {}", self.domain, message.into());
-            tx
-                .send(MessageTypeEnum::Message((DEBUG, message)))
-                .map_err(|e| Error::new(ErrorKind::NotConnected, e.to_string()))?;
+            return (
+                if self.tname || self.tid {
+                    let tname = if self.tname {
+                        thread::current().name().unwrap_or_default().to_string()
+                    } else {
+                        "".to_string()
+                    };
+                    let tid = if self.tid { thread_id::get() as u32 } else { 0 };
+                    tx.send(LoggingTypeEnum::MessageExt((level, message.into(), tid, tname)))
+                } else {
+                    tx.send(LoggingTypeEnum::Message((level, message.into())))
+                }
+            ).map_err(|e| Error::new(ErrorKind::Other, e.to_string()));
         }
         Err(
             Error::new(
@@ -46,32 +66,40 @@ impl Logger {
         )
     }
 
+    pub fn trace<S: Into<String>>(&self, message: S) -> Result<(), Error> {
+        if self.level <= TRACE { self.log(TRACE, message) } else { Ok(()) }
+    }
+
     pub fn debug<S: Into<String>>(&self, message: S) -> Result<(), Error> {
-        if self.level <= DEBUG { self.log(message) } else { Ok(()) }
+        if self.level <= DEBUG { self.log(DEBUG, message) } else { Ok(()) }
     }
 
     pub fn info<S: Into<String>>(&self, message: S) -> Result<(), Error> {
-        if self.level <= INFO { self.log(message) } else { Ok(()) }
+        if self.level <= INFO { self.log(INFO, message) } else { Ok(()) }
+    }
+
+    pub fn success<S: Into<String>>(&self, message: S) -> Result<(), Error> {
+        if self.level <= SUCCESS { self.log(SUCCESS, message) } else { Ok(()) }
     }
 
     pub fn warning<S: Into<String>>(&self, message: S) -> Result<(), Error> {
-        if self.level <= WARNING { self.log(message) } else { Ok(()) }
+        if self.level <= WARNING { self.log(WARNING, message) } else { Ok(()) }
     }
 
     pub fn error<S: Into<String>>(&self, message: S) -> Result<(), Error> {
-        if self.level <= ERROR { self.log(message) } else { Ok(()) }
+        if self.level <= ERROR { self.log(ERROR, message) } else { Ok(()) }
     }
 
     pub fn critical<S: Into<String>>(&self, message: S) -> Result<(), Error> {
-        if self.level <= CRITICAL { self.log(message) } else { Ok(()) }
+        if self.level <= CRITICAL { self.log(CRITICAL, message) } else { Ok(()) }
     }
 
     pub fn fatal<S: Into<String>>(&self, message: S) -> Result<(), Error> {
-        if self.level <= FATAL { self.log(message) } else { Ok(()) }
+        if self.level <= FATAL { self.log(FATAL, message) } else { Ok(()) }
     }
 
     pub fn exception<S: Into<String>>(&self, message: S) -> Result<(), Error> {
-        if self.level <= EXCEPTION { self.log(message) } else { Ok(()) }
+        if self.level <= EXCEPTION { self.log(EXCEPTION, message) } else { Ok(()) }
     }
 
     pub fn __repr__(&self) -> String {

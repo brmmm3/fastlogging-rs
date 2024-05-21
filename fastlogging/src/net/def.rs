@@ -1,8 +1,14 @@
-use std::io::{ Error, ErrorKind };
+use std::{ fmt, io::{ Error, ErrorKind } };
 
 use ring::aead::{ self, BoundKey, SealingKey };
+use once_cell::sync::Lazy;
+use rand::{ distributions::Alphanumeric, thread_rng, Rng };
 
 use super::NonceGenerator;
+
+pub static AUTH_KEY: Lazy<Vec<u8>> = Lazy::new(|| {
+    thread_rng().sample_iter(&Alphanumeric).take(32).collect()
+});
 
 #[derive(Debug)]
 pub struct NetConfig {
@@ -42,5 +48,11 @@ impl NetConfig {
             self.key = None;
         }
         Ok(())
+    }
+}
+
+impl fmt::Display for NetConfig {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
     }
 }

@@ -1,4 +1,5 @@
 use std::{
+    fmt,
     io::{ BufWriter, Error, ErrorKind, Write },
     net::TcpStream,
     sync::{ Arc, Mutex },
@@ -9,15 +10,20 @@ use std::{
 use flume::{ bounded, Receiver, SendError, Sender };
 use ring::aead;
 
-use crate::def::MessageTypeEnum;
-
 use super::def::NetConfig;
+
+#[derive(Debug)]
+pub enum ClientTypeEnum {
+    Message((u8, String)), // level, message
+    Sync, // timeout
+    Stop,
+}
 
 #[derive(Debug, Clone)]
 pub struct ClientWriterConfig {
-    level: u8,
+    pub(crate) level: u8,
     pub(crate) address: String,
-    key: Option<Vec<u8>>,
+    pub(crate) key: Option<Vec<u8>>,
 }
 
 impl ClientWriterConfig {
@@ -26,21 +32,27 @@ impl ClientWriterConfig {
     }
 }
 
+impl fmt::Display for ClientWriterConfig {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
 fn client_writer_thread(
     config: Arc<Mutex<NetConfig>>,
-    rx: Receiver<MessageTypeEnum>,
+    rx: Receiver<ClientTypeEnum>,
     sync_tx: Sender<u8>,
     stop: Arc<Mutex<bool>>
 ) -> Result<(), Box<dyn std::error::Error>> {
     let address = config.lock().unwrap().address.clone();
-    let mut stream = BufWriter::new(TcpStream::connect(&address)?);
+    let mut stream = BufWriter::new(TcpStream::connect(address)?);
     let mut buffer = [0u8; 3];
     loop {
         if *stop.lock().unwrap() {
             break;
         }
         match rx.recv()? {
-            MessageTypeEnum::Message((level, message)) => {
+            ClientTypeEnum::Message((level, message)) => {
                 let size = message.len();
                 buffer[0] = size as u8;
                 buffer[1] = (size >> 8) as u8;
@@ -60,14 +72,11 @@ fn client_writer_thread(
                     }
                 }
             }
-            MessageTypeEnum::Sync(_) => {
+            ClientTypeEnum::Sync => {
                 sync_tx.send(1)?;
             }
-            MessageTypeEnum::Stop => {
+            ClientTypeEnum::Stop => {
                 break;
-            }
-            MessageTypeEnum::Rotate => {
-                eprint!("Client {address} received invalid message type Rotate");
             }
         }
     }
@@ -76,8 +85,8 @@ fn client_writer_thread(
 
 #[derive(Debug)]
 pub struct ClientWriter {
-    config: Arc<Mutex<NetConfig>>,
-    tx: Sender<MessageTypeEnum>,
+    pub(crate) config: Arc<Mutex<NetConfig>>,
+    tx: Sender<ClientTypeEnum>,
     sync_rx: Receiver<u8>,
     thr: Option<JoinHandle<()>>,
 }
@@ -109,7 +118,7 @@ impl ClientWriter {
     pub fn shutdown(&mut self) -> Result<(), Error> {
         if let Some(thr) = self.thr.take() {
             self.tx
-                .send(MessageTypeEnum::Stop)
+                .send(ClientTypeEnum::Stop)
                 .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
             thr.join().map_err(|e|
                 Error::new(ErrorKind::Other, e.downcast_ref::<&str>().unwrap().to_string())
@@ -133,7 +142,7 @@ impl ClientWriter {
 
     pub fn sync(&self, timeout: f64) -> Result<(), Error> {
         self.tx
-            .send(MessageTypeEnum::Sync(timeout))
+            .send(ClientTypeEnum::Sync)
             .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
         self.sync_rx
             .recv_timeout(Duration::from_secs_f64(timeout))
@@ -142,7 +151,7 @@ impl ClientWriter {
     }
 
     #[inline]
-    pub fn send(&self, level: u8, message: String) -> Result<(), SendError<MessageTypeEnum>> {
-        self.tx.send(MessageTypeEnum::Message((level, message)))
+    pub fn send(&self, level: u8, message: String) -> Result<(), SendError<ClientTypeEnum>> {
+        self.tx.send(ClientTypeEnum::Message((level, message)))
     }
 }

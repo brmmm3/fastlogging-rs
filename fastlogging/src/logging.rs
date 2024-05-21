@@ -1,14 +1,15 @@
 use std::collections::HashMap;
 use std::io::{ Error, ErrorKind };
-use std::sync::{ Arc, Mutex };
+use std::sync::{ Arc, Mutex, MutexGuard };
 use std::thread::{ self, JoinHandle };
 
 use flume::{ bounded, Receiver, Sender };
 use chrono::Local;
+use gethostname::gethostname;
 
 use crate::console::{ ConsoleWriter, ConsoleWriterConfig };
 use crate::def::{
-    MessageTypeEnum,
+    LoggingTypeEnum,
     NOTSET,
     CRITICAL,
     DEBUG,
@@ -20,48 +21,193 @@ use crate::def::{
 };
 use crate::file::{ FileWriter, FileWriterConfig };
 use crate::net::{ ClientWriter, ClientWriterConfig, LoggingServer, ServerConfig };
-use crate::{ level2str, level2sym, level2short, LevelSyms };
+use crate::{
+    level2short,
+    level2str,
+    level2string,
+    level2sym,
+    LevelSyms,
+    MessageStructEnum,
+    SyslogWriter,
+    SyslogWriterConfig,
+    SUCCESS,
+    TRACE,
+};
 use crate::logger::Logger;
 
+#[inline]
+fn build_string_message(
+    buffer: &mut String,
+    config: &MutexGuard<LoggingConfig>,
+    level: u8,
+    tname: Option<String>,
+    tid: u32,
+    message: String
+) {
+    buffer.push_str(&Local::now().format("%Y.%m.%d %H:%M:%S").to_string());
+    if let Some(ref hostname) = config.hostname {
+        buffer.push(' ');
+        buffer.push_str(hostname);
+    }
+    if !config.pname.is_empty() {
+        buffer.push(' ');
+        buffer.push_str(&config.pname);
+    }
+    if config.pid > 0 {
+        if config.pname.is_empty() {
+            buffer.push(' ');
+        }
+        buffer.push('[');
+        buffer.push_str(&config.pid.to_string());
+        buffer.push(']');
+    }
+    if let Some(ref tname) = tname {
+        buffer.push('>');
+        buffer.push_str(tname);
+    }
+    if tid > 0 {
+        if tname.is_none() {
+            buffer.push('>');
+        }
+        buffer.push('[');
+        buffer.push_str(&tid.to_string());
+        buffer.push(']');
+    }
+    buffer.push(' ');
+    buffer.push_str(&config.domain);
+    buffer.push(':');
+    buffer.push(' ');
+    buffer.push_str(match config.level2sym {
+        LevelSyms::Sym => level2sym(level),
+        LevelSyms::Short => level2short(level),
+        LevelSyms::Str => level2str(level),
+    });
+    buffer.push(' ');
+    buffer.push_str(&message);
+}
+
+#[inline]
+fn build_json_message(
+    buffer: &mut String,
+    config: &MutexGuard<LoggingConfig>,
+    level: u8,
+    tname: Option<String>,
+    tid: u32,
+    message: String
+) {
+    buffer.push('{');
+    buffer.push_str("\"date\":");
+    buffer.push_str(&Local::now().format("\"%Y.%m.%d %H:%M:%S\"").to_string());
+    if let Some(ref hostname) = config.hostname {
+        buffer.push_str(",\"host\":\"");
+        buffer.push_str(hostname);
+        buffer.push('"');
+    }
+    if !config.pname.is_empty() {
+        buffer.push_str(",\"pname\":\"");
+        buffer.push_str(&config.pname);
+        buffer.push('"');
+    }
+    if config.pid > 0 {
+        buffer.push_str(",\"pid\":");
+        buffer.push_str(&config.pid.to_string());
+    }
+    if let Some(ref tname) = tname {
+        buffer.push_str(",\"tname\":\"");
+        buffer.push_str(tname);
+        buffer.push('"');
+    }
+    if tid > 0 {
+        buffer.push_str(",\"tid\":");
+        buffer.push_str(&tid.to_string());
+    }
+    buffer.push_str(",\"domain\":\"");
+    buffer.push_str(&config.domain);
+    buffer.push_str("\",\"level\":\"");
+    buffer.push_str(match config.level2sym {
+        LevelSyms::Sym => level2sym(level),
+        LevelSyms::Short => level2short(level),
+        LevelSyms::Str => level2str(level),
+    });
+    buffer.push_str("\",\"message\":\"");
+    buffer.push_str(&message);
+    buffer.push_str("\"}");
+}
+
+#[inline]
+fn build_xml_message(
+    buffer: &mut String,
+    config: &MutexGuard<LoggingConfig>,
+    level: u8,
+    tname: Option<String>,
+    tid: u32,
+    message: String
+) {
+    buffer.push_str("<log>");
+    buffer.push_str("<date>");
+    buffer.push_str(&Local::now().format("%Y.%m.%d %H:%M:%S").to_string());
+    buffer.push_str("</date>");
+    if let Some(ref hostname) = config.hostname {
+        buffer.push_str("<host>");
+        buffer.push_str(hostname);
+        buffer.push_str("</host>");
+    }
+    if !config.pname.is_empty() {
+        buffer.push_str("<pname>");
+        buffer.push_str(&config.pname);
+        buffer.push_str("</pname>");
+    }
+    if config.pid > 0 {
+        buffer.push_str("<pid>");
+        buffer.push_str(&config.pid.to_string());
+        buffer.push_str("</pid>");
+    }
+    if let Some(ref tname) = tname {
+        buffer.push_str("<tname>");
+        buffer.push_str(tname);
+        buffer.push_str("</tname>");
+    }
+    if tid > 0 {
+        buffer.push_str("<tid>");
+        buffer.push_str(&tid.to_string());
+        buffer.push_str("</tid>");
+    }
+    buffer.push_str("<domain>");
+    buffer.push_str(&config.domain);
+    buffer.push_str("</domain><level>");
+    buffer.push_str(match config.level2sym {
+        LevelSyms::Sym => level2sym(level),
+        LevelSyms::Short => level2short(level),
+        LevelSyms::Str => level2str(level),
+    });
+    buffer.push_str("</level><message>");
+    buffer.push_str(&message);
+    buffer.push_str("</message></log>");
+}
+
 fn logging_thread_worker(
-    rx: Receiver<MessageTypeEnum>,
+    rx: Receiver<LoggingTypeEnum>,
     config: Arc<Mutex<LoggingConfig>>,
     stop: Arc<Mutex<bool>>
 ) -> Result<(), Box<dyn std::error::Error>> {
+    let mut buffer = String::with_capacity(4096);
     loop {
         if *stop.lock().unwrap() {
             break;
         }
         if let Ok(mut config) = config.lock() {
-            match rx.recv()? {
-                MessageTypeEnum::Message((level, message)) => {
-                    let date = Local::now();
-                    let message = format!(
-                        "{} {} {} {message}",
-                        date.format("%Y.%m.%d %H:%M:%S"),
-                        config.domain,
-                        match config.level2sym {
-                            LevelSyms::Sym => level2sym(level),
-                            LevelSyms::Short => level2short(level),
-                            LevelSyms::Str => level2str(level),
-                        }
-                    );
-                    if let Some(ref mut console) = config.console {
-                        console.send(level, message.clone())?;
-                    }
-                    if let Some(ref mut file) = config.file {
-                        file.send(level, message.clone())?;
-                    }
-                    for client in config.clients.values() {
-                        client.send(level, message.clone())?;
-                    }
+            let (level, tname, tid, message) = match rx.recv()? {
+                LoggingTypeEnum::Message((level, message)) => { (level, None, 0, message) }
+                LoggingTypeEnum::MessageExt((level, tname, tid, message)) => {
+                    (level, Some(tname), tid, message)
                 }
-                MessageTypeEnum::Rotate => {
+                LoggingTypeEnum::Rotate => {
                     if let Some(ref mut file) = config.file {
                         file.rotate()?;
                     }
+                    continue;
                 }
-                MessageTypeEnum::Sync(timeout) => {
+                LoggingTypeEnum::Sync(timeout) => {
                     if let Some(ref mut console) = config.console {
                         console.sync(timeout)?;
                     }
@@ -71,10 +217,38 @@ fn logging_thread_worker(
                     for client in config.clients.values() {
                         client.sync(timeout)?;
                     }
+                    continue;
                 }
-                MessageTypeEnum::Stop => {
+                LoggingTypeEnum::Stop => {
                     break;
                 }
+            };
+            // Build message
+            // {date} {hostname} {pname}[{pid}]>{tname}[{tid}] {domain}: {level} {message}
+            buffer.clear();
+            match config.structured {
+                MessageStructEnum::String => {
+                    build_string_message(&mut buffer, &config, level, tname, tid, message);
+                }
+                MessageStructEnum::Json => {
+                    build_json_message(&mut buffer, &config, level, tname, tid, message);
+                }
+                MessageStructEnum::Xml => {
+                    build_xml_message(&mut buffer, &config, level, tname, tid, message);
+                }
+            }
+            // Send message to writers
+            if let Some(ref mut console) = config.console {
+                console.send(level, buffer.clone())?;
+            }
+            if let Some(ref mut file) = config.file {
+                file.send(level, buffer.clone())?;
+            }
+            for client in config.clients.values() {
+                client.send(level, buffer.clone())?;
+            }
+            if let Some(ref mut syslog) = config.syslog {
+                syslog.send(level, buffer.clone())?;
             }
         } else {
             break;
@@ -84,7 +258,7 @@ fn logging_thread_worker(
 }
 
 fn logging_thread(
-    rx: Receiver<MessageTypeEnum>,
+    rx: Receiver<LoggingTypeEnum>,
     config: Arc<Mutex<LoggingConfig>>,
     stop: Arc<Mutex<bool>>
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -94,24 +268,29 @@ fn logging_thread(
         some_err = Some(err);
     }
     if let Ok(mut config) = config.lock() {
-        for (address, client) in config.clients.iter_mut() {
-            if let Err(err) = client.shutdown() {
+        for (address, writer) in config.clients.iter_mut() {
+            if let Err(err) = writer.shutdown() {
                 eprintln!("Failed to stop client {address}: {err:?}");
             }
         }
-        if let Some(ref mut server) = config.server {
-            if let Err(err) = server.shutdown() {
+        if let Some(ref mut writer) = config.server {
+            if let Err(err) = writer.shutdown() {
                 eprintln!("Failed to stop server: {err:?}");
             }
         }
-        if let Some(ref mut console) = config.console {
-            if let Err(err) = console.shutdown() {
+        if let Some(ref mut writer) = config.console {
+            if let Err(err) = writer.shutdown() {
                 eprintln!("Failed to stop console logger: {err:?}");
             }
         }
-        if let Some(ref mut file) = config.file {
-            if let Err(err) = file.shutdown() {
+        if let Some(ref mut writer) = config.file {
+            if let Err(err) = writer.shutdown() {
                 eprintln!("Failed to stop file logger: {err:?}");
+            }
+        }
+        if let Some(ref mut writer) = config.syslog {
+            if let Err(err) = writer.shutdown() {
+                eprintln!("Failed to stop syslog logger: {err:?}");
             }
         }
     }
@@ -123,13 +302,43 @@ fn logging_thread(
 }
 
 #[derive(Debug)]
+pub struct ExtConfig {
+    structured: MessageStructEnum,
+    hostname: bool, // Log hostname
+    pname: bool, // Log process name
+    pid: bool, // Log process ID
+    tname: bool, // Log thread name
+    tid: bool, // Log thread ID
+}
+
+impl Default for ExtConfig {
+    fn default() -> Self {
+        Self {
+            hostname: false,
+            pname: false,
+            pid: false,
+            tname: false,
+            tid: false,
+            structured: MessageStructEnum::String,
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct LoggingConfig {
     level: u8,
     domain: String,
+    hostname: Option<String>,
+    pname: String,
+    pid: u32,
+    tname: bool,
+    tid: bool,
+    structured: MessageStructEnum,
     console: Option<ConsoleWriter>,
     file: Option<FileWriter>,
     server: Option<LoggingServer>,
     clients: HashMap<String, ClientWriter>,
+    syslog: Option<SyslogWriter>,
     level2sym: LevelSyms,
 }
 
@@ -137,7 +346,9 @@ pub struct LoggingConfig {
 pub struct Logging {
     pub level: u8,
     config: Arc<Mutex<LoggingConfig>>,
-    pub tx: Sender<MessageTypeEnum>,
+    tname: bool,
+    tid: bool,
+    pub tx: Sender<LoggingTypeEnum>,
     stop: Arc<Mutex<bool>>,
     thr: Option<JoinHandle<()>>,
 }
@@ -146,10 +357,12 @@ impl Logging {
     pub fn new(
         level: Option<u8>, // Global log level
         domain: Option<String>,
-        console: Option<ConsoleWriterConfig>, // If true start ConsoleLogging
-        file: Option<FileWriterConfig>, // If path is defined start FileLogging
-        server: Option<ServerConfig>, // If address is defined start LoggingServer
-        connect: Option<ClientWriterConfig> // If address is defined start ClientLogging
+        ext_config: Option<ExtConfig>, // Extended logging configuration
+        console: Option<ConsoleWriterConfig>, // If config is defined start ConsoleLogging
+        file: Option<FileWriterConfig>, // If config is defined start FileLogging
+        server: Option<ServerConfig>, // If config is defined start LoggingServer
+        connect: Option<ClientWriterConfig>, // If config is defined start ClientLogging
+        syslog: Option<u8> // If log level is defined start SyslogLogging
     ) -> Result<Self, Error> {
         let level = level.unwrap_or(NOTSET);
         let domain = domain.unwrap_or("root".to_string());
@@ -174,20 +387,64 @@ impl Logging {
         } else {
             None
         };
+        let mut structured = MessageStructEnum::String;
+        let mut hostname = None;
+        let mut pname = "".to_string();
+        let mut pid = 0;
+        let mut tname = false;
+        let mut tid = false;
+        let syslog = if let Some(level) = syslog {
+            let ext_config = ext_config.unwrap_or_default();
+            structured = ext_config.structured;
+            let config = {
+                hostname = if ext_config.hostname {
+                    Some(gethostname().into_string().unwrap())
+                } else {
+                    None
+                };
+                pname = (
+                    if ext_config.pname {
+                        std::env
+                            ::current_exe()
+                            .ok()
+                            .and_then(|pb| pb.file_name().map(|s| s.to_os_string()))
+                            .and_then(|s| s.into_string().ok())
+                    } else {
+                        None
+                    }
+                ).unwrap_or_default();
+                pid = if ext_config.pid { std::process::id() } else { 0 };
+                SyslogWriterConfig::new(level, hostname.clone(), pname.clone(), pid)
+            };
+            tname = ext_config.tname;
+            tid = ext_config.tid;
+            Some(SyslogWriter::new(config, stop.clone())?)
+        } else {
+            None
+        };
         let config = Arc::new(
             Mutex::new(LoggingConfig {
                 level,
                 domain,
+                hostname,
+                pname,
+                pid,
+                tname,
+                tid,
+                structured,
                 console,
                 file,
                 server,
                 clients,
+                syslog,
                 level2sym: LevelSyms::Sym,
             })
         );
         Ok(Self {
             level,
             config: config.clone(),
+            tname,
+            tid,
             tx,
             stop: stop.clone(),
             thr: Some(
@@ -210,7 +467,7 @@ impl Logging {
         if now.unwrap_or_default() {
             *self.stop.lock().unwrap() = true;
         }
-        if let Err(err) = self.tx.send(MessageTypeEnum::Stop) {
+        if let Err(err) = self.tx.send(LoggingTypeEnum::Stop) {
             eprintln!("Failed to send STOP signal to broker thread: {err:?}");
         }
         if let Some(thr) = self.thr.take() {
@@ -395,13 +652,70 @@ impl Logging {
         Ok(())
     }
 
+    pub fn get_config(&self) -> String {
+        let c = self.config.lock().unwrap();
+        format!(
+            "level={:?}\n\
+            domain={:?}\n\
+            hostname={:?}\n\
+            pname={:?}\n\
+            pid={}\n\
+            tname={:?}\n\
+            tid={}\n\
+            structured={:?}\n\
+            console={:?}\n\
+            file={:?}\n\
+            syslog={:?}\n\
+            server={:?}\n\
+            clients={:?}",
+            level2string(&c.level2sym, c.level),
+            c.domain,
+            c.hostname,
+            c.pname,
+            c.pid,
+            c.tname,
+            c.tid,
+            c.structured,
+            c.console.as_ref().map(|c| c.config.lock().unwrap().to_string()),
+            c.file.as_ref().map(|c| c.config.lock().unwrap().to_string()),
+            c.syslog.as_ref().map(|c| c.config.lock().unwrap().to_string()),
+            c.server.as_ref().map(|c| c.config.lock().unwrap().to_string()),
+            c.clients
+                .iter()
+                .map(|(ip, c)| format!("{ip}: {}", c.config.lock().unwrap()))
+                .collect::<Vec<_>>()
+                .join("\n")
+        )
+
+        /*server: Option<LoggingServer>,
+        clients: HashMap<String, ClientWriter>,
+        syslog: Option<SyslogWriter>,*/
+    }
+
     // Logging calls
 
     #[inline]
     fn log<S: Into<String>>(&self, level: u8, message: S) -> Result<(), Error> {
-        self.tx
-            .send(MessageTypeEnum::Message((level, message.into())))
-            .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))
+        (
+            if self.tname || self.tid {
+                let tname = if self.tname {
+                    thread::current().name().unwrap_or_default().to_string()
+                } else {
+                    "".to_string()
+                };
+                let tid = if self.tid { thread_id::get() as u32 } else { 0 };
+                self.tx.send(LoggingTypeEnum::MessageExt((level, message.into(), tid, tname)))
+            } else {
+                self.tx.send(LoggingTypeEnum::Message((level, message.into())))
+            }
+        ).map_err(|e| Error::new(ErrorKind::Other, e.to_string()))
+    }
+
+    pub fn trace<S: Into<String>>(&self, message: S) -> Result<(), Error> {
+        if self.level <= TRACE {
+            self.log(TRACE, message)?;
+        }
+        Ok(())
     }
 
     pub fn debug<S: Into<String>>(&self, message: S) -> Result<(), Error> {
@@ -414,6 +728,13 @@ impl Logging {
     pub fn info<S: Into<String>>(&self, message: S) -> Result<(), Error> {
         if self.level <= INFO {
             self.log(INFO, message)?;
+        }
+        Ok(())
+    }
+
+    pub fn success<S: Into<String>>(&self, message: S) -> Result<(), Error> {
+        if self.level <= SUCCESS {
+            self.log(SUCCESS, message)?;
         }
         Ok(())
     }
@@ -463,5 +784,23 @@ impl Logging {
 
     pub fn __str__(&self) -> String {
         self.__repr__()
+    }
+}
+
+impl Default for Logging {
+    fn default() -> Self {
+        Self::new(None, None, None, None, None, None, None, None).unwrap()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_works() {
+        let mut logging = Logging::new(None, None, None, None, None, None, None, None).unwrap();
+        logging.info("Hello".to_string()).unwrap();
+        logging.shutdown(Some(true)).unwrap();
     }
 }

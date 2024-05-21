@@ -1,5 +1,6 @@
 use std::{
     collections::HashMap,
+    fmt,
     io::{ Error, ErrorKind, Read, Write },
     net::{ TcpListener, TcpStream },
     sync::{ Arc, Mutex },
@@ -10,9 +11,9 @@ use std::{
 use flume::Sender;
 use ring::aead::{ self, BoundKey };
 
-use crate::{ def::MessageTypeEnum, AUTH_KEY };
+use crate::def::LoggingTypeEnum;
 
-use super::{ def::NetConfig, NonceGenerator };
+use super::{ def::{ NetConfig, AUTH_KEY }, NonceGenerator };
 
 #[derive(Debug, Clone)]
 pub struct ServerConfig {
@@ -27,10 +28,16 @@ impl ServerConfig {
     }
 }
 
+impl fmt::Display for ServerConfig {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
 fn handle_client(
     config: Arc<Mutex<NetConfig>>,
     mut stream: TcpStream,
-    tx: Sender<MessageTypeEnum>,
+    tx: Sender<LoggingTypeEnum>,
     stop: Arc<Mutex<bool>>
 ) -> Result<bool, Box<dyn std::error::Error>> {
     let mut buffer = [0u8; 4096];
@@ -61,7 +68,7 @@ fn handle_client(
         let message = std::str::from_utf8(data).unwrap().to_string();
         if let Ok(ref mut config) = config.lock() {
             if msg_level >= config.level {
-                tx.send(MessageTypeEnum::Message((msg_level, message)))?;
+                tx.send(LoggingTypeEnum::Message((msg_level, message)))?;
             }
         }
     }
@@ -71,7 +78,7 @@ fn handle_client(
 fn handle_encrypted_client(
     config: Arc<Mutex<NetConfig>>,
     mut stream: TcpStream,
-    tx: Sender<MessageTypeEnum>,
+    tx: Sender<LoggingTypeEnum>,
     stop: Arc<Mutex<bool>>
 ) -> Result<bool, Box<dyn std::error::Error>> {
     let mut buffer = [0u8; 4096];
@@ -105,7 +112,7 @@ fn handle_encrypted_client(
                 .open_in_place(seal.clone(), data)
                 .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
             let message = std::str::from_utf8(data).unwrap().to_string();
-            tx.send(MessageTypeEnum::Message((msg_level, message)))?;
+            tx.send(LoggingTypeEnum::Message((msg_level, message)))?;
         }
     }
     Ok(false)
@@ -113,7 +120,7 @@ fn handle_encrypted_client(
 
 fn server_thread(
     config: Arc<Mutex<NetConfig>>,
-    tx: Sender<MessageTypeEnum>,
+    tx: Sender<LoggingTypeEnum>,
     stop: Arc<Mutex<bool>>
 ) -> Result<(), Box<dyn std::error::Error>> {
     let address = config.lock().unwrap().address.clone();
@@ -175,14 +182,14 @@ fn server_thread(
 
 #[derive(Debug)]
 pub struct LoggingServer {
-    config: Arc<Mutex<NetConfig>>,
+    pub(crate) config: Arc<Mutex<NetConfig>>,
     thr: Option<JoinHandle<()>>,
 }
 
 impl LoggingServer {
     pub fn new(
         config: ServerConfig,
-        tx: Sender<MessageTypeEnum>,
+        tx: Sender<LoggingTypeEnum>,
         stop: Arc<Mutex<bool>>
     ) -> Result<Self, Error> {
         let config = Arc::new(

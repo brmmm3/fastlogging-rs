@@ -19,7 +19,16 @@ fn benchmark_logging_file(c: &mut Criterion) {
                 None,
                 None
             )?;
-            let mut logging = Logging::new(None, None, None, Some(file), None, None).unwrap();
+            let mut logging = Logging::new(
+                None,
+                None,
+                None,
+                None,
+                Some(file),
+                None,
+                None,
+                None
+            ).unwrap();
             for _ in 1..10000 {
                 logging.debug("Debug message".to_string()).unwrap();
                 logging.info("Info message".to_string()).unwrap();
