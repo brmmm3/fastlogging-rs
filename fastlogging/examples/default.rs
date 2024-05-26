@@ -7,6 +7,6 @@ fn main() -> Result<(), Error> {
     logger.info("Hello1".to_string())?;
     logger.debug("Hello2".to_string())?;
     logger.error("Hello3".to_string())?;
-    logger.shutdown(None)?;
+    logger.shutdown(false)?;
     Ok(())
 }

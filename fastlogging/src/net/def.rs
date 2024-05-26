@@ -4,7 +4,7 @@ use ring::aead::{ self, BoundKey, SealingKey };
 use once_cell::sync::Lazy;
 use rand::{ distributions::Alphanumeric, thread_rng, Rng };
 
-use super::NonceGenerator;
+use super::{ EncryptionMethod, NonceGenerator };
 
 pub static AUTH_KEY: Lazy<Vec<u8>> = Lazy::new(|| {
     thread_rng().sample_iter(&Alphanumeric).take(32).collect()
@@ -14,17 +14,24 @@ pub static AUTH_KEY: Lazy<Vec<u8>> = Lazy::new(|| {
 pub struct NetConfig {
     pub level: u8,
     pub address: String,
-    pub key: Option<Vec<u8>>,
+    pub port: u16,
+    pub key: EncryptionMethod,
     pub sk: Option<SealingKey<NonceGenerator>>,
     pub seal: String,
 }
 
 impl NetConfig {
-    pub fn new(level: u8, address: String, key: Option<Vec<u8>>) -> Result<Self, Error> {
+    pub fn new(
+        level: u8,
+        address: String,
+        port: u16,
+        key: EncryptionMethod
+    ) -> Result<Self, Error> {
         let mut config = Self {
             level,
             address,
-            key: None,
+            port,
+            key: key.clone(),
             sk: None,
             seal: "FastLoggingRs".to_string(),
         };
@@ -32,22 +39,36 @@ impl NetConfig {
         Ok(config)
     }
 
-    pub fn set_encryption(&mut self, key: Option<Vec<u8>>) -> Result<(), Error> {
-        if let Some(key) = key {
-            self.sk = Some(
-                aead::SealingKey::new(
-                    aead::UnboundKey
-                        ::new(&aead::AES_256_GCM, &key)
-                        .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?,
-                    NonceGenerator::new()
-                )
-            );
-            self.key = Some(key);
-        } else {
-            self.sk = None;
-            self.key = None;
+    pub fn set_encryption(&mut self, key: EncryptionMethod) -> Result<(), Error> {
+        self.key = key.clone();
+        match &key {
+            EncryptionMethod::AES(key) => {
+                self.sk = Some(
+                    aead::SealingKey::new(
+                        aead::UnboundKey
+                            ::new(&aead::AES_256_GCM, key)
+                            .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?,
+                        NonceGenerator::new()
+                    )
+                );
+            }
+            EncryptionMethod::AuthKey(_) => {
+                self.sk = None;
+            }
+            EncryptionMethod::None => {
+                self.key = EncryptionMethod::AuthKey(AUTH_KEY.to_vec());
+                self.sk = None;
+            }
         }
         Ok(())
+    }
+
+    pub fn get_address(&self) -> String {
+        if self.address.contains(':') {
+            self.address.clone()
+        } else {
+            format!("{}:{}", self.address, self.port)
+        }
     }
 }
 

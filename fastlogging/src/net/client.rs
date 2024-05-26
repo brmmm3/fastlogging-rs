@@ -10,7 +10,7 @@ use std::{
 use flume::{ bounded, Receiver, SendError, Sender };
 use ring::aead;
 
-use super::def::NetConfig;
+use super::{ def::NetConfig, EncryptionMethod };
 
 #[derive(Debug)]
 pub enum ClientTypeEnum {
@@ -23,12 +23,19 @@ pub enum ClientTypeEnum {
 pub struct ClientWriterConfig {
     pub(crate) level: u8,
     pub(crate) address: String,
-    pub(crate) key: Option<Vec<u8>>,
+    pub(crate) port: u16,
+    pub(crate) key: EncryptionMethod,
 }
 
 impl ClientWriterConfig {
-    pub fn new(level: u8, address: String, key: Option<Vec<u8>>) -> Self {
-        Self { level, address, key }
+    pub fn new<S: Into<String>>(level: u8, address: S, key: EncryptionMethod) -> Self {
+        let address: String = address.into();
+        let port = if address.contains(':') {
+            address.split(':').last().unwrap().parse::<u16>().unwrap()
+        } else {
+            0
+        };
+        Self { level, address, port, key }
     }
 }
 
@@ -47,6 +54,17 @@ fn client_writer_thread(
     let address = config.lock().unwrap().address.clone();
     let mut stream = BufWriter::new(TcpStream::connect(address)?);
     let mut buffer = [0u8; 3];
+    {
+        let config = config.lock().unwrap();
+        if !config.key.is_encrypted() {
+            let key = config.key.key().unwrap();
+            let size = key.len();
+            buffer[0] = size as u8;
+            buffer[1] = (size >> 8) as u8;
+            let _ = stream.write_all(&buffer);
+            let _ = stream.write_all(key);
+        }
+    }
     loop {
         if *stop.lock().unwrap() {
             break;
@@ -94,24 +112,32 @@ pub struct ClientWriter {
 impl ClientWriter {
     pub fn new(config: ClientWriterConfig, stop: Arc<Mutex<bool>>) -> Result<Self, Error> {
         let config = Arc::new(
-            Mutex::new(NetConfig::new(config.level, config.address, config.key)?)
+            Mutex::new(NetConfig::new(config.level, config.address, config.port, config.key)?)
         );
         let (tx, rx) = bounded(1000);
         let (sync_tx, sync_rx) = bounded(1);
+        let (tx_started, rx_started) = bounded(1);
+        // Wait for thread started
+        let config_cloned = config.clone();
+        let thr = thread::Builder
+            ::new()
+            .name("ClientLogging".to_string())
+            .spawn(move || {
+                tx_started.send(1).expect("Failed to send started signal");
+                if let Err(err) = client_writer_thread(config_cloned, rx, sync_tx, stop) {
+                    eprintln!("{err:?}");
+                }
+            })?;
+        rx_started
+            .recv_timeout(Duration::from_millis(100))
+            .map_err(|e|
+                Error::new(ErrorKind::Other, format!("Failed to start logging server: {e}"))
+            )?;
         Ok(Self {
-            config: config.clone(),
+            config,
             tx,
             sync_rx,
-            thr: Some(
-                thread::Builder
-                    ::new()
-                    .name("ClientLogging".to_string())
-                    .spawn(move || {
-                        if let Err(err) = client_writer_thread(config, rx, sync_tx, stop) {
-                            eprintln!("{err:?}");
-                        }
-                    })?
-            ),
+            thr: Some(thr),
         })
     }
 
@@ -128,18 +154,6 @@ impl ClientWriter {
         }
     }
 
-    pub fn set_level(&mut self, level: u8) {
-        self.config.lock().unwrap().level = level;
-    }
-
-    pub fn set_encryption(&mut self, key: Option<Vec<u8>>) -> Result<(), Error> {
-        self.config
-            .lock()
-            .unwrap()
-            .set_encryption(key)
-            .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))
-    }
-
     pub fn sync(&self, timeout: f64) -> Result<(), Error> {
         self.tx
             .send(ClientTypeEnum::Sync)
@@ -148,6 +162,18 @@ impl ClientWriter {
             .recv_timeout(Duration::from_secs_f64(timeout))
             .map_err(|e| Error::new(ErrorKind::BrokenPipe, e.to_string()))?;
         Ok(())
+    }
+
+    pub fn set_level(&mut self, level: u8) {
+        self.config.lock().unwrap().level = level;
+    }
+
+    pub fn set_encryption(&mut self, key: EncryptionMethod) -> Result<(), Error> {
+        self.config
+            .lock()
+            .unwrap()
+            .set_encryption(key)
+            .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))
     }
 
     #[inline]

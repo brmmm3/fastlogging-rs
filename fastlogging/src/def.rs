@@ -83,6 +83,7 @@ impl fmt::Display for LevelSyms {
 #[derive(Debug)]
 pub enum LoggingTypeEnum {
     Message((u8, String)), // level, message
+    MessageRemote((u8, String)), // level, message
     MessageExt((u8, String, u32, String)), // level, tname, tid, message
     Sync(f64), // timeout
     Rotate,

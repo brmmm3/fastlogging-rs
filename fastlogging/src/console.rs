@@ -9,7 +9,7 @@ use std::{
 use flume::{ bounded, Receiver, SendError, Sender };
 use termcolor::{ BufferWriter, Color, ColorChoice, ColorSpec, WriteColor };
 
-use crate::{ CRITICAL, DEBUG, ERROR, EXCEPTION, INFO, WARNING };
+use crate::{ CRITICAL, DEBUG, ERROR, EXCEPTION, INFO, SUCCESS, TRACE, WARNING };
 
 #[derive(Debug)]
 pub enum ConsoleTypeEnum {
@@ -42,7 +42,7 @@ fn console_writer_thread(
     sync_tx: Sender<u8>,
     stop: Arc<Mutex<bool>>
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let bufwtr = BufferWriter::stderr(ColorChoice::Always);
+    let bufwtr = BufferWriter::stdout(ColorChoice::Always);
     let mut buffer = bufwtr.buffer();
     loop {
         if *stop.lock().unwrap() {
@@ -52,11 +52,14 @@ fn console_writer_thread(
             ConsoleTypeEnum::Message((level, message)) => {
                 if let Ok(ref config) = config.lock() {
                     if config.colors {
+                        buffer.clear();
                         buffer.set_color(
                             ColorSpec::new().set_fg(
                                 Some(match level {
-                                    DEBUG => Color::Green,
-                                    INFO => Color::White,
+                                    TRACE => Color::White,
+                                    DEBUG => Color::Blue,
+                                    INFO => Color::Green,
+                                    SUCCESS => Color::Cyan,
                                     WARNING => Color::Yellow,
                                     ERROR => Color::Magenta,
                                     CRITICAL => Color::Red,
@@ -66,6 +69,7 @@ fn console_writer_thread(
                             )
                         )?;
                         writeln!(&mut buffer, "{message}")?;
+                        buffer.reset()?;
                         bufwtr.print(&buffer)?;
                     } else {
                         println!("{message}");
@@ -128,10 +132,6 @@ impl ConsoleWriter {
         }
     }
 
-    pub fn set_colors(&self, colors: bool) {
-        self.config.lock().unwrap().colors = colors;
-    }
-
     pub fn sync(&self, timeout: f64) -> Result<(), Error> {
         self.tx
             .send(ConsoleTypeEnum::Sync)
@@ -142,8 +142,40 @@ impl ConsoleWriter {
         Ok(())
     }
 
+    pub fn set_colors(&self, colors: bool) {
+        self.config.lock().unwrap().colors = colors;
+    }
+
     #[inline]
     pub fn send(&self, level: u8, message: String) -> Result<(), SendError<ConsoleTypeEnum>> {
         self.tx.send(ConsoleTypeEnum::Message((level, message)))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{ ConsoleWriterConfig, Logging, DEBUG };
+
+    #[test]
+    fn console() {
+        let console_writer = ConsoleWriterConfig::new(DEBUG, true);
+        let mut logging = Logging::new(
+            None,
+            None,
+            None,
+            Some(console_writer),
+            None,
+            None,
+            None,
+            None
+        ).unwrap();
+        logging.trace("Trace Message".to_string()).unwrap();
+        logging.debug("Debug Message".to_string()).unwrap();
+        logging.info("Info Message".to_string()).unwrap();
+        logging.success("Success Message".to_string()).unwrap();
+        logging.warning("Warning Message".to_string()).unwrap();
+        logging.error("Error Message".to_string()).unwrap();
+        logging.fatal("Fatal Message".to_string()).unwrap();
+        logging.shutdown(false).unwrap();
     }
 }

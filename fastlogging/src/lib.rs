@@ -3,7 +3,7 @@ pub use def::*;
 mod file;
 pub use file::{ FileWriter, FileWriterConfig };
 mod net;
-pub use net::{ LoggingServer, ServerConfig, ClientWriter, ClientWriterConfig };
+pub use net::{ LoggingServer, ServerConfig, ClientWriter, ClientWriterConfig, EncryptionMethod };
 mod console;
 pub use console::{ ConsoleWriter, ConsoleWriterConfig };
 mod syslog;

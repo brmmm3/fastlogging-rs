@@ -1,5 +1,45 @@
 use ring::{ aead, error::Unspecified };
 
+#[derive(Debug, Clone)]
+pub enum EncryptionMethod {
+    None,
+    AuthKey(Vec<u8>),
+    AES(Vec<u8>),
+}
+
+impl EncryptionMethod {
+    pub fn is_encrypted(&self) -> bool {
+        match self {
+            Self::AES(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn key(&self) -> Option<&[u8]> {
+        match self {
+            Self::None => None,
+            Self::AuthKey(key) => Some(key),
+            Self::AES(key) => Some(key),
+        }
+    }
+
+    pub fn key_cloned(&self) -> Option<Vec<u8>> {
+        match self {
+            Self::None => None,
+            Self::AuthKey(key) => Some(key.to_vec()),
+            Self::AES(key) => Some(key.to_vec()),
+        }
+    }
+
+    pub fn len(&self) -> usize {
+        match self {
+            Self::None => 0,
+            Self::AuthKey(key) => key.len(),
+            Self::AES(key) => key.len(),
+        }
+    }
+}
+
 pub struct NonceGenerator {
     last_nonce: u64,
 }

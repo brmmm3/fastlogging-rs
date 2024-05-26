@@ -20,7 +20,14 @@ use crate::def::{
     WARNING,
 };
 use crate::file::{ FileWriter, FileWriterConfig };
-use crate::net::{ ClientWriter, ClientWriterConfig, LoggingServer, ServerConfig };
+use crate::net::{
+    ClientWriter,
+    ClientWriterConfig,
+    EncryptionMethod,
+    LoggingServer,
+    ServerConfig,
+    AUTH_KEY,
+};
 use crate::{
     level2short,
     level2str,
@@ -195,37 +202,46 @@ fn logging_thread_worker(
         if *stop.lock().unwrap() {
             break;
         }
-        if let Ok(mut config) = config.lock() {
-            let (level, tname, tid, message) = match rx.recv()? {
-                LoggingTypeEnum::Message((level, message)) => { (level, None, 0, message) }
-                LoggingTypeEnum::MessageExt((level, tname, tid, message)) => {
-                    (level, Some(tname), tid, message)
+        let mut remote = false;
+        let (level, tname, tid, message) = match rx.recv()? {
+            LoggingTypeEnum::Message((level, message)) => { (level, None, 0, message) }
+            LoggingTypeEnum::MessageRemote((level, message)) => {
+                remote = true;
+                (level, None, 0, message)
+            }
+            LoggingTypeEnum::MessageExt((level, tname, tid, message)) => {
+                (level, Some(tname), tid, message)
+            }
+            LoggingTypeEnum::Rotate => {
+                if let Some(ref mut file) = config.lock().unwrap().file {
+                    file.rotate()?;
                 }
-                LoggingTypeEnum::Rotate => {
-                    if let Some(ref mut file) = config.file {
-                        file.rotate()?;
-                    }
-                    continue;
+                continue;
+            }
+            LoggingTypeEnum::Sync(timeout) => {
+                let mut config = config.lock().unwrap();
+                if let Some(ref mut console) = config.console {
+                    console.sync(timeout)?;
                 }
-                LoggingTypeEnum::Sync(timeout) => {
-                    if let Some(ref mut console) = config.console {
-                        console.sync(timeout)?;
-                    }
-                    if let Some(ref mut file) = config.file {
-                        file.sync(timeout)?;
-                    }
-                    for client in config.clients.values() {
-                        client.sync(timeout)?;
-                    }
-                    continue;
+                if let Some(ref mut file) = config.file {
+                    file.sync(timeout)?;
                 }
-                LoggingTypeEnum::Stop => {
-                    break;
+                for client in config.clients.values() {
+                    client.sync(timeout)?;
                 }
-            };
-            // Build message
-            // {date} {hostname} {pname}[{pid}]>{tname}[{tid}] {domain}: {level} {message}
-            buffer.clear();
+                continue;
+            }
+            LoggingTypeEnum::Stop => {
+                break;
+            }
+        };
+        // Build message
+        // {date} {hostname} {pname}[{pid}]>{tname}[{tid}] {domain}: {level} {message}
+        let mut config = config.lock().unwrap();
+        buffer.clear();
+        if remote {
+            buffer.push_str(&message);
+        } else {
             match config.structured {
                 MessageStructEnum::String => {
                     build_string_message(&mut buffer, &config, level, tname, tid, message);
@@ -237,21 +253,19 @@ fn logging_thread_worker(
                     build_xml_message(&mut buffer, &config, level, tname, tid, message);
                 }
             }
-            // Send message to writers
-            if let Some(ref mut console) = config.console {
-                console.send(level, buffer.clone())?;
-            }
-            if let Some(ref mut file) = config.file {
-                file.send(level, buffer.clone())?;
-            }
-            for client in config.clients.values() {
-                client.send(level, buffer.clone())?;
-            }
-            if let Some(ref mut syslog) = config.syslog {
-                syslog.send(level, buffer.clone())?;
-            }
-        } else {
-            break;
+        }
+        // Send message to writers
+        if let Some(ref mut console) = config.console {
+            console.send(level, buffer.clone())?;
+        }
+        if let Some(ref mut file) = config.file {
+            file.send(level, buffer.clone())?;
+        }
+        for client in config.clients.values() {
+            client.send(level, buffer.clone())?;
+        }
+        if let Some(ref mut syslog) = config.syslog {
+            syslog.send(level, buffer.clone())?;
         }
     }
     Ok(())
@@ -275,7 +289,7 @@ fn logging_thread(
         }
         if let Some(ref mut writer) = config.server {
             if let Err(err) = writer.shutdown() {
-                eprintln!("Failed to stop server: {err:?}");
+                eprintln!("Failed to stop logging server: {err:?}");
             }
         }
         if let Some(ref mut writer) = config.console {
@@ -460,11 +474,11 @@ impl Logging {
         })
     }
 
-    pub fn shutdown(&mut self, now: Option<bool>) -> Result<(), Error> {
+    pub fn shutdown(&mut self, now: bool) -> Result<(), Error> {
         if self.thr.is_none() {
             return Ok(());
         }
-        if now.unwrap_or_default() {
+        if now {
             *self.stop.lock().unwrap() = true;
         }
         if let Err(err) = self.tx.send(LoggingTypeEnum::Stop) {
@@ -539,21 +553,27 @@ impl Logging {
     }
 
     pub fn sync(&self, console: bool, file: bool, client: bool, timeout: f64) -> Result<(), Error> {
+        let config: MutexGuard<LoggingConfig> = self.config.lock().unwrap();
         if console {
-            if let Some(ref console) = self.config.lock().unwrap().console {
+            if let Some(ref console) = config.console {
                 console.sync(timeout)?;
             }
         }
         if file {
-            if let Some(ref file) = self.config.lock().unwrap().file {
+            if let Some(ref file) = config.file {
                 file.sync(timeout)?;
             }
         }
         if client {
-            for client in self.config.lock().unwrap().clients.values() {
+            for client in config.clients.values() {
                 client.sync(timeout)?;
             }
         }
+        Ok(())
+    }
+
+    pub fn sync_all(&self, timeout: f64) -> Result<(), Error> {
+        self.sync(true, true, true, timeout)?;
         Ok(())
     }
 
@@ -592,7 +612,7 @@ impl Logging {
     pub fn set_client_encryption(
         &mut self,
         address: &str,
-        key: Option<Vec<u8>>
+        key: EncryptionMethod
     ) -> Result<(), Error> {
         if let Ok(mut config) = self.config.lock() {
             if let Some(client) = config.clients.get_mut(address) {
@@ -610,7 +630,7 @@ impl Logging {
         &mut self,
         address: S,
         level: u8,
-        key: Option<Vec<u8>>
+        key: EncryptionMethod
     ) -> Result<(), Error> {
         if let Ok(mut logging_config) = self.config.lock() {
             let config = ServerConfig::new(level, address.into(), key);
@@ -641,7 +661,7 @@ impl Logging {
         Ok(())
     }
 
-    pub fn set_server_encryption(&mut self, key: Option<Vec<u8>>) -> Result<(), Error> {
+    pub fn set_server_encryption(&mut self, key: EncryptionMethod) -> Result<(), Error> {
         if let Ok(mut config) = self.config.lock() {
             if let Some(ref mut server) = config.server {
                 server.set_encryption(key)?;
@@ -651,6 +671,28 @@ impl Logging {
         }
         Ok(())
     }
+
+    pub fn get_server_config(&self) -> Option<ServerConfig> {
+        self.config
+            .lock()
+            .unwrap()
+            .server.as_ref()
+            .map(|s| {
+                let c = s.config.lock().unwrap();
+                ServerConfig {
+                    level: c.level,
+                    address: c.address.clone(),
+                    port: c.port,
+                    key: c.key.clone(),
+                }
+            })
+    }
+
+    pub fn get_server_auth_key(&self) -> Vec<u8> {
+        AUTH_KEY.to_vec()
+    }
+
+    // Config
 
     pub fn get_config(&self) -> String {
         let c = self.config.lock().unwrap();
@@ -686,10 +728,6 @@ impl Logging {
                 .collect::<Vec<_>>()
                 .join("\n")
         )
-
-        /*server: Option<LoggingServer>,
-        clients: HashMap<String, ClientWriter>,
-        syslog: Option<SyslogWriter>,*/
     }
 
     // Logging calls
@@ -790,17 +828,5 @@ impl Logging {
 impl Default for Logging {
     fn default() -> Self {
         Self::new(None, None, None, None, None, None, None, None).unwrap()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let mut logging = Logging::new(None, None, None, None, None, None, None, None).unwrap();
-        logging.info("Hello".to_string()).unwrap();
-        logging.shutdown(Some(true)).unwrap();
     }
 }

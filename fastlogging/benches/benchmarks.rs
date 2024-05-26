@@ -35,7 +35,7 @@ fn benchmark_logging_file(c: &mut Criterion) {
                 logging.warning("Warning message".to_string()).unwrap();
                 logging.error("Error message".to_string()).unwrap();
             }
-            logging.shutdown(None)
+            logging.shutdown(false)
         })
     });
     group.finish();

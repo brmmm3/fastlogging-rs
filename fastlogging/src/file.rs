@@ -242,6 +242,14 @@ impl FileWriter {
         }
     }
 
+    pub fn sync(&self, timeout: f64) -> Result<(), Error> {
+        self.tx.send(FileTypeEnum::Sync).map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+        self.sync_rx
+            .recv_timeout(Duration::from_secs_f64(timeout))
+            .map_err(|e| Error::new(ErrorKind::BrokenPipe, e.to_string()))?;
+        Ok(())
+    }
+
     pub fn set_level(&self, level: u8) {
         self.config.lock().unwrap().level = level;
     }
@@ -267,18 +275,51 @@ impl FileWriter {
         self.tx.send(FileTypeEnum::Rotate).map_err(|e| Error::new(ErrorKind::Other, e.to_string()))
     }
 
-    pub fn sync(&self, timeout: f64) -> Result<(), Error> {
-        self.tx.send(FileTypeEnum::Sync).map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
-        self.sync_rx
-            .recv_timeout(Duration::from_secs_f64(timeout))
-            .map_err(|e| Error::new(ErrorKind::BrokenPipe, e.to_string()))?;
-        Ok(())
-    }
-
     #[inline]
     pub fn send(&self, level: u8, message: String) -> Result<(), Error> {
         self.tx
             .send(FileTypeEnum::Message((level, message)))
             .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use tempdir::TempDir;
+
+    use crate::{ FileWriterConfig, Logging, DEBUG };
+
+    #[test]
+    fn file() {
+        let temp_dir = TempDir::new("fastlogging").unwrap();
+        let log_file = temp_dir.path().join("file.log");
+        let file_writer = FileWriterConfig::new(
+            DEBUG,
+            log_file.clone(),
+            0,
+            0,
+            None,
+            None,
+            None
+        ).unwrap();
+        let mut logging = Logging::new(
+            None,
+            None,
+            None,
+            None,
+            Some(file_writer),
+            None,
+            None,
+            None
+        ).unwrap();
+        logging.trace("Trace Message".to_string()).unwrap();
+        logging.info("Info Message".to_string()).unwrap();
+        logging.success("Success Message".to_string()).unwrap();
+        logging.warning("Warning Message".to_string()).unwrap();
+        logging.error("Error Message".to_string()).unwrap();
+        logging.fatal("Fatal Message".to_string()).unwrap();
+        logging.shutdown(false).unwrap();
+        let log_text = std::fs::read_to_string(&log_file).unwrap();
+        temp_dir.close().unwrap();
     }
 }
