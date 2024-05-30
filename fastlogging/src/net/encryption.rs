@@ -1,5 +1,4 @@
 use ring::{aead, error::Unspecified};
-use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum EncryptionMethod {

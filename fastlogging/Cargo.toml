@@ -35,7 +35,8 @@ zip = { version = "2.1", default-features = false, features = [
 ] }
 rand = "0.8"
 ring = "0.17"
-serde = "1.0"
+serde = { version = "1.0", optional = true }
+serde_derive = { version = "1.0", optional = true }
 serde_json = { version = "1.0", optional = true }
 serde_yaml = { version = "0.9", optional = true }
 quick-xml = { version = "0.31", features = ["serialize"], optional = true }
@@ -51,6 +52,6 @@ tempdir = "0.3"
 
 [features]
 default = ["config_json", "config_xml", "config_yaml"]
-config_json = ["dep:serde_json"]
-config_xml = ["dep:quick-xml"]
-config_yaml = ["dep:serde_yaml"]
+config_json = ["dep:serde", "dep:serde_derive", "dep:serde_json"]
+config_xml = ["dep:serde", "dep:serde_derive", "dep:quick-xml"]
+config_yaml = ["dep:serde", "dep:serde_derive", "dep:serde_yaml"]

@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate serde_derive;
+
 mod def;
 pub use def::*;
 mod config;

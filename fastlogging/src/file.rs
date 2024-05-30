@@ -9,7 +9,6 @@ use std::{
 };
 
 use flume::{bounded, Receiver, RecvTimeoutError, Sender};
-use serde::{Deserialize, Serialize};
 use zip::{write::SimpleFileOptions, ZipWriter};
 
 const BACKLOG_MAX: usize = 1000;
@@ -32,13 +31,13 @@ pub enum CompressionMethodEnum {
     Lzma,
 }
 
-impl Into<zip::CompressionMethod> for CompressionMethodEnum {
-    fn into(self) -> zip::CompressionMethod {
-        match self {
-            Self::Store => zip::CompressionMethod::Stored,
-            Self::Deflate => zip::CompressionMethod::Deflated,
-            Self::Zstd => zip::CompressionMethod::Zstd,
-            Self::Lzma => zip::CompressionMethod::Lzma,
+impl From<CompressionMethodEnum> for zip::CompressionMethod {
+    fn from(val: CompressionMethodEnum) -> Self {
+        match val {
+            CompressionMethodEnum::Store => zip::CompressionMethod::Stored,
+            CompressionMethodEnum::Deflate => zip::CompressionMethod::Deflated,
+            CompressionMethodEnum::Zstd => zip::CompressionMethod::Zstd,
+            CompressionMethodEnum::Lzma => zip::CompressionMethod::Lzma,
         }
     }
 }

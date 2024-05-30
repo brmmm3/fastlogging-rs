@@ -9,7 +9,6 @@ use std::{
 
 use flume::{bounded, Receiver, SendError, Sender};
 use ring::aead;
-use serde::{Deserialize, Serialize};
 
 use super::{def::NetConfig, EncryptionMethod};
 

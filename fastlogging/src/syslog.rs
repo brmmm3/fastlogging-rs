@@ -7,7 +7,6 @@ use std::{
 };
 
 use flume::{bounded, Receiver, SendError, Sender};
-use serde::{Deserialize, Serialize};
 use syslog::{Facility, Formatter3164};
 
 use crate::{CRITICAL, DEBUG, ERROR, EXCEPTION, INFO, SUCCESS, WARNING};

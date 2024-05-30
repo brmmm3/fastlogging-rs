@@ -7,7 +7,6 @@ use std::{
 };
 
 use flume::{bounded, Receiver, SendError, Sender};
-use serde::{Deserialize, Serialize};
 use termcolor::{BufferWriter, Color, ColorChoice, ColorSpec, WriteColor};
 
 use crate::{CRITICAL, DEBUG, ERROR, EXCEPTION, INFO, SUCCESS, TRACE, WARNING};

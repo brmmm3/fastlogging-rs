@@ -13,7 +13,6 @@ use std::{
 
 use flume::{bounded, Sender};
 use ring::aead::{self, BoundKey};
-use serde::{Deserialize, Serialize};
 
 use crate::def::LoggingTypeEnum;
 
@@ -101,7 +100,7 @@ fn handle_client(
             if level >= config.level {
                 let message = format!(
                     "{perr_addr}: {}",
-                    std::str::from_utf8(&mut buffer[..size]).unwrap()
+                    std::str::from_utf8(&buffer[..size]).unwrap()
                 );
                 tx.send(LoggingTypeEnum::MessageRemote((level, message)))?;
             }
@@ -152,7 +151,7 @@ fn handle_encrypted_client(
                 .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
             let message = format!(
                 "{perr_addr}: {}",
-                std::str::from_utf8(&mut buffer[..size]).unwrap()
+                std::str::from_utf8(&buffer[..size]).unwrap()
             );
             tx.send(LoggingTypeEnum::MessageRemote((msg_level, message)))?;
         }
@@ -211,10 +210,7 @@ fn server_thread(
         let buggy_clients = buggy_clients.clone();
         let stop = stop.clone();
         let stop_server = stop_server.clone();
-        clients
-            .lock()
-            .unwrap()
-            .insert(addr.clone(), stream.try_clone()?);
+        clients.lock().unwrap().insert(addr, stream.try_clone()?);
         let clients = clients.clone();
         pool.execute(move || {
             let is_encrypted = config.lock().unwrap().key.is_encrypted();

@@ -9,8 +9,6 @@ use std::sync::{Arc, Mutex};
 
 use flume::{bounded, Receiver, Sender};
 use gethostname::gethostname;
-use serde::Deserialize;
-use serde::Serialize;
 
 const CONFIG_FILE_SIZE_MAX: u64 = 4096;
 
@@ -167,7 +165,7 @@ impl ConfigFile {
                     if m.len() > CONFIG_FILE_SIZE_MAX {
                         return Err(Error::new(
                             ErrorKind::InvalidData,
-                            format!("Config file is too big!"),
+                            "Config file is too big!".to_string(),
                         ));
                     }
                 }
@@ -308,7 +306,7 @@ impl ConfigFile {
                 } else {
                     None
                 };
-                self.config.hostname = hostname.clone();
+                self.config.hostname.clone_from(&hostname);
                 pname = (if ext_config.pname {
                     std::env::current_exe()
                         .ok()
@@ -318,7 +316,7 @@ impl ConfigFile {
                     None
                 })
                 .unwrap_or_default();
-                self.config.pname = pname.clone();
+                self.config.pname.clone_from(&pname);
                 pid = if ext_config.pid {
                     std::process::id()
                 } else {
@@ -484,7 +482,7 @@ impl ConfigFile {
                 ),
             ));
         })?;
-        fs::write(path, &data)?;
+        fs::write(path, data)?;
         Ok(())
     }
 }

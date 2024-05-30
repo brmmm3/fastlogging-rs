@@ -1,7 +1,5 @@
 use std::fmt;
 
-use serde::{Deserialize, Serialize};
-
 // Log-Levels
 pub const NOLOG: u8 = 70;
 pub const EXCEPTION: u8 = 60;
