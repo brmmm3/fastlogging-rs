@@ -7,6 +7,7 @@ use std::{
 };
 
 use flume::{ bounded, Receiver, SendError, Sender };
+use serde::{ Deserialize, Serialize };
 use termcolor::{ BufferWriter, Color, ColorChoice, ColorSpec, WriteColor };
 
 use crate::{ CRITICAL, DEBUG, ERROR, EXCEPTION, INFO, SUCCESS, TRACE, WARNING };
@@ -18,7 +19,7 @@ pub enum ConsoleTypeEnum {
     Stop,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConsoleWriterConfig {
     pub(crate) level: u8, // Log level
     pub(crate) colors: bool,
@@ -164,6 +165,7 @@ mod tests {
             None,
             None,
             Some(console_writer),
+            None,
             None,
             None,
             None,

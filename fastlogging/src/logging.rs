@@ -1,24 +1,14 @@
-use std::collections::HashMap;
 use std::io::{ Error, ErrorKind };
+use std::path::PathBuf;
 use std::sync::{ Arc, Mutex, MutexGuard };
 use std::thread::{ self, JoinHandle };
 
-use flume::{ bounded, Receiver, Sender };
+use flume::{ Receiver, Sender };
 use chrono::Local;
-use gethostname::gethostname;
 
+use crate::config::{ ConfigFile, ExtConfig, LoggingConfig };
 use crate::console::{ ConsoleWriter, ConsoleWriterConfig };
-use crate::def::{
-    LoggingTypeEnum,
-    NOTSET,
-    CRITICAL,
-    DEBUG,
-    ERROR,
-    EXCEPTION,
-    FATAL,
-    INFO,
-    WARNING,
-};
+use crate::def::{ LoggingTypeEnum, CRITICAL, DEBUG, ERROR, EXCEPTION, FATAL, INFO, WARNING };
 use crate::file::{ FileWriter, FileWriterConfig };
 use crate::net::{
     ClientWriter,
@@ -35,8 +25,6 @@ use crate::{
     level2sym,
     LevelSyms,
     MessageStructEnum,
-    SyslogWriter,
-    SyslogWriterConfig,
     SUCCESS,
     TRACE,
 };
@@ -316,47 +304,6 @@ fn logging_thread(
 }
 
 #[derive(Debug)]
-pub struct ExtConfig {
-    structured: MessageStructEnum,
-    hostname: bool, // Log hostname
-    pname: bool, // Log process name
-    pid: bool, // Log process ID
-    tname: bool, // Log thread name
-    tid: bool, // Log thread ID
-}
-
-impl Default for ExtConfig {
-    fn default() -> Self {
-        Self {
-            hostname: false,
-            pname: false,
-            pid: false,
-            tname: false,
-            tid: false,
-            structured: MessageStructEnum::String,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct LoggingConfig {
-    level: u8,
-    domain: String,
-    hostname: Option<String>,
-    pname: String,
-    pid: u32,
-    tname: bool,
-    tid: bool,
-    structured: MessageStructEnum,
-    console: Option<ConsoleWriter>,
-    file: Option<FileWriter>,
-    server: Option<LoggingServer>,
-    clients: HashMap<String, ClientWriter>,
-    syslog: Option<SyslogWriter>,
-    level2sym: LevelSyms,
-}
-
-#[derive(Debug)]
 pub struct Logging {
     pub level: u8,
     config: Arc<Mutex<LoggingConfig>>,
@@ -376,84 +323,23 @@ impl Logging {
         file: Option<FileWriterConfig>, // If config is defined start FileLogging
         server: Option<ServerConfig>, // If config is defined start LoggingServer
         connect: Option<ClientWriterConfig>, // If config is defined start ClientLogging
-        syslog: Option<u8> // If log level is defined start SyslogLogging
+        syslog: Option<u8>, // If log level is defined start SyslogLogging
+        config: Option<PathBuf> // Optional configuration file
     ) -> Result<Self, Error> {
-        let level = level.unwrap_or(NOTSET);
-        let domain = domain.unwrap_or("root".to_string());
-        let (tx, rx) = bounded(1000);
-        let stop = Arc::new(Mutex::new(false));
-        let console = if let Some(config) = console {
-            Some(ConsoleWriter::new(config, stop.clone())?)
-        } else {
-            None
-        };
-        let file = if let Some(config) = file {
-            Some(FileWriter::new(config, stop.clone())?)
-        } else {
-            None
-        };
-        let mut clients = HashMap::new();
-        if let Some(config) = connect {
-            clients.insert(config.address.clone(), ClientWriter::new(config, stop.clone())?);
-        }
-        let server = if let Some(config) = server {
-            Some(LoggingServer::new(config, tx.clone(), stop.clone())?)
-        } else {
-            None
-        };
-        let mut structured = MessageStructEnum::String;
-        let mut hostname = None;
-        let mut pname = "".to_string();
-        let mut pid = 0;
-        let mut tname = false;
-        let mut tid = false;
-        let syslog = if let Some(level) = syslog {
-            let ext_config = ext_config.unwrap_or_default();
-            structured = ext_config.structured;
-            let config = {
-                hostname = if ext_config.hostname {
-                    Some(gethostname().into_string().unwrap())
-                } else {
-                    None
-                };
-                pname = (
-                    if ext_config.pname {
-                        std::env
-                            ::current_exe()
-                            .ok()
-                            .and_then(|pb| pb.file_name().map(|s| s.to_os_string()))
-                            .and_then(|s| s.into_string().ok())
-                    } else {
-                        None
-                    }
-                ).unwrap_or_default();
-                pid = if ext_config.pid { std::process::id() } else { 0 };
-                SyslogWriterConfig::new(level, hostname.clone(), pname.clone(), pid)
-            };
-            tname = ext_config.tname;
-            tid = ext_config.tid;
-            Some(SyslogWriter::new(config, stop.clone())?)
-        } else {
-            None
-        };
-        let config = Arc::new(
-            Mutex::new(LoggingConfig {
-                level,
-                domain,
-                hostname,
-                pname,
-                pid,
-                tname,
-                tid,
-                structured,
-                console,
-                file,
-                server,
-                clients,
-                syslog,
-                level2sym: LevelSyms::Sym,
-            })
-        );
+        // Initialize config from optional config file.
+        let mut config_file = ConfigFile::new(config)?;
+        // Overwrite settings with arguments, if provided.
+        let (config, level, tname, tid, tx, rx, stop) = config_file.init(
+            level,
+            domain,
+            ext_config,
+            console,
+            file,
+            server,
+            connect,
+            syslog
+        )?;
+        let config = Arc::new(Mutex::new(config));
         Ok(Self {
             level,
             config: config.clone(),
@@ -730,7 +616,7 @@ impl Logging {
         )
     }
 
-    // Logging calls
+    // Logging methods
 
     #[inline]
     fn log<S: Into<String>>(&self, level: u8, message: S) -> Result<(), Error> {
@@ -827,6 +713,6 @@ impl Logging {
 
 impl Default for Logging {
     fn default() -> Self {
-        Self::new(None, None, None, None, None, None, None, None).unwrap()
+        Self::new(None, None, None, None, None, None, None, None, None).unwrap()
     }
 }

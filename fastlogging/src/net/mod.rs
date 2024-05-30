@@ -36,7 +36,7 @@ mod tests {
             None,
             None
         ).unwrap();
-        let server_config = ServerConfig::new(DEBUG, "127.0.0.1", EncryptionMethod::None);
+        let server_config = ServerConfig::new(DEBUG, "127.0.0.1", EncryptionMethod::NONE);
         let mut logging_server = Logging::new(
             None,
             None,
@@ -44,6 +44,7 @@ mod tests {
             Some(console_writer),
             Some(file_writer),
             Some(server_config),
+            None,
             None,
             None
         ).unwrap();
@@ -62,6 +63,7 @@ mod tests {
             None,
             None,
             Some(client_writer),
+            None,
             None
         ).unwrap();
         logging_client.trace("Trace Message".to_string()).unwrap();
@@ -73,7 +75,7 @@ mod tests {
         logging_client.fatal("Fatal Message".to_string()).unwrap();
         logging_client.shutdown(false).unwrap();
         logging_server.shutdown(false).unwrap();
-        let log_text = std::fs::read_to_string(&log_file).unwrap();
+        let _log_text = std::fs::read_to_string(&log_file).unwrap();
         temp_dir.close().unwrap();
     }
 }

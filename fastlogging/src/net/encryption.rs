@@ -1,23 +1,21 @@
 use ring::{ aead, error::Unspecified };
+use serde::{ Deserialize, Serialize };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum EncryptionMethod {
-    None,
+    NONE,
     AuthKey(Vec<u8>),
     AES(Vec<u8>),
 }
 
 impl EncryptionMethod {
     pub fn is_encrypted(&self) -> bool {
-        match self {
-            Self::AES(_) => true,
-            _ => false,
-        }
+        matches!(self, Self::AES(_))
     }
 
     pub fn key(&self) -> Option<&[u8]> {
         match self {
-            Self::None => None,
+            Self::NONE => None,
             Self::AuthKey(key) => Some(key),
             Self::AES(key) => Some(key),
         }
@@ -25,7 +23,7 @@ impl EncryptionMethod {
 
     pub fn key_cloned(&self) -> Option<Vec<u8>> {
         match self {
-            Self::None => None,
+            Self::NONE => None,
             Self::AuthKey(key) => Some(key.to_vec()),
             Self::AES(key) => Some(key.to_vec()),
         }
@@ -33,7 +31,7 @@ impl EncryptionMethod {
 
     pub fn len(&self) -> usize {
         match self {
-            Self::None => 0,
+            Self::NONE => 0,
             Self::AuthKey(key) => key.len(),
             Self::AES(key) => key.len(),
         }

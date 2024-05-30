@@ -24,7 +24,7 @@ fn main() -> Result<(), Error> {
         None,
         None
     ).unwrap();
-    let server_config = ServerConfig::new(DEBUG, "127.0.0.1", EncryptionMethod::None);
+    let server_config = ServerConfig::new(DEBUG, "127.0.0.1", EncryptionMethod::NONE);
     let mut logging_server = Logging::new(
         None,
         Some("LOGSRV".to_string()),
@@ -32,6 +32,7 @@ fn main() -> Result<(), Error> {
         Some(console_writer),
         Some(file_writer),
         Some(server_config),
+        None,
         None,
         None
     ).unwrap();
@@ -50,6 +51,7 @@ fn main() -> Result<(), Error> {
         None,
         None,
         Some(client_writer),
+        None,
         None
     ).unwrap();
     println!("Send logs");
@@ -67,7 +69,7 @@ fn main() -> Result<(), Error> {
     println!("Shutdown Loggers");
     logging_client.shutdown(false).unwrap();
     logging_server.shutdown(false).unwrap();
-    let log_text = std::fs::read_to_string(&log_file).unwrap();
+    let _log_text = std::fs::read_to_string(&log_file).unwrap();
     temp_dir.close().unwrap();
     println!("-------- Finished --------");
     Ok(())

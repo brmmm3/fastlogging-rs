@@ -34,6 +34,10 @@ impl Logger {
         self.level = level;
     }
 
+    pub fn level(&self) -> u8 {
+        self.level
+    }
+
     pub fn set_domain(&mut self, domain: String) {
         self.domain = domain;
     }
@@ -52,9 +56,9 @@ impl Logger {
                         "".to_string()
                     };
                     let tid = if self.tid { thread_id::get() as u32 } else { 0 };
-                    tx.send(LoggingTypeEnum::MessageExt((level, message.into(), tid, tname)))
+                    tx.send(LoggingTypeEnum::MessageExt((level, message, tid, tname)))
                 } else {
-                    tx.send(LoggingTypeEnum::Message((level, message.into())))
+                    tx.send(LoggingTypeEnum::Message((level, message)))
                 }
             ).map_err(|e| Error::new(ErrorKind::Other, e.to_string()));
         }

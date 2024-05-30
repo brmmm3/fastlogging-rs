@@ -1,5 +1,7 @@
 mod def;
 pub use def::*;
+mod config;
+pub use config::ExtConfig;
 mod file;
 pub use file::{ FileWriter, FileWriterConfig };
 mod net;

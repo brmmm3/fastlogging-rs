@@ -10,12 +10,13 @@ use std::{
 
 use flume::{ bounded, Sender };
 use ring::aead::{ self, BoundKey };
+use serde::{ Deserialize, Serialize };
 
 use crate::def::LoggingTypeEnum;
 
 use super::{ def::NetConfig, EncryptionMethod, NonceGenerator };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ServerConfig {
     pub level: u8,
     pub address: String,

@@ -7,6 +7,7 @@ use std::{
 };
 
 use flume::{ bounded, Receiver, SendError, Sender };
+use serde::{ Deserialize, Serialize };
 use syslog::{ Facility, Formatter3164 };
 
 use crate::{ CRITICAL, DEBUG, ERROR, EXCEPTION, INFO, SUCCESS, WARNING };
@@ -18,9 +19,10 @@ pub enum SyslogTypeEnum {
     Stop,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SyslogWriterConfig {
     pub level: u8, // Log level
+    #[serde(skip_serializing, skip_deserializing)]
     formatter: Formatter3164,
 }
 

@@ -27,6 +27,7 @@ fn benchmark_logging_file(c: &mut Criterion) {
                 Some(file),
                 None,
                 None,
+                None,
                 None
             ).unwrap();
             for _ in 1..10000 {

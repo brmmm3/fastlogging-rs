@@ -55,7 +55,7 @@ impl NetConfig {
             EncryptionMethod::AuthKey(_) => {
                 self.sk = None;
             }
-            EncryptionMethod::None => {
+            EncryptionMethod::NONE => {
                 self.key = EncryptionMethod::AuthKey(AUTH_KEY.to_vec());
                 self.sk = None;
             }

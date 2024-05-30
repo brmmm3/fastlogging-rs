@@ -9,17 +9,18 @@ use std::{
 
 use flume::{ bounded, Receiver, SendError, Sender };
 use ring::aead;
+use serde::{ Deserialize, Serialize };
 
 use super::{ def::NetConfig, EncryptionMethod };
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ClientTypeEnum {
     Message((u8, String)), // level, message
     Sync, // timeout
     Stop,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClientWriterConfig {
     pub(crate) level: u8,
     pub(crate) address: String,

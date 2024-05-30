@@ -1,5 +1,7 @@
 use std::fmt;
 
+use serde::{ Deserialize, Serialize };
+
 // Log-Levels
 pub const NOLOG: u8 = 70;
 pub const EXCEPTION: u8 = 60;
@@ -67,7 +69,7 @@ pub fn level2string(levelsym: &LevelSyms, level: u8) -> &'static str {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum LevelSyms {
     Sym,
     Short,
@@ -90,7 +92,7 @@ pub enum LoggingTypeEnum {
     Stop,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum MessageStructEnum {
     String,
     Json,

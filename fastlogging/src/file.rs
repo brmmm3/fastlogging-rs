@@ -5,17 +5,18 @@ use std::{
     path::{ Path, PathBuf },
     sync::{ Arc, Mutex },
     thread::{ self, JoinHandle },
-    time::{ Duration, Instant },
+    time::{ Duration, SystemTime },
 };
 
 use flume::{ bounded, Receiver, RecvTimeoutError, Sender };
-use zip::{ write::SimpleFileOptions, CompressionMethod, ZipWriter };
+use serde::{ Deserialize, Serialize };
+use zip::{ write::SimpleFileOptions, ZipWriter };
 
 const BACKLOG_MAX: usize = 1000;
 const QUEUE_CAPACITY: usize = 10000;
 const DEFAULT_DELAY: u64 = 3600;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum FileTypeEnum {
     Message((u8, String)), // level, message
     Sync, // timeout
@@ -23,14 +24,33 @@ pub enum FileTypeEnum {
     Stop,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub enum CompressionMethod {
+    Store,
+    Deflate,
+    Zstd,
+    Lzma,
+}
+
+impl Into<zip::CompressionMethod> for CompressionMethod {
+    fn into(self) -> zip::CompressionMethod {
+        match self {
+            Self::Store => zip::CompressionMethod::Stored,
+            Self::Deflate => zip::CompressionMethod::Deflated,
+            Self::Zstd => zip::CompressionMethod::Zstd,
+            Self::Lzma => zip::CompressionMethod::Lzma,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileWriterConfig {
     level: u8, // Log level
     path: PathBuf, // Log file path
     size: usize, // Maximum size of log file. 0 means no size limit.
     backlog: usize, // Maximum number of backup files.
     timeout: Option<Duration>, // Maximum log file age in seconds.
-    time: Option<Instant>, // Time when to backup log file.
+    time: Option<SystemTime>, // Time when to backup log file.
     compression: CompressionMethod, // Compression method for backup files.
 }
 
@@ -41,7 +61,7 @@ impl FileWriterConfig {
         size: usize,
         backlog: usize,
         timeout: Option<Duration>,
-        time: Option<Instant>,
+        time: Option<SystemTime>,
         compression: Option<CompressionMethod>
     ) -> Result<Self, Error> {
         if size > 0 || timeout.is_some() || time.is_some() {
@@ -70,7 +90,7 @@ impl FileWriterConfig {
             backlog,
             timeout,
             time,
-            compression: compression.unwrap_or(CompressionMethod::STORE),
+            compression: compression.unwrap_or(CompressionMethod::Store),
         })
     }
 }
@@ -92,7 +112,7 @@ fn rotate_do(path: &Path, backlog: usize, compression: CompressionMethod) -> Res
         }
     }
     let mut backlog_path = path.to_path_buf();
-    if compression == CompressionMethod::STORE {
+    if compression == CompressionMethod::Store {
         backlog_path.set_extension(".log.1");
     } else {
         backlog_path.set_extension(".log.1.gz");
@@ -105,7 +125,7 @@ fn rotate_do(path: &Path, backlog: usize, compression: CompressionMethod) -> Res
     let mut zip = ZipWriter::new(zip_file);
     let filename = path.file_name().unwrap().to_str().unwrap();
     let options = SimpleFileOptions::default()
-        .compression_method(compression)
+        .compression_method(compression.into())
         .unix_permissions(0o755);
     zip.start_file(filename, options)?;
     zip.write_all(&buffer)?;
@@ -120,7 +140,7 @@ fn file_writer_thread_worker(
     sync_tx: Sender<u8>
 ) -> Result<(), Box<dyn std::error::Error>> {
     let path = config.lock().unwrap().path.clone();
-    let mut create_time = Instant::now();
+    let mut create_time = SystemTime::now();
     let mut file = BufWriter::new(OpenOptions::new().create(true).append(true).open(&path)?);
     let mut size = file.seek(SeekFrom::End(0))? as usize;
     let newline = vec![b'\n'];
@@ -133,15 +153,16 @@ fn file_writer_thread_worker(
             let c = config.lock().unwrap();
             (c.size, c.backlog, c.timeout, c.time, c.compression)
         };
-        let mut to = create_time
+        let mut deadline = create_time
             .checked_add(timeout.unwrap_or(default_delay))
-            .unwrap_or_else(|| Instant::now().checked_add(default_delay).unwrap());
+            .unwrap_or_else(|| SystemTime::now().checked_add(default_delay).unwrap());
         if let Some(time) = time {
-            if time < to {
-                to = time;
+            if time < deadline {
+                deadline = time;
             }
         }
-        let message = match rx.recv_deadline(to) {
+        let to = deadline.duration_since(SystemTime::now()).unwrap();
+        let message = match rx.recv_timeout(to) {
             Ok(m) => m,
             Err(err) => {
                 if err == RecvTimeoutError::Disconnected {
@@ -176,7 +197,7 @@ fn file_writer_thread_worker(
             if let Err(err) = rotate_do(&path, backlog, compression) {
                 eprintln!("Failed to rotate log files: {err:?}");
             }
-            create_time = Instant::now();
+            create_time = SystemTime::now();
             file = BufWriter::new(OpenOptions::new().write(true).truncate(true).open(&path)?);
             size = 0;
         }
@@ -259,7 +280,7 @@ impl FileWriter {
         size: usize,
         backlog: usize,
         timeout: Option<Duration>,
-        time: Option<Instant>,
+        time: Option<SystemTime>,
         compression: Option<CompressionMethod>
     ) -> Result<(), Error> {
         let mut config = self.config.lock().unwrap();
@@ -267,7 +288,7 @@ impl FileWriter {
         config.backlog = backlog;
         config.timeout = timeout;
         config.time = time;
-        config.compression = compression.unwrap_or(CompressionMethod::STORE);
+        config.compression = compression.unwrap_or(CompressionMethod::Store);
         self.sync(5.0)
     }
 
@@ -310,6 +331,7 @@ mod tests {
             Some(file_writer),
             None,
             None,
+            None,
             None
         ).unwrap();
         logging.trace("Trace Message".to_string()).unwrap();
@@ -319,7 +341,7 @@ mod tests {
         logging.error("Error Message".to_string()).unwrap();
         logging.fatal("Fatal Message".to_string()).unwrap();
         logging.shutdown(false).unwrap();
-        let log_text = std::fs::read_to_string(&log_file).unwrap();
+        let _log_text = std::fs::read_to_string(&log_file).unwrap();
         temp_dir.close().unwrap();
     }
 }
