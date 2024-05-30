@@ -1,34 +1,22 @@
-use std::io::{ Error, ErrorKind };
-use std::path::{ Path, PathBuf };
-use std::sync::{ Arc, Mutex, MutexGuard };
-use std::thread::{ self, JoinHandle };
+use std::io::{Error, ErrorKind};
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex, MutexGuard};
+use std::thread::{self, JoinHandle};
 
-use flume::{ Receiver, Sender };
 use chrono::Local;
+use flume::{Receiver, Sender};
 
-use crate::config::{ ConfigFile, ExtConfig, LoggingConfig };
-use crate::console::{ ConsoleWriter, ConsoleWriterConfig };
-use crate::def::{ LoggingTypeEnum, CRITICAL, DEBUG, ERROR, EXCEPTION, FATAL, INFO, WARNING };
-use crate::file::{ FileWriter, FileWriterConfig };
+use crate::config::{ConfigFile, ExtConfig, LoggingConfig};
+use crate::console::{ConsoleWriter, ConsoleWriterConfig};
+use crate::def::{LoggingTypeEnum, CRITICAL, DEBUG, ERROR, EXCEPTION, FATAL, INFO, WARNING};
+use crate::file::{FileWriter, FileWriterConfig};
+use crate::logger::Logger;
 use crate::net::{
-    ClientWriter,
-    ClientWriterConfig,
-    EncryptionMethod,
-    LoggingServer,
-    ServerConfig,
-    AUTH_KEY,
+    ClientWriter, ClientWriterConfig, EncryptionMethod, LoggingServer, ServerConfig, AUTH_KEY,
 };
 use crate::{
-    level2short,
-    level2str,
-    level2string,
-    level2sym,
-    LevelSyms,
-    MessageStructEnum,
-    SUCCESS,
-    TRACE,
+    level2short, level2str, level2string, level2sym, LevelSyms, MessageStructEnum, SUCCESS, TRACE,
 };
-use crate::logger::Logger;
 
 #[inline]
 fn build_string_message(
@@ -37,7 +25,7 @@ fn build_string_message(
     level: u8,
     tname: Option<String>,
     tid: u32,
-    message: String
+    message: String,
 ) {
     buffer.push_str(&Local::now().format("%Y.%m.%d %H:%M:%S").to_string());
     if let Some(ref hostname) = config.hostname {
@@ -88,7 +76,7 @@ fn build_json_message(
     level: u8,
     tname: Option<String>,
     tid: u32,
-    message: String
+    message: String,
 ) {
     buffer.push('{');
     buffer.push_str("\"date\":");
@@ -136,7 +124,7 @@ fn build_xml_message(
     level: u8,
     tname: Option<String>,
     tid: u32,
-    message: String
+    message: String,
 ) {
     buffer.push_str("<log>");
     buffer.push_str("<date>");
@@ -183,7 +171,7 @@ fn build_xml_message(
 fn logging_thread_worker(
     rx: Receiver<LoggingTypeEnum>,
     config: Arc<Mutex<LoggingConfig>>,
-    stop: Arc<Mutex<bool>>
+    stop: Arc<Mutex<bool>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut buffer = String::with_capacity(4096);
     loop {
@@ -192,7 +180,7 @@ fn logging_thread_worker(
         }
         let mut remote = false;
         let (level, tname, tid, message) = match rx.recv()? {
-            LoggingTypeEnum::Message((level, message)) => { (level, None, 0, message) }
+            LoggingTypeEnum::Message((level, message)) => (level, None, 0, message),
             LoggingTypeEnum::MessageRemote((level, message)) => {
                 remote = true;
                 (level, None, 0, message)
@@ -262,7 +250,7 @@ fn logging_thread_worker(
 fn logging_thread(
     rx: Receiver<LoggingTypeEnum>,
     config: Arc<Mutex<LoggingConfig>>,
-    stop: Arc<Mutex<bool>>
+    stop: Arc<Mutex<bool>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut some_err = None;
     if let Err(err) = logging_thread_worker(rx, config.clone(), stop) {
@@ -322,23 +310,16 @@ impl Logging {
         ext_config: Option<ExtConfig>, // Extended logging configuration
         console: Option<ConsoleWriterConfig>, // If config is defined start ConsoleLogging
         file: Option<FileWriterConfig>, // If config is defined start FileLogging
-        server: Option<ServerConfig>, // If config is defined start LoggingServer
+        server: Option<ServerConfig>,  // If config is defined start LoggingServer
         connect: Option<ClientWriterConfig>, // If config is defined start ClientLogging
-        syslog: Option<u8>, // If log level is defined start SyslogLogging
-        config: Option<PathBuf> // Optional configuration file
+        syslog: Option<u8>,            // If log level is defined start SyslogLogging
+        config: Option<PathBuf>,       // Optional configuration file
     ) -> Result<Self, Error> {
         // Initialize config from optional config file.
         let mut config_file = ConfigFile::new(config)?;
         // Overwrite settings with arguments, if provided.
         let (config, level, tname, tid, tx, rx, stop) = config_file.init(
-            level,
-            domain,
-            ext_config,
-            console,
-            file,
-            server,
-            connect,
-            syslog
+            level, domain, ext_config, console, file, server, connect, syslog,
         )?;
         let config = Arc::new(Mutex::new(config));
         Ok(Self {
@@ -350,14 +331,13 @@ impl Logging {
             tx,
             stop: stop.clone(),
             thr: Some(
-                thread::Builder
-                    ::new()
+                thread::Builder::new()
                     .name("FileLogging".to_string())
                     .spawn(move || {
                         if let Err(err) = logging_thread(rx, config, stop) {
                             eprintln!("logging_thread returned with error: {err:?}");
                         }
-                    })?
+                    })?,
             ),
         })
     }
@@ -373,9 +353,12 @@ impl Logging {
             eprintln!("Failed to send STOP signal to broker thread: {err:?}");
         }
         if let Some(thr) = self.thr.take() {
-            thr.join().map_err(|e|
-                Error::new(ErrorKind::Other, e.downcast_ref::<&str>().unwrap().to_string())
-            )
+            thr.join().map_err(|e| {
+                Error::new(
+                    ErrorKind::Other,
+                    e.downcast_ref::<&str>().unwrap().to_string(),
+                )
+            })
         } else {
             Ok(())
         }
@@ -437,7 +420,11 @@ impl Logging {
     }
 
     pub fn rotate(&self) -> Result<(), Error> {
-        if let Some(ref file) = self.config.lock().unwrap().file { file.rotate() } else { Ok(()) }
+        if let Some(ref file) = self.config.lock().unwrap().file {
+            file.rotate()
+        } else {
+            Ok(())
+        }
     }
 
     pub fn sync(&self, console: bool, file: bool, client: bool, timeout: f64) -> Result<(), Error> {
@@ -481,7 +468,10 @@ impl Logging {
             if config.clients.remove(address).is_some() {
                 return Ok(());
             }
-            return Err(Error::new(ErrorKind::NotFound, "Client not found".to_string()));
+            return Err(Error::new(
+                ErrorKind::NotFound,
+                "Client not found".to_string(),
+            ));
         }
         Ok(())
     }
@@ -492,7 +482,10 @@ impl Logging {
                 client.set_level(level);
                 return Ok(());
             }
-            return Err(Error::new(ErrorKind::NotFound, "Client not found".to_string()));
+            return Err(Error::new(
+                ErrorKind::NotFound,
+                "Client not found".to_string(),
+            ));
         }
         Ok(())
     }
@@ -500,14 +493,17 @@ impl Logging {
     pub fn set_client_encryption(
         &mut self,
         address: &str,
-        key: EncryptionMethod
+        key: EncryptionMethod,
     ) -> Result<(), Error> {
         if let Ok(mut config) = self.config.lock() {
             if let Some(client) = config.clients.get_mut(address) {
                 client.set_encryption(key)?;
                 return Ok(());
             }
-            return Err(Error::new(ErrorKind::NotFound, "Client not found".to_string()));
+            return Err(Error::new(
+                ErrorKind::NotFound,
+                "Client not found".to_string(),
+            ));
         }
         Ok(())
     }
@@ -518,13 +514,15 @@ impl Logging {
         &mut self,
         address: S,
         level: u8,
-        key: EncryptionMethod
+        key: EncryptionMethod,
     ) -> Result<(), Error> {
         if let Ok(mut logging_config) = self.config.lock() {
             let config = ServerConfig::new(level, address.into(), key);
-            logging_config.server = Some(
-                LoggingServer::new(config, self.tx.clone(), self.stop.clone())?
-            );
+            logging_config.server = Some(LoggingServer::new(
+                config,
+                self.tx.clone(),
+                self.stop.clone(),
+            )?);
         }
         Ok(())
     }
@@ -544,7 +542,10 @@ impl Logging {
                 server.set_level(level);
                 return Ok(());
             }
-            return Err(Error::new(ErrorKind::NotFound, "Server not running".to_string()));
+            return Err(Error::new(
+                ErrorKind::NotFound,
+                "Server not running".to_string(),
+            ));
         }
         Ok(())
     }
@@ -555,25 +556,24 @@ impl Logging {
                 server.set_encryption(key)?;
                 return Ok(());
             }
-            return Err(Error::new(ErrorKind::NotFound, "Server not running".to_string()));
+            return Err(Error::new(
+                ErrorKind::NotFound,
+                "Server not running".to_string(),
+            ));
         }
         Ok(())
     }
 
     pub fn get_server_config(&self) -> Option<ServerConfig> {
-        self.config
-            .lock()
-            .unwrap()
-            .server.as_ref()
-            .map(|s| {
-                let c = s.config.lock().unwrap();
-                ServerConfig {
-                    level: c.level,
-                    address: c.address.clone(),
-                    port: c.port,
-                    key: c.key.clone(),
-                }
-            })
+        self.config.lock().unwrap().server.as_ref().map(|s| {
+            let c = s.config.lock().unwrap();
+            ServerConfig {
+                level: c.level,
+                address: c.address.clone(),
+                port: c.port,
+                key: c.key.clone(),
+            }
+        })
     }
 
     pub fn get_server_auth_key(&self) -> Vec<u8> {
@@ -606,10 +606,18 @@ impl Logging {
             c.tname,
             c.tid,
             c.structured,
-            c.console.as_ref().map(|c| c.config.lock().unwrap().to_string()),
-            c.file.as_ref().map(|c| c.config.lock().unwrap().to_string()),
-            c.syslog.as_ref().map(|c| c.config.lock().unwrap().to_string()),
-            c.server.as_ref().map(|c| c.config.lock().unwrap().to_string()),
+            c.console
+                .as_ref()
+                .map(|c| c.config.lock().unwrap().to_string()),
+            c.file
+                .as_ref()
+                .map(|c| c.config.lock().unwrap().to_string()),
+            c.syslog
+                .as_ref()
+                .map(|c| c.config.lock().unwrap().to_string()),
+            c.server
+                .as_ref()
+                .map(|c| c.config.lock().unwrap().to_string()),
             c.clients
                 .iter()
                 .map(|(ip, c)| format!("{ip}: {}", c.config.lock().unwrap()))
@@ -626,19 +634,24 @@ impl Logging {
 
     #[inline]
     fn log<S: Into<String>>(&self, level: u8, message: S) -> Result<(), Error> {
-        (
-            if self.tname || self.tid {
-                let tname = if self.tname {
-                    thread::current().name().unwrap_or_default().to_string()
-                } else {
-                    "".to_string()
-                };
-                let tid = if self.tid { thread_id::get() as u32 } else { 0 };
-                self.tx.send(LoggingTypeEnum::MessageExt((level, message.into(), tid, tname)))
+        (if self.tname || self.tid {
+            let tname = if self.tname {
+                thread::current().name().unwrap_or_default().to_string()
             } else {
-                self.tx.send(LoggingTypeEnum::Message((level, message.into())))
-            }
-        ).map_err(|e| Error::new(ErrorKind::Other, e.to_string()))
+                "".to_string()
+            };
+            let tid = if self.tid { thread_id::get() as u32 } else { 0 };
+            self.tx.send(LoggingTypeEnum::MessageExt((
+                level,
+                message.into(),
+                tid,
+                tname,
+            )))
+        } else {
+            self.tx
+                .send(LoggingTypeEnum::Message((level, message.into())))
+        })
+        .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))
     }
 
     pub fn trace<S: Into<String>>(&self, message: S) -> Result<(), Error> {

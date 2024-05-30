@@ -1,22 +1,22 @@
 use std::{
     fmt,
-    io::{ BufWriter, Error, ErrorKind, Write },
+    io::{BufWriter, Error, ErrorKind, Write},
     net::TcpStream,
-    sync::{ Arc, Mutex },
-    thread::{ self, JoinHandle },
+    sync::{Arc, Mutex},
+    thread::{self, JoinHandle},
     time::Duration,
 };
 
-use flume::{ bounded, Receiver, SendError, Sender };
+use flume::{bounded, Receiver, SendError, Sender};
 use ring::aead;
-use serde::{ Deserialize, Serialize };
+use serde::{Deserialize, Serialize};
 
-use super::{ def::NetConfig, EncryptionMethod };
+use super::{def::NetConfig, EncryptionMethod};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ClientTypeEnum {
     Message((u8, String)), // level, message
-    Sync, // timeout
+    Sync,                  // timeout
     Stop,
 }
 
@@ -36,7 +36,12 @@ impl ClientWriterConfig {
         } else {
             0
         };
-        Self { level, address, port, key }
+        Self {
+            level,
+            address,
+            port,
+            key,
+        }
     }
 }
 
@@ -50,7 +55,7 @@ fn client_writer_thread(
     config: Arc<Mutex<NetConfig>>,
     rx: Receiver<ClientTypeEnum>,
     sync_tx: Sender<u8>,
-    stop: Arc<Mutex<bool>>
+    stop: Arc<Mutex<bool>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let address = config.lock().unwrap().address.clone();
     let mut stream = BufWriter::new(TcpStream::connect(address)?);
@@ -82,8 +87,7 @@ fn client_writer_thread(
                     let seal = aead::Aad::from(&seal);
                     if let Some(ref mut sk) = config.sk {
                         let mut encrypted = message.as_bytes().to_vec();
-                        sk
-                            .seal_in_place_append_tag(seal, &mut encrypted)
+                        sk.seal_in_place_append_tag(seal, &mut encrypted)
                             .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
                         let _ = stream.write_all(&encrypted);
                     } else {
@@ -112,16 +116,18 @@ pub struct ClientWriter {
 
 impl ClientWriter {
     pub fn new(config: ClientWriterConfig, stop: Arc<Mutex<bool>>) -> Result<Self, Error> {
-        let config = Arc::new(
-            Mutex::new(NetConfig::new(config.level, config.address, config.port, config.key)?)
-        );
+        let config = Arc::new(Mutex::new(NetConfig::new(
+            config.level,
+            config.address,
+            config.port,
+            config.key,
+        )?));
         let (tx, rx) = bounded(1000);
         let (sync_tx, sync_rx) = bounded(1);
         let (tx_started, rx_started) = bounded(1);
         // Wait for thread started
         let config_cloned = config.clone();
-        let thr = thread::Builder
-            ::new()
+        let thr = thread::Builder::new()
             .name("ClientLogging".to_string())
             .spawn(move || {
                 tx_started.send(1).expect("Failed to send started signal");
@@ -131,9 +137,12 @@ impl ClientWriter {
             })?;
         rx_started
             .recv_timeout(Duration::from_millis(100))
-            .map_err(|e|
-                Error::new(ErrorKind::Other, format!("Failed to start logging server: {e}"))
-            )?;
+            .map_err(|e| {
+                Error::new(
+                    ErrorKind::Other,
+                    format!("Failed to start logging server: {e}"),
+                )
+            })?;
         Ok(Self {
             config,
             tx,
@@ -147,9 +156,12 @@ impl ClientWriter {
             self.tx
                 .send(ClientTypeEnum::Stop)
                 .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
-            thr.join().map_err(|e|
-                Error::new(ErrorKind::Other, e.downcast_ref::<&str>().unwrap().to_string())
-            )
+            thr.join().map_err(|e| {
+                Error::new(
+                    ErrorKind::Other,
+                    e.downcast_ref::<&str>().unwrap().to_string(),
+                )
+            })
         } else {
             Ok(())
         }

@@ -1,14 +1,16 @@
-use std::{ fmt, io::{ Error, ErrorKind } };
+use std::{
+    fmt,
+    io::{Error, ErrorKind},
+};
 
-use ring::aead::{ self, BoundKey, SealingKey };
 use once_cell::sync::Lazy;
-use rand::{ distributions::Alphanumeric, thread_rng, Rng };
+use rand::{distributions::Alphanumeric, thread_rng, Rng};
+use ring::aead::{self, BoundKey, SealingKey};
 
-use super::{ EncryptionMethod, NonceGenerator };
+use super::{EncryptionMethod, NonceGenerator};
 
-pub static AUTH_KEY: Lazy<Vec<u8>> = Lazy::new(|| {
-    thread_rng().sample_iter(&Alphanumeric).take(32).collect()
-});
+pub static AUTH_KEY: Lazy<Vec<u8>> =
+    Lazy::new(|| thread_rng().sample_iter(&Alphanumeric).take(32).collect());
 
 #[derive(Debug)]
 pub struct NetConfig {
@@ -25,7 +27,7 @@ impl NetConfig {
         level: u8,
         address: String,
         port: u16,
-        key: EncryptionMethod
+        key: EncryptionMethod,
     ) -> Result<Self, Error> {
         let mut config = Self {
             level,
@@ -43,14 +45,11 @@ impl NetConfig {
         self.key = key.clone();
         match &key {
             EncryptionMethod::AES(key) => {
-                self.sk = Some(
-                    aead::SealingKey::new(
-                        aead::UnboundKey
-                            ::new(&aead::AES_256_GCM, key)
-                            .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?,
-                        NonceGenerator::new()
-                    )
-                );
+                self.sk = Some(aead::SealingKey::new(
+                    aead::UnboundKey::new(&aead::AES_256_GCM, key)
+                        .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?,
+                    NonceGenerator::new(),
+                ));
             }
             EncryptionMethod::AuthKey(_) => {
                 self.sk = None;

@@ -1,21 +1,21 @@
 use std::{
     fmt,
-    io::{ Error, ErrorKind, Write },
-    sync::{ Arc, Mutex },
-    thread::{ self, JoinHandle },
+    io::{Error, ErrorKind, Write},
+    sync::{Arc, Mutex},
+    thread::{self, JoinHandle},
     time::Duration,
 };
 
-use flume::{ bounded, Receiver, SendError, Sender };
-use serde::{ Deserialize, Serialize };
-use termcolor::{ BufferWriter, Color, ColorChoice, ColorSpec, WriteColor };
+use flume::{bounded, Receiver, SendError, Sender};
+use serde::{Deserialize, Serialize};
+use termcolor::{BufferWriter, Color, ColorChoice, ColorSpec, WriteColor};
 
-use crate::{ CRITICAL, DEBUG, ERROR, EXCEPTION, INFO, SUCCESS, TRACE, WARNING };
+use crate::{CRITICAL, DEBUG, ERROR, EXCEPTION, INFO, SUCCESS, TRACE, WARNING};
 
 #[derive(Debug)]
 pub enum ConsoleTypeEnum {
     Message((u8, String)), // level, message
-    Sync, // timeout
+    Sync,                  // timeout
     Stop,
 }
 
@@ -41,7 +41,7 @@ fn console_writer_thread(
     config: Arc<Mutex<ConsoleWriterConfig>>,
     rx: Receiver<ConsoleTypeEnum>,
     sync_tx: Sender<u8>,
-    stop: Arc<Mutex<bool>>
+    stop: Arc<Mutex<bool>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let bufwtr = BufferWriter::stdout(ColorChoice::Always);
     let mut buffer = bufwtr.buffer();
@@ -54,21 +54,17 @@ fn console_writer_thread(
                 if let Ok(ref config) = config.lock() {
                     if config.colors {
                         buffer.clear();
-                        buffer.set_color(
-                            ColorSpec::new().set_fg(
-                                Some(match level {
-                                    TRACE => Color::White,
-                                    DEBUG => Color::Blue,
-                                    INFO => Color::Green,
-                                    SUCCESS => Color::Cyan,
-                                    WARNING => Color::Yellow,
-                                    ERROR => Color::Magenta,
-                                    CRITICAL => Color::Red,
-                                    EXCEPTION => Color::Red,
-                                    _ => Color::White,
-                                })
-                            )
-                        )?;
+                        buffer.set_color(ColorSpec::new().set_fg(Some(match level {
+                            TRACE => Color::White,
+                            DEBUG => Color::Blue,
+                            INFO => Color::Green,
+                            SUCCESS => Color::Cyan,
+                            WARNING => Color::Yellow,
+                            ERROR => Color::Magenta,
+                            CRITICAL => Color::Red,
+                            EXCEPTION => Color::Red,
+                            _ => Color::White,
+                        })))?;
                         writeln!(&mut buffer, "{message}")?;
                         buffer.reset()?;
                         bufwtr.print(&buffer)?;
@@ -108,14 +104,13 @@ impl ConsoleWriter {
             tx,
             sync_rx,
             thr: Some(
-                thread::Builder
-                    ::new()
+                thread::Builder::new()
                     .name("ConsoleWriter".to_string())
                     .spawn(move || {
                         if let Err(err) = console_writer_thread(config.clone(), rx, sync_tx, stop) {
                             eprintln!("{err:?}");
                         }
-                    })?
+                    })?,
             ),
         })
     }
@@ -125,9 +120,12 @@ impl ConsoleWriter {
             self.tx
                 .send(ConsoleTypeEnum::Stop)
                 .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
-            thr.join().map_err(|e|
-                Error::new(ErrorKind::Other, e.downcast_ref::<&str>().unwrap().to_string())
-            )
+            thr.join().map_err(|e| {
+                Error::new(
+                    ErrorKind::Other,
+                    e.downcast_ref::<&str>().unwrap().to_string(),
+                )
+            })
         } else {
             Ok(())
         }
@@ -155,7 +153,7 @@ impl ConsoleWriter {
 
 #[cfg(test)]
 mod tests {
-    use crate::{ ConsoleWriterConfig, Logging, DEBUG };
+    use crate::{ConsoleWriterConfig, Logging, DEBUG};
 
     #[test]
     fn console() {
@@ -169,8 +167,9 @@ mod tests {
             None,
             None,
             None,
-            None
-        ).unwrap();
+            None,
+        )
+        .unwrap();
         logging.trace("Trace Message".to_string()).unwrap();
         logging.debug("Debug Message".to_string()).unwrap();
         logging.info("Info Message".to_string()).unwrap();

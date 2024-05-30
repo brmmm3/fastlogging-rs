@@ -1,16 +1,16 @@
 use std::{
     fmt,
-    fs::{ rename, File, OpenOptions },
-    io::{ BufWriter, Error, ErrorKind, Read, Seek, SeekFrom, Write },
-    path::{ Path, PathBuf },
-    sync::{ Arc, Mutex },
-    thread::{ self, JoinHandle },
-    time::{ Duration, SystemTime },
+    fs::{rename, File, OpenOptions},
+    io::{BufWriter, Error, ErrorKind, Read, Seek, SeekFrom, Write},
+    path::{Path, PathBuf},
+    sync::{Arc, Mutex},
+    thread::{self, JoinHandle},
+    time::{Duration, SystemTime},
 };
 
-use flume::{ bounded, Receiver, RecvTimeoutError, Sender };
-use serde::{ Deserialize, Serialize };
-use zip::{ write::SimpleFileOptions, ZipWriter };
+use flume::{bounded, Receiver, RecvTimeoutError, Sender};
+use serde::{Deserialize, Serialize};
+use zip::{write::SimpleFileOptions, ZipWriter};
 
 const BACKLOG_MAX: usize = 1000;
 const QUEUE_CAPACITY: usize = 10000;
@@ -19,20 +19,20 @@ const DEFAULT_DELAY: u64 = 3600;
 #[derive(Debug, Clone)]
 pub enum FileTypeEnum {
     Message((u8, String)), // level, message
-    Sync, // timeout
+    Sync,                  // timeout
     Rotate,
     Stop,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-pub enum CompressionMethod {
+pub enum CompressionMethodEnum {
     Store,
     Deflate,
     Zstd,
     Lzma,
 }
 
-impl Into<zip::CompressionMethod> for CompressionMethod {
+impl Into<zip::CompressionMethod> for CompressionMethodEnum {
     fn into(self) -> zip::CompressionMethod {
         match self {
             Self::Store => zip::CompressionMethod::Stored,
@@ -45,13 +45,13 @@ impl Into<zip::CompressionMethod> for CompressionMethod {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileWriterConfig {
-    level: u8, // Log level
-    path: PathBuf, // Log file path
-    size: usize, // Maximum size of log file. 0 means no size limit.
-    backlog: usize, // Maximum number of backup files.
-    timeout: Option<Duration>, // Maximum log file age in seconds.
-    time: Option<SystemTime>, // Time when to backup log file.
-    compression: CompressionMethod, // Compression method for backup files.
+    level: u8,                          // Log level
+    path: PathBuf,                      // Log file path
+    size: usize,                        // Maximum size of log file. 0 means no size limit.
+    backlog: usize,                     // Maximum number of backup files.
+    timeout: Option<Duration>,          // Maximum log file age in seconds.
+    time: Option<SystemTime>,           // Time when to backup log file.
+    compression: CompressionMethodEnum, // Compression method for backup files.
 }
 
 impl FileWriterConfig {
@@ -62,16 +62,14 @@ impl FileWriterConfig {
         backlog: usize,
         timeout: Option<Duration>,
         time: Option<SystemTime>,
-        compression: Option<CompressionMethod>
+        compression: Option<CompressionMethodEnum>,
     ) -> Result<Self, Error> {
         if size > 0 || timeout.is_some() || time.is_some() {
             if backlog == 0 {
-                return Err(
-                    Error::new(
-                        ErrorKind::InvalidInput,
-                        "For rotating file logger backlog depth has to be set!"
-                    )
-                );
+                return Err(Error::new(
+                    ErrorKind::InvalidInput,
+                    "For rotating file logger backlog depth has to be set!",
+                ));
             } else if backlog > BACKLOG_MAX {
                 return Err(
                     Error::new(
@@ -90,7 +88,7 @@ impl FileWriterConfig {
             backlog,
             timeout,
             time,
-            compression: compression.unwrap_or(CompressionMethod::Store),
+            compression: compression.unwrap_or(CompressionMethodEnum::Store),
         })
     }
 }
@@ -101,7 +99,7 @@ impl fmt::Display for FileWriterConfig {
     }
 }
 
-fn rotate_do(path: &Path, backlog: usize, compression: CompressionMethod) -> Result<(), Error> {
+fn rotate_do(path: &Path, backlog: usize, compression: CompressionMethodEnum) -> Result<(), Error> {
     for num in 1..backlog {
         let mut backlog_path_old = path.to_path_buf();
         backlog_path_old.set_extension(format!(".log.{}", backlog - num - 1));
@@ -112,7 +110,7 @@ fn rotate_do(path: &Path, backlog: usize, compression: CompressionMethod) -> Res
         }
     }
     let mut backlog_path = path.to_path_buf();
-    if compression == CompressionMethod::Store {
+    if compression == CompressionMethodEnum::Store {
         backlog_path.set_extension(".log.1");
     } else {
         backlog_path.set_extension(".log.1.gz");
@@ -137,7 +135,7 @@ fn file_writer_thread_worker(
     config: Arc<Mutex<FileWriterConfig>>,
     rx: Receiver<FileTypeEnum>,
     stop: Arc<Mutex<bool>>,
-    sync_tx: Sender<u8>
+    sync_tx: Sender<u8>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let path = config.lock().unwrap().path.clone();
     let mut create_time = SystemTime::now();
@@ -161,6 +159,10 @@ fn file_writer_thread_worker(
                 deadline = time;
             }
         }
+        println!("default_delay={default_delay:?}");
+        println!("timeout={timeout:?}");
+        println!("deadline={deadline:?}");
+        println!("{:?}", SystemTime::now());
         let to = deadline.duration_since(SystemTime::now()).unwrap();
         let message = match rx.recv_timeout(to) {
             Ok(m) => m,
@@ -181,7 +183,7 @@ fn file_writer_thread_worker(
                 size += message.len();
                 false
             }
-            FileTypeEnum::Rotate => { true }
+            FileTypeEnum::Rotate => true,
             FileTypeEnum::Sync => {
                 sync_tx.send(1)?;
                 false
@@ -210,7 +212,7 @@ fn file_writer_thread(
     config: Arc<Mutex<FileWriterConfig>>,
     rx: Receiver<FileTypeEnum>,
     stop: Arc<Mutex<bool>>,
-    sync_tx: Sender<u8>
+    sync_tx: Sender<u8>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     if let Err(err) = file_writer_thread_worker(config, rx, stop, sync_tx) {
         eprintln!("Logging file worker crashed with error: {err:?}");
@@ -238,14 +240,13 @@ impl FileWriter {
             tx,
             sync_rx,
             thr: Some(
-                thread::Builder
-                    ::new()
+                thread::Builder::new()
                     .name("FileWriter".to_string())
                     .spawn(move || {
                         if let Err(err) = file_writer_thread(config, rx, stop, sync_tx) {
                             eprintln!("{err:?}");
                         }
-                    })?
+                    })?,
             ),
         })
     }
@@ -255,16 +256,21 @@ impl FileWriter {
             self.tx
                 .send(FileTypeEnum::Stop)
                 .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
-            thr.join().map_err(|e|
-                Error::new(ErrorKind::Other, e.downcast_ref::<&str>().unwrap().to_string())
-            )
+            thr.join().map_err(|e| {
+                Error::new(
+                    ErrorKind::Other,
+                    e.downcast_ref::<&str>().unwrap().to_string(),
+                )
+            })
         } else {
             Ok(())
         }
     }
 
     pub fn sync(&self, timeout: f64) -> Result<(), Error> {
-        self.tx.send(FileTypeEnum::Sync).map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+        self.tx
+            .send(FileTypeEnum::Sync)
+            .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
         self.sync_rx
             .recv_timeout(Duration::from_secs_f64(timeout))
             .map_err(|e| Error::new(ErrorKind::BrokenPipe, e.to_string()))?;
@@ -281,19 +287,21 @@ impl FileWriter {
         backlog: usize,
         timeout: Option<Duration>,
         time: Option<SystemTime>,
-        compression: Option<CompressionMethod>
+        compression: Option<CompressionMethodEnum>,
     ) -> Result<(), Error> {
         let mut config = self.config.lock().unwrap();
         config.size = size;
         config.backlog = backlog;
         config.timeout = timeout;
         config.time = time;
-        config.compression = compression.unwrap_or(CompressionMethod::Store);
+        config.compression = compression.unwrap_or(CompressionMethodEnum::Store);
         self.sync(5.0)
     }
 
     pub fn rotate(&self) -> Result<(), Error> {
-        self.tx.send(FileTypeEnum::Rotate).map_err(|e| Error::new(ErrorKind::Other, e.to_string()))
+        self.tx
+            .send(FileTypeEnum::Rotate)
+            .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))
     }
 
     #[inline]
@@ -308,21 +316,14 @@ impl FileWriter {
 mod tests {
     use tempdir::TempDir;
 
-    use crate::{ FileWriterConfig, Logging, DEBUG };
+    use crate::{FileWriterConfig, Logging, DEBUG};
 
     #[test]
     fn file() {
         let temp_dir = TempDir::new("fastlogging").unwrap();
         let log_file = temp_dir.path().join("file.log");
-        let file_writer = FileWriterConfig::new(
-            DEBUG,
-            log_file.clone(),
-            0,
-            0,
-            None,
-            None,
-            None
-        ).unwrap();
+        let file_writer =
+            FileWriterConfig::new(DEBUG, log_file.clone(), 0, 0, None, None, None).unwrap();
         let mut logging = Logging::new(
             None,
             None,
@@ -332,8 +333,9 @@ mod tests {
             None,
             None,
             None,
-            None
-        ).unwrap();
+            None,
+        )
+        .unwrap();
         logging.trace("Trace Message".to_string()).unwrap();
         logging.info("Info Message".to_string()).unwrap();
         logging.success("Success Message".to_string()).unwrap();

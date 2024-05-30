@@ -1,44 +1,34 @@
-use std::fs;
-use std::path::Path;
-use std::str;
 use std::collections::HashMap;
-use std::io::{ Error, ErrorKind };
+use std::fmt;
+use std::fs;
+use std::io::{Error, ErrorKind};
+use std::path::Path;
 use std::path::PathBuf;
-use std::sync::{ Arc, Mutex };
+use std::str;
+use std::sync::{Arc, Mutex};
 
-use flume::{ bounded, Receiver, Sender };
+use flume::{bounded, Receiver, Sender};
 use gethostname::gethostname;
 use serde::Deserialize;
 use serde::Serialize;
-use serde_json::to_string_pretty;
 
 const CONFIG_FILE_SIZE_MAX: u64 = 4096;
 
+use crate::level2string;
 use crate::{
-    ClientWriter,
-    ClientWriterConfig,
-    ConsoleWriter,
-    ConsoleWriterConfig,
-    FileWriter,
-    FileWriterConfig,
-    LevelSyms,
-    LoggingServer,
-    LoggingTypeEnum,
-    MessageStructEnum,
-    ServerConfig,
-    SyslogWriter,
-    SyslogWriterConfig,
-    NOTSET,
+    ClientWriter, ClientWriterConfig, ConsoleWriter, ConsoleWriterConfig, FileWriter,
+    FileWriterConfig, LevelSyms, LoggingServer, LoggingTypeEnum, MessageStructEnum, ServerConfig,
+    SyslogWriter, SyslogWriterConfig, NOTSET,
 };
 
 #[derive(Debug, Clone)]
 pub struct ExtConfig {
     pub(crate) structured: MessageStructEnum,
     pub(crate) hostname: bool, // Log hostname
-    pub(crate) pname: bool, // Log process name
-    pub(crate) pid: bool, // Log process ID
-    pub(crate) tname: bool, // Log thread name
-    pub(crate) tid: bool, // Log thread ID
+    pub(crate) pname: bool,    // Log process name
+    pub(crate) pid: bool,      // Log process ID
+    pub(crate) tname: bool,    // Log thread name
+    pub(crate) tid: bool,      // Log thread ID
 }
 
 impl ExtConfig {
@@ -48,7 +38,7 @@ impl ExtConfig {
         pname: bool,
         pid: bool,
         tname: bool,
-        tid: bool
+        tid: bool,
     ) -> Self {
         Self {
             structured,
@@ -137,128 +127,91 @@ pub struct ConfigFile {
     pub(crate) config: FileConfig,
 }
 
+fn default_config_file() -> (PathBuf, Vec<u8>) {
+    #[cfg(feature = "config_json")]
+    if Path::new("fastlogging.json").exists() {
+        return (PathBuf::from("fastlogging.json"), b"json".to_vec());
+    }
+    #[cfg(feature = "config_xml")]
+    if Path::new("fastlogging.xml").exists() {
+        return (PathBuf::from("fastlogging.xml"), b"xml".to_vec());
+    }
+    #[cfg(feature = "config_yaml")]
+    if Path::new("fastlogging.yaml").exists() {
+        return (PathBuf::from("fastlogging.yaml"), b"yaml".to_vec());
+    }
+    (PathBuf::new(), Vec::new())
+}
+
 impl ConfigFile {
     pub fn new(path: Option<PathBuf>) -> Result<Self, Error> {
         // Initialize settings with default settings from optional config file.
         let (path, lextension) = if let Some(ref path) = path {
             if let Some(extension) = path.extension() {
-                (path.to_owned(), extension.as_encoded_bytes().to_ascii_lowercase())
+                (
+                    path.to_owned(),
+                    extension.as_encoded_bytes().to_ascii_lowercase(),
+                )
             } else {
-                return Err(
-                    Error::new(ErrorKind::InvalidInput, "Config file has no extension.".to_string())
-                );
+                return Err(Error::new(
+                    ErrorKind::InvalidInput,
+                    "Config file has no extension.".to_string(),
+                ));
             }
         } else {
-            (PathBuf::new(), Vec::new())
+            default_config_file()
         };
         let data = if path.is_file() {
             match fs::metadata(&path) {
                 Ok(m) => {
                     if m.len() > CONFIG_FILE_SIZE_MAX {
-                        return Err(
-                            Error::new(ErrorKind::InvalidData, format!("Config file is too big!"))
-                        );
+                        return Err(Error::new(
+                            ErrorKind::InvalidData,
+                            format!("Config file is too big!"),
+                        ));
                     }
                 }
                 Err(err) => {
-                    return Err(
-                        Error::new(
-                            ErrorKind::InvalidData,
-                            format!("Failed to read config file metadata: {err:?}")
-                        )
-                    );
+                    return Err(Error::new(
+                        ErrorKind::InvalidData,
+                        format!("Failed to read config file metadata: {err:?}"),
+                    ));
                 }
             }
             match fs::read_to_string(&path) {
                 Ok(d) => Some(d),
                 Err(err) => {
-                    return Err(
-                        Error::new(
-                            ErrorKind::InvalidData,
-                            format!("Failed to read config file: {err:?}")
-                        )
-                    );
+                    return Err(Error::new(
+                        ErrorKind::InvalidData,
+                        format!("Failed to read config file: {err:?}"),
+                    ));
                 }
             }
         } else {
             None
         };
         let config = if let Some(data) = data {
-            let file_config: FileConfig = match (
-                if lextension == b"json" {
-                    #[cfg(feature = "config_json")]
-                    let file_data = serde_json
-                        ::from_str(&data)
-                        .map_err(|e|
-                            Error::new(
-                                ErrorKind::InvalidData,
-                                format!("Failed to read config file {path:?}: {e:?}")
-                            )
-                        );
-                    #[cfg(not(feature = "config_json"))]
-                    let file_data = Err(
-                        Error::new(
-                            ErrorKind::InvalidData,
-                            "Support for JSON type config files is not enabled".to_string()
-                        )
-                    );
-                    file_data
-                } else if lextension == b"xml" {
-                    #[cfg(feature = "config_xml")]
-                    let file_data = quick_xml::de
-                        ::from_str(&data)
-                        .map_err(|e|
-                            Error::new(
-                                ErrorKind::InvalidData,
-                                format!("Failed to read config file {path:?}: {e:?}")
-                            )
-                        );
-                    #[cfg(not(feature = "config_xml"))]
-                    let file_data = Err(
-                        Error::new(
-                            ErrorKind::InvalidData,
-                            "Support for XML type config files is not enabled".to_string()
-                        )
-                    );
-                    file_data
-                } else if lextension == b"yaml" {
-                    #[cfg(feature = "config_yaml")]
-                    let file_data = serde_yaml
-                        ::from_str(&data)
-                        .map_err(|e|
-                            Error::new(
-                                ErrorKind::InvalidData,
-                                format!("Failed to read config file {path:?}: {e:?}")
-                            )
-                        );
-                    #[cfg(not(feature = "config_yaml"))]
-                    let file_data = Err(
-                        Error::new(
-                            ErrorKind::InvalidData,
-                            "Support for YAML type config files is not enabled".to_string()
-                        )
-                    );
-                    file_data
-                } else {
-                    return Err(
-                        Error::new(
-                            ErrorKind::InvalidData,
-                            format!(
-                                "Unsupported config file type {}",
-                                str::from_utf8(&lextension).unwrap()
-                            )
-                        )
-                    );
-                }
-            ) {
+            let file_config: FileConfig = match if lextension == b"json" {
+                ConfigFile::from_json(&path, &data)
+            } else if lextension == b"xml" {
+                ConfigFile::from_xml(&path, &data)
+            } else if lextension == b"yaml" {
+                ConfigFile::from_yaml(&path, &data)
+            } else {
+                return Err(Error::new(
+                    ErrorKind::InvalidData,
+                    format!(
+                        "Unsupported config file type {}",
+                        str::from_utf8(&lextension).unwrap()
+                    ),
+                ));
+            } {
                 Ok(d) => d,
                 Err(err) => {
-                    return Err(
-                        Error::new(
-                            ErrorKind::InvalidData,
-                            format!("Failed to read config file {path:?}: {err:?}")
-                        )
-                    );
+                    return Err(Error::new(
+                        ErrorKind::InvalidData,
+                        format!("Failed to read config file {path:?}: {err:?}"),
+                    ));
                 }
             };
             file_config
@@ -275,9 +228,9 @@ impl ConfigFile {
         ext_config: Option<ExtConfig>, // Extended logging configuration
         console: Option<ConsoleWriterConfig>, // If config is defined start ConsoleLogging
         file: Option<FileWriterConfig>, // If config is defined start FileLogging
-        server: Option<ServerConfig>, // If config is defined start LoggingServer
+        server: Option<ServerConfig>,  // If config is defined start LoggingServer
         connect: Option<ClientWriterConfig>, // If config is defined start ClientLogging
-        syslog: Option<u8> // If log level is defined start SyslogLogging
+        syslog: Option<u8>,            // If log level is defined start SyslogLogging
     ) -> Result<
         (
             LoggingConfig,
@@ -288,7 +241,7 @@ impl ConfigFile {
             Receiver<LoggingTypeEnum>,
             Arc<Mutex<bool>>,
         ),
-        Error
+        Error,
     > {
         // Use settings from optional config file as default and overwrite them if provided here as arguments.
         let (tx, rx) = bounded(1000);
@@ -317,18 +270,25 @@ impl ConfigFile {
         let mut clients = HashMap::new();
         if let Some(config) = connect {
             self.config.connect = Some(config.clone());
-            clients.insert(config.address.clone(), ClientWriter::new(config, stop.clone())?);
+            clients.insert(
+                config.address.clone(),
+                ClientWriter::new(config, stop.clone())?,
+            );
         } else if let Some(ref config) = self.config.connect {
             clients.insert(
                 config.address.clone(),
-                ClientWriter::new(config.to_owned(), stop.clone())?
+                ClientWriter::new(config.to_owned(), stop.clone())?,
             );
         }
         // Logging server
         let server = if let Some(config) = server {
             Some(LoggingServer::new(config, tx.clone(), stop.clone())?)
         } else if let Some(ref config) = self.config.server {
-            Some(LoggingServer::new(config.to_owned(), tx.clone(), stop.clone())?)
+            Some(LoggingServer::new(
+                config.to_owned(),
+                tx.clone(),
+                stop.clone(),
+            )?)
         } else {
             None
         };
@@ -349,19 +309,21 @@ impl ConfigFile {
                     None
                 };
                 self.config.hostname = hostname.clone();
-                pname = (
-                    if ext_config.pname {
-                        std::env
-                            ::current_exe()
-                            .ok()
-                            .and_then(|pb| pb.file_name().map(|s| s.to_os_string()))
-                            .and_then(|s| s.into_string().ok())
-                    } else {
-                        None
-                    }
-                ).unwrap_or_default();
+                pname = (if ext_config.pname {
+                    std::env::current_exe()
+                        .ok()
+                        .and_then(|pb| pb.file_name().map(|s| s.to_os_string()))
+                        .and_then(|s| s.into_string().ok())
+                } else {
+                    None
+                })
+                .unwrap_or_default();
                 self.config.pname = pname.clone();
-                pid = if ext_config.pid { std::process::id() } else { 0 };
+                pid = if ext_config.pid {
+                    std::process::id()
+                } else {
+                    0
+                };
                 self.config.pid = pid;
                 SyslogWriterConfig::new(level, hostname.clone(), pname.clone(), pid)
             };
@@ -397,79 +359,169 @@ impl ConfigFile {
         ))
     }
 
+    pub fn from_json(path: &Path, data: &str) -> Result<FileConfig, Error> {
+        #[cfg(feature = "config_json")]
+        let file_data = serde_json::from_str(data).map_err(|e| {
+            Error::new(
+                ErrorKind::InvalidData,
+                format!("Failed to read config file {path:?}: {e:?}"),
+            )
+        });
+        #[cfg(not(feature = "config_json"))]
+        let file_data = Err(Error::new(
+            ErrorKind::InvalidData,
+            "Support for JSON type config files is not enabled".to_string(),
+        ));
+        file_data
+    }
+
+    pub fn to_json(&self) -> Result<String, Error> {
+        #[cfg(feature = "config_json")]
+        let data = serde_json::to_string_pretty(&self.config).map_err(|e| {
+            Error::new(
+                ErrorKind::InvalidData,
+                format!("Failed to serialize file configuration: {e:?}"),
+            )
+        });
+        #[cfg(not(feature = "config_json"))]
+        let data = Err(Error::new(
+            ErrorKind::InvalidData,
+            "Support for JSON type config files is not enabled".to_string(),
+        ));
+        data
+    }
+
+    pub fn from_xml(path: &Path, data: &str) -> Result<FileConfig, Error> {
+        #[cfg(feature = "config_xml")]
+        let file_data = quick_xml::de::from_str(data).map_err(|e| {
+            Error::new(
+                ErrorKind::InvalidData,
+                format!("Failed to read config file {path:?}: {e:?}"),
+            )
+        });
+        #[cfg(not(feature = "config_xml"))]
+        let file_data = Err(Error::new(
+            ErrorKind::InvalidData,
+            "Support for XML type config files is not enabled".to_string(),
+        ));
+        file_data
+    }
+
+    pub fn to_xml(&self) -> Result<String, Error> {
+        #[cfg(feature = "config_xml")]
+        let data = quick_xml::se::to_string(&self.config).map_err(|e| {
+            Error::new(
+                ErrorKind::InvalidData,
+                format!("Failed to serialize file configuration: {e:?}"),
+            )
+        });
+        #[cfg(not(feature = "config_xml"))]
+        let data = Err(Error::new(
+            ErrorKind::InvalidData,
+            "Support for XML type config files is not enabled".to_string(),
+        ));
+        data
+    }
+
+    pub fn from_yaml(path: &Path, data: &str) -> Result<FileConfig, Error> {
+        #[cfg(feature = "config_yaml")]
+        let file_data = serde_yaml::from_str(data).map_err(|e| {
+            Error::new(
+                ErrorKind::InvalidData,
+                format!("Failed to read config file {path:?}: {e:?}"),
+            )
+        });
+        #[cfg(not(feature = "config_yaml"))]
+        let file_data = Err(Error::new(
+            ErrorKind::InvalidData,
+            "Support for YAML type config files is not enabled".to_string(),
+        ));
+        file_data
+    }
+
+    pub fn to_yaml(&self) -> Result<String, Error> {
+        #[cfg(feature = "config_yaml")]
+        let data = serde_yaml::to_string(&self.config).map_err(|e| {
+            Error::new(
+                ErrorKind::InvalidData,
+                format!("Failed to serialize file configuration: {e:?}"),
+            )
+        });
+        #[cfg(not(feature = "config_yaml"))]
+        let data = Err(Error::new(
+            ErrorKind::InvalidData,
+            "Support for YAML type config files is not enabled".to_string(),
+        ));
+        data
+    }
+
     pub fn save(&self, path: &Path) -> Result<(), Error> {
         let (path, lextension) = {
             if let Some(extension) = path.extension() {
-                (path.to_owned(), extension.as_encoded_bytes().to_ascii_lowercase())
+                (
+                    path.to_owned(),
+                    extension.as_encoded_bytes().to_ascii_lowercase(),
+                )
             } else {
-                return Err(
-                    Error::new(ErrorKind::InvalidInput, "Config file has no extension.".to_string())
-                );
+                return Err(Error::new(
+                    ErrorKind::InvalidInput,
+                    "Config file has no extension.".to_string(),
+                ));
             }
         };
         let data = (if lextension == b"json" {
-            #[cfg(feature = "config_json")]
-            let data = serde_json
-                ::to_string_pretty(&self.config)
-                .map_err(|e|
-                    Error::new(
-                        ErrorKind::InvalidData,
-                        format!("Failed to read config file {path:?}: {e:?}")
-                    )
-                );
-            #[cfg(not(feature = "config_json"))]
-            let data = Err(
-                Error::new(
-                    ErrorKind::InvalidData,
-                    "Support for JSON type config files is not enabled".to_string()
-                )
-            );
-            data
+            self.to_json()
         } else if lextension == b"xml" {
-            #[cfg(feature = "config_xml")]
-            let data = quick_xml::se
-                ::to_string(&self.config)
-                .map_err(|e|
-                    Error::new(
-                        ErrorKind::InvalidData,
-                        format!("Failed to read config file {path:?}: {e:?}")
-                    )
-                );
-            #[cfg(not(feature = "config_xml"))]
-            let data = Err(
-                Error::new(
-                    ErrorKind::InvalidData,
-                    "Support for XML type config files is not enabled".to_string()
-                )
-            );
-            data
+            self.to_xml()
         } else if lextension == b"yaml" {
-            #[cfg(feature = "config_yaml")]
-            let data = serde_yaml
-                ::to_string(&self.config)
-                .map_err(|e|
-                    Error::new(
-                        ErrorKind::InvalidData,
-                        format!("Failed to read config file {path:?}: {e:?}")
-                    )
-                );
-            #[cfg(not(feature = "config_yaml"))]
-            let data = Err(
-                Error::new(
-                    ErrorKind::InvalidData,
-                    "Support for YAML type config files is not enabled".to_string()
-                )
-            );
-            data
+            self.to_yaml()
         } else {
-            return Err(
-                Error::new(
-                    ErrorKind::InvalidData,
-                    format!("Unsupported config file type {}", str::from_utf8(&lextension).unwrap())
-                )
-            );
+            return Err(Error::new(
+                ErrorKind::InvalidData,
+                format!(
+                    "Unsupported config file type {}",
+                    str::from_utf8(&lextension).unwrap()
+                ),
+            ));
         })?;
         fs::write(path, &data)?;
         Ok(())
+    }
+}
+
+impl fmt::Display for ConfigFile {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let config = &self.config;
+        write!(
+            f,
+            "path={:?}\n\
+                   level={:?}\n\
+                   domain={:?}\n\
+                   hostname={:?}\n\
+                   pname={:?}\n\
+                   pid={}\n\
+                   tname={:?}\n\
+                   tid={}\n\
+                   structured={:?}\n\
+                   console={:?}\n\
+                   file={:?}\n\
+                   syslog={:?}\n\
+                   server={:?}\n\
+                   clients={:?}",
+            self.path,
+            level2string(&config.level2sym, config.level),
+            config.domain,
+            config.hostname,
+            config.pname,
+            config.pid,
+            config.tname,
+            config.tid,
+            config.structured,
+            config.console,
+            config.file,
+            config.syslog,
+            config.server,
+            config.connect
+        )
     }
 }

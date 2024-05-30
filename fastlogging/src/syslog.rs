@@ -1,21 +1,21 @@
 use std::{
     fmt,
-    io::{ Error, ErrorKind },
-    sync::{ Arc, Mutex },
-    thread::{ self, JoinHandle },
+    io::{Error, ErrorKind},
+    sync::{Arc, Mutex},
+    thread::{self, JoinHandle},
     time::Duration,
 };
 
-use flume::{ bounded, Receiver, SendError, Sender };
-use serde::{ Deserialize, Serialize };
-use syslog::{ Facility, Formatter3164 };
+use flume::{bounded, Receiver, SendError, Sender};
+use serde::{Deserialize, Serialize};
+use syslog::{Facility, Formatter3164};
 
-use crate::{ CRITICAL, DEBUG, ERROR, EXCEPTION, INFO, SUCCESS, WARNING };
+use crate::{CRITICAL, DEBUG, ERROR, EXCEPTION, INFO, SUCCESS, WARNING};
 
 #[derive(Debug)]
 pub enum SyslogTypeEnum {
     Message((u8, String)), // level, message
-    Sync(f64), // timeout
+    Sync(f64),             // timeout
     Stop,
 }
 
@@ -50,7 +50,7 @@ fn syslog_writer_thread(
     config: Arc<Mutex<SyslogWriterConfig>>,
     rx: Receiver<SyslogTypeEnum>,
     sync_tx: Sender<u8>,
-    stop: Arc<Mutex<bool>>
+    stop: Arc<Mutex<bool>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut writer = match syslog::unix(config.lock().unwrap().formatter.clone()) {
         Ok(w) => w,
@@ -61,18 +61,16 @@ fn syslog_writer_thread(
             break;
         }
         match rx.recv()? {
-            SyslogTypeEnum::Message((level, message)) => {
-                match level {
-                    DEBUG => writer.debug(message)?,
-                    INFO => writer.info(message)?,
-                    SUCCESS => writer.notice(message)?,
-                    WARNING => writer.warning(message)?,
-                    ERROR => writer.err(message)?,
-                    CRITICAL => writer.crit(message)?,
-                    EXCEPTION => writer.alert(message)?,
-                    _ => {}
-                }
-            }
+            SyslogTypeEnum::Message((level, message)) => match level {
+                DEBUG => writer.debug(message)?,
+                INFO => writer.info(message)?,
+                SUCCESS => writer.notice(message)?,
+                WARNING => writer.warning(message)?,
+                ERROR => writer.err(message)?,
+                CRITICAL => writer.crit(message)?,
+                EXCEPTION => writer.alert(message)?,
+                _ => {}
+            },
             SyslogTypeEnum::Sync(_) => {
                 sync_tx.send(1)?;
             }
@@ -102,14 +100,13 @@ impl SyslogWriter {
             tx,
             sync_rx,
             thr: Some(
-                thread::Builder
-                    ::new()
+                thread::Builder::new()
                     .name("SyslogWriter".to_string())
                     .spawn(move || {
                         if let Err(err) = syslog_writer_thread(config, rx, sync_tx, stop) {
                             eprintln!("{err:?}");
                         }
-                    })?
+                    })?,
             ),
         })
     }
@@ -119,9 +116,12 @@ impl SyslogWriter {
             self.tx
                 .send(SyslogTypeEnum::Stop)
                 .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
-            thr.join().map_err(|e|
-                Error::new(ErrorKind::Other, e.downcast_ref::<&str>().unwrap().to_string())
-            )
+            thr.join().map_err(|e| {
+                Error::new(
+                    ErrorKind::Other,
+                    e.downcast_ref::<&str>().unwrap().to_string(),
+                )
+            })
         } else {
             Ok(())
         }

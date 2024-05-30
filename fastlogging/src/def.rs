@@ -1,6 +1,6 @@
 use std::fmt;
 
-use serde::{ Deserialize, Serialize };
+use serde::{Deserialize, Serialize};
 
 // Log-Levels
 pub const NOLOG: u8 = 70;
@@ -84,10 +84,10 @@ impl fmt::Display for LevelSyms {
 
 #[derive(Debug)]
 pub enum LoggingTypeEnum {
-    Message((u8, String)), // level, message
-    MessageRemote((u8, String)), // level, message
+    Message((u8, String)),                 // level, message
+    MessageRemote((u8, String)),           // level, message
     MessageExt((u8, String, u32, String)), // level, tname, tid, message
-    Sync(f64), // timeout
+    Sync(f64),                             // timeout
     Rotate,
     Stop,
 }

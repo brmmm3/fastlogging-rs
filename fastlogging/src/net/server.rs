@@ -1,20 +1,23 @@
 use std::{
     collections::HashMap,
     fmt,
-    io::{ Error, ErrorKind, Read, Write },
-    net::{ Shutdown, TcpListener, TcpStream },
-    sync::{ atomic::{ AtomicBool, Ordering }, Arc, Mutex },
-    thread::{ self, JoinHandle },
+    io::{Error, ErrorKind, Read, Write},
+    net::{Shutdown, TcpListener, TcpStream},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc, Mutex,
+    },
+    thread::{self, JoinHandle},
     time::Duration,
 };
 
-use flume::{ bounded, Sender };
-use ring::aead::{ self, BoundKey };
-use serde::{ Deserialize, Serialize };
+use flume::{bounded, Sender};
+use ring::aead::{self, BoundKey};
+use serde::{Deserialize, Serialize};
 
 use crate::def::LoggingTypeEnum;
 
-use super::{ def::NetConfig, EncryptionMethod, NonceGenerator };
+use super::{def::NetConfig, EncryptionMethod, NonceGenerator};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ServerConfig {
@@ -37,7 +40,12 @@ impl ServerConfig {
         } else {
             (address, 0)
         };
-        Self { level, address, port, key }
+        Self {
+            level,
+            address,
+            port,
+            key,
+        }
     }
 }
 
@@ -52,7 +60,7 @@ fn handle_client(
     stream: &mut TcpStream,
     tx: Sender<LoggingTypeEnum>,
     stop: Arc<Mutex<bool>>,
-    stop_server: Arc<AtomicBool>
+    stop_server: Arc<AtomicBool>,
 ) -> Result<bool, Box<dyn std::error::Error>> {
     let perr_addr = stream.peer_addr().unwrap().to_string();
     let mut buffer = [0u8; 4352];
@@ -107,16 +115,18 @@ fn handle_encrypted_client(
     stream: &mut TcpStream,
     tx: Sender<LoggingTypeEnum>,
     stop: Arc<Mutex<bool>>,
-    stop_server: Arc<AtomicBool>
+    stop_server: Arc<AtomicBool>,
 ) -> Result<bool, Box<dyn std::error::Error>> {
     let perr_addr = stream.peer_addr().unwrap().to_string();
     let mut buffer = [0u8; 4352];
     stream.set_read_timeout(Some(Duration::from_secs(5)))?;
     let mut key = aead::OpeningKey::new(
-        aead::UnboundKey
-            ::new(&aead::AES_256_GCM, config.lock().unwrap().key.key().unwrap())
-            .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?,
-        NonceGenerator::new()
+        aead::UnboundKey::new(
+            &aead::AES_256_GCM,
+            config.lock().unwrap().key.key().unwrap(),
+        )
+        .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?,
+        NonceGenerator::new(),
     );
     let seal = aead::Aad::from(config.lock().unwrap().seal.clone());
     loop {
@@ -153,7 +163,7 @@ fn handle_encrypted_client(
 fn server_thread(
     config: Arc<Mutex<NetConfig>>,
     tx: Sender<LoggingTypeEnum>,
-    stop: Arc<Mutex<bool>>
+    stop: Arc<Mutex<bool>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let listener = {
         let mut config = config.lock().unwrap();
@@ -164,12 +174,10 @@ fn server_thread(
         listener
     };
     let pool = threadpool::ThreadPool::new(num_cpus::get());
-    let clients: Arc<Mutex<HashMap<std::net::SocketAddr, TcpStream>>> = Arc::new(
-        Mutex::new(HashMap::new())
-    );
-    let buggy_clients: Arc<Mutex<HashMap<std::net::SocketAddr, usize>>> = Arc::new(
-        Mutex::new(HashMap::new())
-    );
+    let clients: Arc<Mutex<HashMap<std::net::SocketAddr, TcpStream>>> =
+        Arc::new(Mutex::new(HashMap::new()));
+    let buggy_clients: Arc<Mutex<HashMap<std::net::SocketAddr, usize>>> =
+        Arc::new(Mutex::new(HashMap::new()));
     let stop_server = Arc::new(AtomicBool::new(false));
     for stream in listener.incoming() {
         if *stop.lock().unwrap() || stop_server.load(Ordering::Relaxed) {
@@ -203,7 +211,10 @@ fn server_thread(
         let buggy_clients = buggy_clients.clone();
         let stop = stop.clone();
         let stop_server = stop_server.clone();
-        clients.lock().unwrap().insert(addr.clone(), stream.try_clone()?);
+        clients
+            .lock()
+            .unwrap()
+            .insert(addr.clone(), stream.try_clone()?);
         let clients = clients.clone();
         pool.execute(move || {
             let is_encrypted = config.lock().unwrap().key.is_encrypted();
@@ -213,8 +224,10 @@ fn server_thread(
             };
             clients.lock().unwrap().remove(&addr);
             match result {
-                Ok(stop) => if stop {
-                    stop_server.store(true, Ordering::Relaxed)
+                Ok(stop) => {
+                    if stop {
+                        stop_server.store(true, Ordering::Relaxed)
+                    }
                 }
                 Err(err) => {
                     eprintln!("server_thread: Error with client {stream:?}: {err:?}");
@@ -243,15 +256,17 @@ impl LoggingServer {
     pub fn new(
         config: ServerConfig,
         tx: Sender<LoggingTypeEnum>,
-        stop: Arc<Mutex<bool>>
+        stop: Arc<Mutex<bool>>,
     ) -> Result<Self, Error> {
-        let config = Arc::new(
-            Mutex::new(NetConfig::new(config.level, config.address, config.port, config.key)?)
-        );
+        let config = Arc::new(Mutex::new(NetConfig::new(
+            config.level,
+            config.address,
+            config.port,
+            config.key,
+        )?));
         let config_clone = config.clone();
         let (tx_started, rx_started) = bounded(1);
-        let thr = thread::Builder
-            ::new()
+        let thr = thread::Builder::new()
             .name("LoggingServer".to_string())
             .spawn(move || {
                 tx_started.send(1).expect("Failed to send started signal");
@@ -262,9 +277,12 @@ impl LoggingServer {
         // Wait for thread started
         rx_started
             .recv_timeout(Duration::from_millis(100))
-            .map_err(|e|
-                Error::new(ErrorKind::Other, format!("Failed to start logging server: {e}"))
-            )?;
+            .map_err(|e| {
+                Error::new(
+                    ErrorKind::Other,
+                    format!("Failed to start logging server: {e}"),
+                )
+            })?;
         Ok(Self {
             config,
             thr: Some(thr),
@@ -284,9 +302,12 @@ impl LoggingServer {
                     break;
                 }
             }
-            thr.join().map_err(|e|
-                Error::new(ErrorKind::Other, e.downcast_ref::<&str>().unwrap().to_string())
-            )
+            thr.join().map_err(|e| {
+                Error::new(
+                    ErrorKind::Other,
+                    e.downcast_ref::<&str>().unwrap().to_string(),
+                )
+            })
         } else {
             Ok(())
         }
