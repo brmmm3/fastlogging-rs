@@ -1,4 +1,5 @@
 use std::fs;
+use std::path::Path;
 use std::str;
 use std::collections::HashMap;
 use std::io::{ Error, ErrorKind };
@@ -9,6 +10,7 @@ use flume::{ bounded, Receiver, Sender };
 use gethostname::gethostname;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_json::to_string_pretty;
 
 const CONFIG_FILE_SIZE_MAX: u64 = 4096;
 
@@ -393,5 +395,81 @@ impl ConfigFile {
             rx,
             stop,
         ))
+    }
+
+    pub fn save(&self, path: &Path) -> Result<(), Error> {
+        let (path, lextension) = {
+            if let Some(extension) = path.extension() {
+                (path.to_owned(), extension.as_encoded_bytes().to_ascii_lowercase())
+            } else {
+                return Err(
+                    Error::new(ErrorKind::InvalidInput, "Config file has no extension.".to_string())
+                );
+            }
+        };
+        let data = (if lextension == b"json" {
+            #[cfg(feature = "config_json")]
+            let data = serde_json
+                ::to_string_pretty(&self.config)
+                .map_err(|e|
+                    Error::new(
+                        ErrorKind::InvalidData,
+                        format!("Failed to read config file {path:?}: {e:?}")
+                    )
+                );
+            #[cfg(not(feature = "config_json"))]
+            let data = Err(
+                Error::new(
+                    ErrorKind::InvalidData,
+                    "Support for JSON type config files is not enabled".to_string()
+                )
+            );
+            data
+        } else if lextension == b"xml" {
+            #[cfg(feature = "config_xml")]
+            let data = quick_xml::se
+                ::to_string(&self.config)
+                .map_err(|e|
+                    Error::new(
+                        ErrorKind::InvalidData,
+                        format!("Failed to read config file {path:?}: {e:?}")
+                    )
+                );
+            #[cfg(not(feature = "config_xml"))]
+            let data = Err(
+                Error::new(
+                    ErrorKind::InvalidData,
+                    "Support for XML type config files is not enabled".to_string()
+                )
+            );
+            data
+        } else if lextension == b"yaml" {
+            #[cfg(feature = "config_yaml")]
+            let data = serde_yaml
+                ::to_string(&self.config)
+                .map_err(|e|
+                    Error::new(
+                        ErrorKind::InvalidData,
+                        format!("Failed to read config file {path:?}: {e:?}")
+                    )
+                );
+            #[cfg(not(feature = "config_yaml"))]
+            let data = Err(
+                Error::new(
+                    ErrorKind::InvalidData,
+                    "Support for YAML type config files is not enabled".to_string()
+                )
+            );
+            data
+        } else {
+            return Err(
+                Error::new(
+                    ErrorKind::InvalidData,
+                    format!("Unsupported config file type {}", str::from_utf8(&lextension).unwrap())
+                )
+            );
+        })?;
+        fs::write(path, &data)?;
+        Ok(())
     }
 }

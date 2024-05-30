@@ -1,5 +1,5 @@
 use std::io::{ Error, ErrorKind };
-use std::path::PathBuf;
+use std::path::{ Path, PathBuf };
 use std::sync::{ Arc, Mutex, MutexGuard };
 use std::thread::{ self, JoinHandle };
 
@@ -306,6 +306,7 @@ fn logging_thread(
 #[derive(Debug)]
 pub struct Logging {
     pub level: u8,
+    config_file: ConfigFile,
     config: Arc<Mutex<LoggingConfig>>,
     tname: bool,
     tid: bool,
@@ -343,6 +344,7 @@ impl Logging {
         Ok(Self {
             level,
             config: config.clone(),
+            config_file,
             tname,
             tid,
             tx,
@@ -614,6 +616,10 @@ impl Logging {
                 .collect::<Vec<_>>()
                 .join("\n")
         )
+    }
+
+    pub fn save_config(&self, path: &Path) -> Result<(), Error> {
+        self.config_file.save(path)
     }
 
     // Logging methods
