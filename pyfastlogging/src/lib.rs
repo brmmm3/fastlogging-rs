@@ -1,18 +1,36 @@
 use std::sync::Mutex;
-use std::path::PathBuf;
 
+use fastlogging::NOTSET;
 use once_cell::sync::Lazy;
 use pyo3::prelude::*;
 
 mod def;
-mod logging;
+pub use def::{
+    ClientWriterConfig, ConsoleWriterConfig, EncryptionMethod, FileWriterConfig, ServerConfig,
+};
 mod logger;
+mod logging;
 
-static LOGGING: Lazy<Mutex<logging::Logging>> = Lazy::new(||
-    Mutex::new(
-        logging::Logging::new(None, None, None, Some(true), None, None, None, None, None).unwrap()
-    )
-);
+static LOGGING: Lazy<Mutex<logging::Logging>> = Lazy::new(|| {
+    Python::with_gil(|py| -> Mutex<logging::Logging> {
+        let console = Bound::new(py, ConsoleWriterConfig::new(NOTSET, false)).unwrap();
+        Mutex::new(
+            logging::Logging::new(
+                None,
+                None,
+                None,
+                None,
+                Some(&console),
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .unwrap(),
+        )
+    })
+});
 
 #[pyfunction]
 fn shutdown(now: Option<bool>) -> PyResult<()> {
@@ -45,8 +63,8 @@ fn set_level2sym(level2sym: &Bound<'_, def::LevelSyms>) {
 }
 
 #[pyfunction]
-fn set_console_writer(level: Option<u8>) -> PyResult<()> {
-    LOGGING.lock().unwrap().set_console_writer(level)
+fn set_console_writer(config: Option<&Bound<'_, ConsoleWriterConfig>>) -> PyResult<()> {
+    LOGGING.lock().unwrap().set_console_writer(config)
 }
 
 #[pyfunction]
@@ -55,13 +73,8 @@ fn set_console_colors(colors: bool) {
 }
 
 #[pyfunction]
-fn set_file_writer(
-    level: Option<u8>,
-    path: Option<PathBuf>,
-    max_size: Option<usize>, // Maximum size of log files
-    backlog: Option<usize> // Maximum number of backup log files
-) -> PyResult<()> {
-    LOGGING.lock().unwrap().set_file_writer(level, path, max_size, backlog)
+fn set_file_writer(config: Option<&Bound<'_, FileWriterConfig>>) -> PyResult<()> {
+    LOGGING.lock().unwrap().set_file_writer(config)
 }
 
 #[pyfunction]
@@ -70,15 +83,25 @@ fn rotate() -> PyResult<()> {
 }
 
 #[pyfunction]
-fn sync(timeout: Option<f64>) -> PyResult<()> {
-    LOGGING.lock().unwrap().sync(timeout)
+fn sync(
+    console: Option<bool>,
+    file: Option<bool>,
+    client: Option<bool>,
+    timeout: Option<f64>,
+) -> PyResult<()> {
+    LOGGING.lock().unwrap().sync(console, file, client, timeout)
+}
+
+#[pyfunction]
+fn sync_all(timeout: Option<f64>) -> PyResult<()> {
+    LOGGING.lock().unwrap().sync_all(timeout)
 }
 
 // Network client
 
 #[pyfunction]
-fn connect(address: String, level: u8, key: Option<Vec<u8>>) -> PyResult<()> {
-    LOGGING.lock().unwrap().connect(address, level, key)
+fn connect(config: &Bound<'_, ClientWriterConfig>) -> PyResult<()> {
+    LOGGING.lock().unwrap().connect(config)
 }
 
 #[pyfunction]
@@ -92,21 +115,21 @@ fn set_client_level(address: &str, level: u8) -> PyResult<()> {
 }
 
 #[pyfunction]
-fn set_client_encryption(address: &str, key: Option<String>) -> PyResult<()> {
-    LOGGING.lock().unwrap().set_client_encryption(address, key)
+fn set_client_encryption(address: &str, key: EncryptionMethod) -> PyResult<()> {
+    LOGGING
+        .lock()
+        .unwrap()
+        .set_client_encryption(address, key.into())
 }
 
 // Network server
 
 #[pyfunction]
-fn server_start(address: String, level: u8, key: Option<String>) -> PyResult<()> {
-    LOGGING.lock()
+fn server_start(address: String, level: u8, key: EncryptionMethod) -> PyResult<()> {
+    LOGGING
+        .lock()
         .unwrap()
-        .server_start(
-            address,
-            level,
-            key.map(|k| k.into_bytes())
-        )
+        .server_start(address, level, key.into())
 }
 
 #[pyfunction]
@@ -120,8 +143,8 @@ fn set_server_level(level: u8) -> PyResult<()> {
 }
 
 #[pyfunction]
-fn set_server_encryption(key: Option<String>) -> PyResult<()> {
-    LOGGING.lock().unwrap().set_server_encryption(key)
+fn set_server_encryption(key: EncryptionMethod) -> PyResult<()> {
+    LOGGING.lock().unwrap().set_server_encryption(key.into())
 }
 
 #[pyfunction]
@@ -175,10 +198,19 @@ fn init(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add("ERROR", fastlogging::ERROR)?;
     m.add("WARNING", fastlogging::WARNING)?;
     m.add("WARN", fastlogging::WARN)?;
+    m.add("SUCCESS", fastlogging::SUCCESS)?;
     m.add("INFO", fastlogging::INFO)?;
     m.add("DEBUG", fastlogging::DEBUG)?;
+    m.add("TRACE", fastlogging::TRACE)?;
     m.add("NOTSET", fastlogging::NOTSET)?;
     m.add_class::<def::Level2Sym>()?;
+    m.add_class::<def::CompressionMethodEnum>()?;
+    m.add_class::<def::EncryptionMethod>()?;
+    m.add_class::<def::ExtConfig>()?;
+    m.add_class::<def::ConsoleWriterConfig>()?;
+    m.add_class::<def::FileWriterConfig>()?;
+    m.add_class::<def::ServerConfig>()?;
+    m.add_class::<def::ClientWriterConfig>()?;
     m.add_class::<logging::Logging>()?;
     m.add_class::<logger::Logger>()?;
     m.add_function(wrap_pyfunction!(shutdown, m)?)?;
@@ -192,6 +224,7 @@ fn init(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(set_file_writer, m)?)?;
     m.add_function(wrap_pyfunction!(rotate, m)?)?;
     m.add_function(wrap_pyfunction!(sync, m)?)?;
+    m.add_function(wrap_pyfunction!(sync_all, m)?)?;
     m.add_function(wrap_pyfunction!(connect, m)?)?;
     m.add_function(wrap_pyfunction!(disconnect, m)?)?;
     m.add_function(wrap_pyfunction!(set_client_level, m)?)?;
@@ -207,7 +240,9 @@ fn init(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(critical, m)?)?;
     m.add_function(wrap_pyfunction!(fatal, m)?)?;
     m.add_function(wrap_pyfunction!(exception, m)?)?;
-    let fun: Py<PyAny> = PyModule::import_bound(py, "atexit")?.getattr("register")?.into();
+    let fun: Py<PyAny> = PyModule::import_bound(py, "atexit")?
+        .getattr("register")?
+        .into();
     let _ = fun.call1(py, (wrap_pyfunction!(shutdown_at_exit, m)?,))?;
     Ok(())
 }
@@ -220,17 +255,8 @@ mod tests {
 
     #[test]
     fn it_works() {
-        let mut logging = Logging::new(
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None
-        ).unwrap();
+        let mut logging =
+            Logging::new(None, None, None, None, None, None, None, None, None, None).unwrap();
         //logging.info("Hello".to_string()).unwrap();
         logging.shutdown(Some(true)).unwrap();
     }
