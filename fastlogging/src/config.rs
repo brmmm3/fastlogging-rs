@@ -119,6 +119,35 @@ pub struct LoggingConfig {
     pub(crate) level2sym: LevelSyms,
 }
 
+impl LoggingConfig {
+    pub fn set_ext_config(&mut self, ext_config: ExtConfig) {
+        self.structured = ext_config.structured;
+        let hostname = if ext_config.hostname {
+            Some(gethostname().into_string().unwrap())
+        } else {
+            None
+        };
+        self.hostname.clone_from(&hostname);
+        let pname = (if ext_config.pname {
+            std::env::current_exe()
+                .ok()
+                .and_then(|pb| pb.file_name().map(|s| s.to_os_string()))
+                .and_then(|s| s.into_string().ok())
+        } else {
+            None
+        })
+        .unwrap_or_default();
+        self.pname.clone_from(&pname);
+        self.pid = if ext_config.pid {
+            std::process::id()
+        } else {
+            0
+        };
+        self.tname = ext_config.tname;
+        self.tid = ext_config.tid;
+    }
+}
+
 #[derive(Debug)]
 pub struct ConfigFile {
     pub(crate) path: PathBuf,
@@ -232,9 +261,6 @@ impl ConfigFile {
     ) -> Result<
         (
             LoggingConfig,
-            u8,
-            bool,
-            bool,
             Sender<LoggingTypeEnum>,
             Receiver<LoggingTypeEnum>,
             Arc<Mutex<bool>>,
@@ -290,71 +316,40 @@ impl ConfigFile {
         } else {
             None
         };
-        let mut structured = self.config.structured.clone();
-        let mut hostname = self.config.hostname.clone();
-        let mut pname = self.config.pname.clone();
-        let mut pid = self.config.pid;
-        let mut tname = false;
-        let mut tid = false;
-        let syslog = if let Some(level) = syslog {
-            let ext_config = ext_config.unwrap_or_default();
-            structured = ext_config.structured;
-            self.config.structured = structured.clone();
-            let config = {
-                hostname = if ext_config.hostname {
-                    Some(gethostname().into_string().unwrap())
-                } else {
-                    None
-                };
-                self.config.hostname.clone_from(&hostname);
-                pname = (if ext_config.pname {
-                    std::env::current_exe()
-                        .ok()
-                        .and_then(|pb| pb.file_name().map(|s| s.to_os_string()))
-                        .and_then(|s| s.into_string().ok())
-                } else {
-                    None
-                })
-                .unwrap_or_default();
-                self.config.pname.clone_from(&pname);
-                pid = if ext_config.pid {
-                    std::process::id()
-                } else {
-                    0
-                };
-                self.config.pid = pid;
-                SyslogWriterConfig::new(level, hostname.clone(), pname.clone(), pid)
-            };
-            tname = ext_config.tname;
-            tid = ext_config.tid;
-            Some(SyslogWriter::new(config, stop.clone())?)
+        let mut config = LoggingConfig {
+            level,
+            domain,
+            hostname: self.config.hostname.clone(),
+            pname: self.config.pname.clone(),
+            pid: self.config.pid,
+            tname: false,
+            tid: false,
+            structured: self.config.structured.clone(),
+            console,
+            file,
+            server,
+            clients,
+            syslog: None,
+            level2sym: LevelSyms::Sym,
+        };
+        if let Some(ext_config) = ext_config {
+            config.set_ext_config(ext_config);
+        }
+        config.syslog = if let Some(level) = syslog {
+            self.config.structured = config.structured.clone();
+            Some(SyslogWriter::new(
+                SyslogWriterConfig::new(
+                    level,
+                    config.hostname.clone(),
+                    config.pname.clone(),
+                    config.pid,
+                ),
+                stop.clone(),
+            )?)
         } else {
             None
         };
-        Ok((
-            LoggingConfig {
-                level,
-                domain,
-                hostname,
-                pname,
-                pid,
-                tname,
-                tid,
-                structured,
-                console,
-                file,
-                server,
-                clients,
-                syslog,
-                level2sym: LevelSyms::Sym,
-            },
-            level,
-            tname,
-            tid,
-            tx,
-            rx,
-            stop,
-        ))
+        Ok((config, tx, rx, stop))
     }
 
     pub fn from_json(path: &Path, data: &str) -> Result<FileConfig, Error> {

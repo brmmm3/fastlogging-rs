@@ -20,20 +20,20 @@ pub struct Logger {
 }
 
 impl Logger {
-    pub fn new(level: u8, domain: String) -> Self {
+    pub fn new<S: Into<String>>(level: u8, domain: S) -> Self {
         Self {
             level,
-            domain,
+            domain: domain.into(),
             tname: false,
             tid: false,
             tx: None,
         }
     }
 
-    pub fn new_ext(level: u8, domain: String, tname: bool, tid: bool) -> Self {
+    pub fn new_ext<S: Into<String>>(level: u8, domain: S, tname: bool, tid: bool) -> Self {
         Self {
             level,
-            domain,
+            domain: domain.into(),
             tname,
             tid,
             tx: None,

@@ -185,7 +185,7 @@ fn logging_thread_worker(
                 remote = true;
                 (level, None, 0, message)
             }
-            LoggingTypeEnum::MessageExt((level, tname, tid, message)) => {
+            LoggingTypeEnum::MessageExt((level, message, tid, tname)) => {
                 (level, Some(tname), tid, message)
             }
             LoggingTypeEnum::Rotate => {
@@ -318,9 +318,12 @@ impl Logging {
         // Initialize config from optional config file.
         let mut config_file = ConfigFile::new(config)?;
         // Overwrite settings with arguments, if provided.
-        let (config, level, tname, tid, tx, rx, stop) = config_file.init(
+        let (config, tx, rx, stop) = config_file.init(
             level, domain, ext_config, console, file, server, connect, syslog,
         )?;
+        let level = config.level;
+        let tname = config.tname;
+        let tid = config.tid;
         let config = Arc::new(Mutex::new(config));
         Ok(Self {
             level,
@@ -391,6 +394,14 @@ impl Logging {
         }
     }
 
+    pub fn set_ext_config(&mut self, ext_config: ExtConfig) {
+        if let Ok(mut config) = self.config.lock() {
+            config.set_ext_config(ext_config);
+            self.tname = config.tname;
+            self.tid = config.tid;
+        }
+    }
+
     // Console logger
 
     pub fn set_console_writer(&mut self, config: Option<ConsoleWriterConfig>) -> Result<(), Error> {
@@ -405,25 +416,6 @@ impl Logging {
     pub fn set_console_colors(&mut self, colors: bool) {
         if let Some(ref mut console) = self.config.lock().unwrap().console {
             console.set_colors(colors);
-        }
-    }
-
-    // File logger
-
-    pub fn set_file_writer(&mut self, config: Option<FileWriterConfig>) -> Result<(), Error> {
-        self.config.lock().unwrap().file = if let Some(config) = config {
-            Some(FileWriter::new(config, self.stop.clone())?)
-        } else {
-            None
-        };
-        Ok(())
-    }
-
-    pub fn rotate(&self) -> Result<(), Error> {
-        if let Some(ref file) = self.config.lock().unwrap().file {
-            file.rotate()
-        } else {
-            Ok(())
         }
     }
 
@@ -450,6 +442,25 @@ impl Logging {
     pub fn sync_all(&self, timeout: f64) -> Result<(), Error> {
         self.sync(true, true, true, timeout)?;
         Ok(())
+    }
+
+    // File logger
+
+    pub fn set_file_writer(&mut self, config: Option<FileWriterConfig>) -> Result<(), Error> {
+        self.config.lock().unwrap().file = if let Some(config) = config {
+            Some(FileWriter::new(config, self.stop.clone())?)
+        } else {
+            None
+        };
+        Ok(())
+    }
+
+    pub fn rotate(&self) -> Result<(), Error> {
+        if let Some(ref file) = self.config.lock().unwrap().file {
+            file.rotate()
+        } else {
+            Ok(())
+        }
     }
 
     // Network client

@@ -158,10 +158,6 @@ fn file_writer_thread_worker(
                 deadline = time;
             }
         }
-        println!("default_delay={default_delay:?}");
-        println!("timeout={timeout:?}");
-        println!("deadline={deadline:?}");
-        println!("{:?}", SystemTime::now());
         let to = deadline.duration_since(SystemTime::now()).unwrap();
         let message = match rx.recv_timeout(to) {
             Ok(m) => m,
