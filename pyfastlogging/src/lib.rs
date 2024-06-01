@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use std::sync::Mutex;
 
 use fastlogging::NOTSET;
@@ -7,6 +8,7 @@ use pyo3::prelude::*;
 mod def;
 pub use def::{
     ClientWriterConfig, ConsoleWriterConfig, EncryptionMethod, FileWriterConfig, ServerConfig,
+    WriterConfigEnum, WriterTypeEnum,
 };
 mod logger;
 mod logging;
@@ -48,8 +50,8 @@ fn remove_logger(obj: Py<logger::Logger>, py: Python) {
 }
 
 #[pyfunction]
-fn set_level(level: u8) {
-    LOGGING.lock().unwrap().set_level(level)
+fn set_level(writer: WriterTypeEnum, level: u8) -> PyResult<()> {
+    LOGGING.lock().unwrap().set_level(writer, level)
 }
 
 #[pyfunction]
@@ -63,23 +65,18 @@ fn set_level2sym(level2sym: &Bound<'_, def::LevelSyms>) {
 }
 
 #[pyfunction]
-fn set_console_writer(config: Option<&Bound<'_, ConsoleWriterConfig>>) -> PyResult<()> {
-    LOGGING.lock().unwrap().set_console_writer(config)
+fn set_ext_config(ext_config: &Bound<'_, def::ExtConfig>) {
+    LOGGING.lock().unwrap().set_ext_config(ext_config)
 }
 
 #[pyfunction]
-fn set_console_colors(colors: bool) {
-    LOGGING.lock().unwrap().set_console_colors(colors);
+fn add_writer(writer: WriterConfigEnum) -> PyResult<()> {
+    LOGGING.lock().unwrap().add_writer(writer)
 }
 
 #[pyfunction]
-fn set_file_writer(config: Option<&Bound<'_, FileWriterConfig>>) -> PyResult<()> {
-    LOGGING.lock().unwrap().set_file_writer(config)
-}
-
-#[pyfunction]
-fn rotate() -> PyResult<()> {
-    LOGGING.lock().unwrap().rotate()
+fn remove_writer(writer: WriterTypeEnum) -> PyResult<()> {
+    LOGGING.lock().unwrap().remove_writer(writer)
 }
 
 #[pyfunction]
@@ -97,54 +94,50 @@ fn sync_all(timeout: Option<f64>) -> PyResult<()> {
     LOGGING.lock().unwrap().sync_all(timeout)
 }
 
-// Network client
+#[pyfunction]
+fn rotate(path: Option<PathBuf>) -> PyResult<()> {
+    LOGGING.lock().unwrap().rotate(path)
+}
+
+// Network
 
 #[pyfunction]
-fn connect(config: &Bound<'_, ClientWriterConfig>) -> PyResult<()> {
-    LOGGING.lock().unwrap().connect(config)
+fn set_encryption(writer: WriterTypeEnum, key: EncryptionMethod) -> PyResult<()> {
+    LOGGING.lock().unwrap().set_encryption(writer, key.into())
+}
+
+// Config
+
+#[pyfunction]
+fn get_config(writer: WriterTypeEnum) -> PyResult<WriterConfigEnum> {
+    LOGGING.lock().unwrap().get_config(writer)
 }
 
 #[pyfunction]
-fn disconnect(address: &str) -> PyResult<()> {
-    LOGGING.lock().unwrap().disconnect(address)
+fn get_server_config() -> Option<ServerConfig> {
+    LOGGING.lock().unwrap().get_server_config()
 }
 
 #[pyfunction]
-fn set_client_level(address: &str, level: u8) -> PyResult<()> {
-    LOGGING.lock().unwrap().set_client_level(address, level)
+fn get_server_auth_key() -> Vec<u8> {
+    LOGGING.lock().unwrap().get_server_auth_key()
 }
 
 #[pyfunction]
-fn set_client_encryption(address: &str, key: EncryptionMethod) -> PyResult<()> {
-    LOGGING
-        .lock()
-        .unwrap()
-        .set_client_encryption(address, key.into())
-}
-
-// Network server
-
-#[pyfunction]
-fn server_start(address: String, level: u8, key: EncryptionMethod) -> PyResult<()> {
-    LOGGING
-        .lock()
-        .unwrap()
-        .server_start(address, level, key.into())
+fn get_config_string() -> String {
+    LOGGING.lock().unwrap().get_config_string()
 }
 
 #[pyfunction]
-fn server_shutdown() -> PyResult<()> {
-    LOGGING.lock().unwrap().server_shutdown()
+fn save_config(path: PathBuf) -> PyResult<()> {
+    LOGGING.lock().unwrap().save_config(path)
 }
 
-#[pyfunction]
-fn set_server_level(level: u8) -> PyResult<()> {
-    LOGGING.lock().unwrap().set_server_level(level)
-}
+// Logging methods
 
 #[pyfunction]
-fn set_server_encryption(key: EncryptionMethod) -> PyResult<()> {
-    LOGGING.lock().unwrap().set_server_encryption(key.into())
+fn trace(obj: PyObject) -> PyResult<()> {
+    LOGGING.lock().unwrap().trace(obj)
 }
 
 #[pyfunction]
@@ -155,6 +148,11 @@ fn debug(obj: PyObject) -> PyResult<()> {
 #[pyfunction]
 fn info(obj: PyObject) -> PyResult<()> {
     LOGGING.lock().unwrap().info(obj)
+}
+
+#[pyfunction]
+fn success(obj: PyObject) -> PyResult<()> {
+    LOGGING.lock().unwrap().success(obj)
 }
 
 #[pyfunction]
@@ -219,22 +217,22 @@ fn init(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(set_level, m)?)?;
     m.add_function(wrap_pyfunction!(set_domain, m)?)?;
     m.add_function(wrap_pyfunction!(set_level2sym, m)?)?;
-    m.add_function(wrap_pyfunction!(set_console_writer, m)?)?;
-    m.add_function(wrap_pyfunction!(set_console_colors, m)?)?;
-    m.add_function(wrap_pyfunction!(set_file_writer, m)?)?;
-    m.add_function(wrap_pyfunction!(rotate, m)?)?;
+    m.add_function(wrap_pyfunction!(set_ext_config, m)?)?;
+    m.add_function(wrap_pyfunction!(add_writer, m)?)?;
+    m.add_function(wrap_pyfunction!(remove_writer, m)?)?;
     m.add_function(wrap_pyfunction!(sync, m)?)?;
     m.add_function(wrap_pyfunction!(sync_all, m)?)?;
-    m.add_function(wrap_pyfunction!(connect, m)?)?;
-    m.add_function(wrap_pyfunction!(disconnect, m)?)?;
-    m.add_function(wrap_pyfunction!(set_client_level, m)?)?;
-    m.add_function(wrap_pyfunction!(set_client_encryption, m)?)?;
-    m.add_function(wrap_pyfunction!(server_start, m)?)?;
-    m.add_function(wrap_pyfunction!(server_shutdown, m)?)?;
-    m.add_function(wrap_pyfunction!(set_server_level, m)?)?;
-    m.add_function(wrap_pyfunction!(set_server_encryption, m)?)?;
+    m.add_function(wrap_pyfunction!(rotate, m)?)?;
+    m.add_function(wrap_pyfunction!(set_encryption, m)?)?;
+    m.add_function(wrap_pyfunction!(get_config, m)?)?;
+    m.add_function(wrap_pyfunction!(get_server_config, m)?)?;
+    m.add_function(wrap_pyfunction!(get_server_auth_key, m)?)?;
+    m.add_function(wrap_pyfunction!(get_config_string, m)?)?;
+    m.add_function(wrap_pyfunction!(save_config, m)?)?;
+    m.add_function(wrap_pyfunction!(trace, m)?)?;
     m.add_function(wrap_pyfunction!(debug, m)?)?;
     m.add_function(wrap_pyfunction!(info, m)?)?;
+    m.add_function(wrap_pyfunction!(success, m)?)?;
     m.add_function(wrap_pyfunction!(warning, m)?)?;
     m.add_function(wrap_pyfunction!(error, m)?)?;
     m.add_function(wrap_pyfunction!(critical, m)?)?;

@@ -8,7 +8,7 @@ use pyo3::prelude::*;
 
 use crate::def::{
     ClientWriterConfig, ConsoleWriterConfig, EncryptionMethod, ExtConfig, FileWriterConfig,
-    LevelSyms, ServerConfig,
+    LevelSyms, ServerConfig, WriterConfigEnum, WriterTypeEnum,
 };
 use crate::logger::Logger;
 
@@ -117,8 +117,10 @@ impl Logging {
             .remove_logger(&mut logger.borrow_mut(py).instance)
     }
 
-    pub fn set_level(&mut self, level: u8) {
-        self.instance.set_level(level)
+    pub fn set_level(&mut self, writer: WriterTypeEnum, level: u8) -> PyResult<()> {
+        self.instance
+            .set_level(writer.into(), level)
+            .map_err(PyException::new_err)
     }
 
     pub fn set_domain(&mut self, domain: String) {
@@ -133,19 +135,16 @@ impl Logging {
         self.instance.set_ext_config(ext_config.borrow().0.clone())
     }
 
-    // Console logger
-
-    pub fn set_console_writer(
-        &mut self,
-        config: Option<&Bound<'_, ConsoleWriterConfig>>,
-    ) -> PyResult<()> {
+    pub fn add_writer(&mut self, writer: WriterConfigEnum) -> PyResult<()> {
         self.instance
-            .set_console_writer(config.map(|c| c.borrow().0.clone()))
+            .add_writer(writer.into())
             .map_err(PyException::new_err)
     }
 
-    pub fn set_console_colors(&mut self, colors: bool) {
-        self.instance.set_console_colors(colors);
+    pub fn remove_writer(&mut self, writer: WriterTypeEnum) -> PyResult<()> {
+        self.instance
+            .remove_writer(writer.into())
+            .map_err(PyException::new_err)
     }
 
     pub fn sync(
@@ -173,73 +172,28 @@ impl Logging {
 
     // File logger
 
-    pub fn set_file_writer(
+    pub fn rotate(&self, path: Option<PathBuf>) -> PyResult<()> {
+        self.instance.rotate(path).map_err(PyException::new_err)
+    }
+
+    // Network
+
+    pub fn set_encryption(
         &mut self,
-        config: Option<&Bound<'_, FileWriterConfig>>,
-    ) -> PyResult<()> {
-        self.instance
-            .set_file_writer(config.map(|c| c.borrow().0.clone()))
-            .map_err(PyException::new_err)
-    }
-
-    pub fn rotate(&self) -> PyResult<()> {
-        self.instance.rotate().map_err(PyException::new_err)
-    }
-
-    // Network client
-
-    pub fn connect(&mut self, config: &Bound<'_, ClientWriterConfig>) -> PyResult<()> {
-        self.instance
-            .connect(config.borrow().0.clone())
-            .map_err(PyException::new_err)
-    }
-
-    pub fn disconnect(&mut self, address: &str) -> PyResult<()> {
-        self.instance
-            .disconnect(address)
-            .map_err(PyException::new_err)
-    }
-
-    pub fn set_client_level(&mut self, address: &str, level: u8) -> PyResult<()> {
-        self.instance
-            .set_client_level(address, level)
-            .map_err(PyException::new_err)
-    }
-
-    pub fn set_client_encryption(&mut self, address: &str, key: EncryptionMethod) -> PyResult<()> {
-        self.instance
-            .set_client_encryption(address, key.into())
-            .map_err(PyException::new_err)
-    }
-
-    // Network server
-
-    pub fn server_start(
-        &mut self,
-        address: String,
-        level: u8,
+        writer: WriterTypeEnum,
         key: EncryptionMethod,
     ) -> PyResult<()> {
         self.instance
-            .server_start(address, level, key.into())
+            .set_encryption(writer.into(), key.into())
             .map_err(PyException::new_err)
     }
 
-    pub fn server_shutdown(&mut self) -> PyResult<()> {
-        self.instance
-            .server_shutdown()
-            .map_err(PyException::new_err)
-    }
+    // Config
 
-    pub fn set_server_level(&mut self, level: u8) -> PyResult<()> {
+    pub fn get_config(&self, writer: WriterTypeEnum) -> PyResult<WriterConfigEnum> {
         self.instance
-            .set_server_level(level)
-            .map_err(PyException::new_err)
-    }
-
-    pub fn set_server_encryption(&mut self, key: EncryptionMethod) -> PyResult<()> {
-        self.instance
-            .set_server_encryption(key.into())
+            .get_config(writer.into())
+            .map(|c| c.into())
             .map_err(PyException::new_err)
     }
 
@@ -251,10 +205,14 @@ impl Logging {
         self.instance.get_server_auth_key()
     }
 
-    // Config
+    pub fn get_config_string(&self) -> String {
+        self.instance.get_config_string()
+    }
 
-    pub fn get_config(&self) -> String {
-        self.instance.get_config()
+    pub fn save_config(&self, path: PathBuf) -> PyResult<()> {
+        self.instance
+            .save_config(&path)
+            .map_err(PyException::new_err)
     }
 
     // Logging methods

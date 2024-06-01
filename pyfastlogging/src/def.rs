@@ -90,12 +90,13 @@ pub enum MessageStructEnum {
     Xml,
 }
 
-impl Into<fastlogging::MessageStructEnum> for MessageStructEnum {
-    fn into(self) -> fastlogging::MessageStructEnum {
-        match self {
-            Self::String => fastlogging::MessageStructEnum::String,
-            Self::Json => fastlogging::MessageStructEnum::Json,
-            Self::Xml => fastlogging::MessageStructEnum::Xml,
+impl From<MessageStructEnum> for fastlogging::MessageStructEnum {
+    fn from(val: MessageStructEnum) -> Self {
+        use MessageStructEnum::*;
+        match val {
+            String => fastlogging::MessageStructEnum::String,
+            Json => fastlogging::MessageStructEnum::Json,
+            Xml => fastlogging::MessageStructEnum::Xml,
         }
     }
 }
@@ -109,13 +110,14 @@ pub enum CompressionMethodEnum {
     Lzma,
 }
 
-impl Into<fastlogging::CompressionMethodEnum> for CompressionMethodEnum {
-    fn into(self) -> fastlogging::CompressionMethodEnum {
-        match self {
-            Self::Store => fastlogging::CompressionMethodEnum::Store,
-            Self::Deflate => fastlogging::CompressionMethodEnum::Deflate,
-            Self::Zstd => fastlogging::CompressionMethodEnum::Zstd,
-            Self::Lzma => fastlogging::CompressionMethodEnum::Lzma,
+impl From<CompressionMethodEnum> for fastlogging::CompressionMethodEnum {
+    fn from(val: CompressionMethodEnum) -> Self {
+        use CompressionMethodEnum::*;
+        match val {
+            Store => fastlogging::CompressionMethodEnum::Store,
+            Deflate => fastlogging::CompressionMethodEnum::Deflate,
+            Zstd => fastlogging::CompressionMethodEnum::Zstd,
+            Lzma => fastlogging::CompressionMethodEnum::Lzma,
         }
     }
 }
@@ -128,12 +130,13 @@ pub enum EncryptionMethod {
     AES { key: Vec<u8> },
 }
 
-impl Into<fastlogging::EncryptionMethod> for EncryptionMethod {
-    fn into(self) -> fastlogging::EncryptionMethod {
-        match self {
-            Self::NONE {} => fastlogging::EncryptionMethod::NONE,
-            Self::AuthKey { key } => fastlogging::EncryptionMethod::AuthKey(key),
-            Self::AES { key } => fastlogging::EncryptionMethod::AES(key),
+impl From<EncryptionMethod> for fastlogging::EncryptionMethod {
+    fn from(val: EncryptionMethod) -> Self {
+        use EncryptionMethod::*;
+        match val {
+            NONE {} => fastlogging::EncryptionMethod::NONE,
+            AuthKey { key } => fastlogging::EncryptionMethod::AuthKey(key),
+            AES { key } => fastlogging::EncryptionMethod::AES(key),
         }
     }
 }
@@ -164,6 +167,23 @@ impl ExtConfig {
 }
 
 #[pyclass]
+#[derive(Debug, Clone)]
+pub struct RootConfig(pub fastlogging::RootConfig);
+
+impl From<RootConfig> for fastlogging::RootConfig {
+    fn from(val: RootConfig) -> Self {
+        val.0
+    }
+}
+
+impl From<fastlogging::RootConfig> for RootConfig {
+    fn from(val: fastlogging::RootConfig) -> RootConfig {
+        RootConfig(val)
+    }
+}
+
+#[pyclass]
+#[derive(Debug, Clone)]
 pub struct ConsoleWriterConfig(pub fastlogging::ConsoleWriterConfig);
 
 #[pymethods]
@@ -174,7 +194,20 @@ impl ConsoleWriterConfig {
     }
 }
 
+impl From<ConsoleWriterConfig> for fastlogging::ConsoleWriterConfig {
+    fn from(val: ConsoleWriterConfig) -> Self {
+        val.0
+    }
+}
+
+impl From<fastlogging::ConsoleWriterConfig> for ConsoleWriterConfig {
+    fn from(val: fastlogging::ConsoleWriterConfig) -> ConsoleWriterConfig {
+        ConsoleWriterConfig(val)
+    }
+}
+
 #[pyclass]
+#[derive(Debug, Clone)]
 pub struct FileWriterConfig(pub fastlogging::FileWriterConfig);
 
 #[pymethods]
@@ -201,7 +234,20 @@ impl FileWriterConfig {
     }
 }
 
+impl From<FileWriterConfig> for fastlogging::FileWriterConfig {
+    fn from(val: FileWriterConfig) -> Self {
+        val.0
+    }
+}
+
+impl From<fastlogging::FileWriterConfig> for FileWriterConfig {
+    fn from(val: fastlogging::FileWriterConfig) -> FileWriterConfig {
+        FileWriterConfig(val)
+    }
+}
+
 #[pyclass]
+#[derive(Debug, Clone)]
 pub struct ServerConfig(pub fastlogging::ServerConfig);
 
 #[pymethods]
@@ -212,7 +258,20 @@ impl ServerConfig {
     }
 }
 
+impl From<ServerConfig> for fastlogging::ServerConfig {
+    fn from(val: ServerConfig) -> Self {
+        val.0
+    }
+}
+
+impl From<fastlogging::ServerConfig> for ServerConfig {
+    fn from(val: fastlogging::ServerConfig) -> ServerConfig {
+        ServerConfig(val)
+    }
+}
+
 #[pyclass]
+#[derive(Debug, Clone)]
 pub struct ClientWriterConfig(pub fastlogging::ClientWriterConfig);
 
 #[pymethods]
@@ -224,5 +283,127 @@ impl ClientWriterConfig {
             address,
             key.into(),
         ))
+    }
+}
+
+impl From<ClientWriterConfig> for fastlogging::ClientWriterConfig {
+    fn from(val: ClientWriterConfig) -> Self {
+        val.0
+    }
+}
+
+impl From<fastlogging::ClientWriterConfig> for ClientWriterConfig {
+    fn from(val: fastlogging::ClientWriterConfig) -> ClientWriterConfig {
+        ClientWriterConfig(val)
+    }
+}
+
+#[pyclass]
+#[derive(Debug, Clone)]
+pub struct SyslogWriterConfig(pub fastlogging::SyslogWriterConfig);
+
+#[pymethods]
+impl SyslogWriterConfig {
+    #[new]
+    pub fn new(
+        level: u8,
+        hostname: Option<String>,
+        pname: Option<String>,
+        pid: Option<u32>,
+    ) -> Self {
+        Self(fastlogging::SyslogWriterConfig::new(
+            level,
+            hostname,
+            pname.unwrap_or_default(),
+            pid.unwrap_or_default(),
+        ))
+    }
+}
+
+impl From<SyslogWriterConfig> for fastlogging::SyslogWriterConfig {
+    fn from(val: SyslogWriterConfig) -> Self {
+        val.0
+    }
+}
+
+impl From<fastlogging::SyslogWriterConfig> for SyslogWriterConfig {
+    fn from(val: fastlogging::SyslogWriterConfig) -> SyslogWriterConfig {
+        SyslogWriterConfig(val)
+    }
+}
+
+#[pyclass]
+#[derive(Debug, Clone)]
+pub enum WriterConfigEnum {
+    Root { config: RootConfig },
+    Console { config: ConsoleWriterConfig },
+    File { config: FileWriterConfig },
+    Client { config: ClientWriterConfig },
+    Server { config: ServerConfig },
+    Syslog { config: SyslogWriterConfig },
+}
+
+impl From<WriterConfigEnum> for fastlogging::WriterConfigEnum {
+    fn from(val: WriterConfigEnum) -> Self {
+        use WriterConfigEnum::*;
+        match val {
+            Root { config } => fastlogging::WriterConfigEnum::Root(config.into()),
+            Console { config } => fastlogging::WriterConfigEnum::Console(config.into()),
+            File { config } => fastlogging::WriterConfigEnum::File(config.into()),
+            Client { config } => fastlogging::WriterConfigEnum::Client(config.into()),
+            Server { config } => fastlogging::WriterConfigEnum::Server(config.into()),
+            Syslog { config } => fastlogging::WriterConfigEnum::Syslog(config.into()),
+        }
+    }
+}
+
+impl From<fastlogging::WriterConfigEnum> for WriterConfigEnum {
+    fn from(val: fastlogging::WriterConfigEnum) -> WriterConfigEnum {
+        use fastlogging::WriterConfigEnum::*;
+        match val {
+            Root(config) => WriterConfigEnum::Root {
+                config: config.into(),
+            },
+            Console(config) => WriterConfigEnum::Console {
+                config: config.into(),
+            },
+            File(config) => WriterConfigEnum::File {
+                config: config.into(),
+            },
+            Client(config) => WriterConfigEnum::Client {
+                config: config.into(),
+            },
+            Server(config) => WriterConfigEnum::Server {
+                config: config.into(),
+            },
+            Syslog(config) => WriterConfigEnum::Syslog {
+                config: config.into(),
+            },
+        }
+    }
+}
+
+#[pyclass]
+#[derive(Debug, Clone)]
+pub enum WriterTypeEnum {
+    Root {},
+    Console {},
+    File { path: PathBuf },
+    Client { address: String },
+    Server {},
+    Syslog {},
+}
+
+impl From<WriterTypeEnum> for fastlogging::WriterTypeEnum {
+    fn from(val: WriterTypeEnum) -> Self {
+        use WriterTypeEnum::*;
+        match val {
+            Root {} => fastlogging::WriterTypeEnum::Root,
+            Console {} => fastlogging::WriterTypeEnum::Console,
+            File { path } => fastlogging::WriterTypeEnum::File(path),
+            Client { address } => fastlogging::WriterTypeEnum::Client(address),
+            Server {} => fastlogging::WriterTypeEnum::Server,
+            Syslog {} => fastlogging::WriterTypeEnum::Syslog,
+        }
     }
 }
