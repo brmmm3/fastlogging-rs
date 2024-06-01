@@ -12,7 +12,8 @@ mod tests {
     use tempdir::TempDir;
 
     use crate::{
-        ClientWriterConfig, ConsoleWriterConfig, FileWriterConfig, Logging, ServerConfig, DEBUG,
+        ClientWriterConfig, ConsoleWriterConfig, FileWriterConfig, Logging, ServerConfig,
+        WriterTypeEnum, DEBUG,
     };
 
     use super::EncryptionMethod;

@@ -1,4 +1,8 @@
-use std::fmt;
+use std::{fmt, path::PathBuf};
+
+use crate::{
+    ClientWriterConfig, ConsoleWriterConfig, FileWriterConfig, ServerConfig, SyslogWriterConfig,
+};
 
 // Log-Levels
 pub const NOLOG: u8 = 70;
@@ -80,6 +84,51 @@ impl fmt::Display for LevelSyms {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct RootConfig {
+    pub level: u8,
+    pub domain: String,
+    pub hostname: Option<String>,
+    pub pname: String,
+    pub pid: u32,
+    pub tname: bool,
+    pub tid: bool,
+    pub structured: MessageStructEnum,
+    pub level2sym: LevelSyms,
+}
+
+#[derive(Debug)]
+pub enum WriterConfigEnum {
+    Root(RootConfig),
+    Console(ConsoleWriterConfig),
+    File(FileWriterConfig),
+    Client(ClientWriterConfig),
+    Server(ServerConfig),
+    Syslog(SyslogWriterConfig),
+}
+
+impl fmt::Display for WriterConfigEnum {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+#[derive(Debug)]
+pub enum WriterTypeEnum {
+    Root,
+    Console,
+    File(PathBuf),
+    Client(String),
+    Server,
+    Syslog,
+}
+
+impl fmt::Display for WriterTypeEnum {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
 #[derive(Debug)]
 pub enum LoggingTypeEnum {
     Message((u8, String)),                 // level, message
@@ -88,6 +137,12 @@ pub enum LoggingTypeEnum {
     Sync(f64),                             // timeout
     Rotate,
     Stop,
+}
+
+impl fmt::Display for LoggingTypeEnum {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

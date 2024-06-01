@@ -1,6 +1,9 @@
 use std::{io::Error, thread};
 
-use fastlogging::{ConsoleWriterConfig, ExtConfig, Logger, Logging, MessageStructEnum, DEBUG};
+use fastlogging::{
+    ConsoleWriterConfig, ExtConfig, Logger, Logging, MessageStructEnum, WriterConfigEnum,
+    WriterTypeEnum, DEBUG,
+};
 
 fn main() -> Result<(), Error> {
     let mut logger = Logging::default();
@@ -12,7 +15,9 @@ fn main() -> Result<(), Error> {
         true,
         true,
     ));
-    logger.set_console_writer(Some(ConsoleWriterConfig::new(DEBUG, true)))?;
+    logger.add_writer(WriterConfigEnum::Console(ConsoleWriterConfig::new(
+        DEBUG, true,
+    )))?;
     let mut logger2 = Logger::new_ext(DEBUG, "Thread1", true, true);
     logger.add_logger(&mut logger2);
     let thr = thread::Builder::new()

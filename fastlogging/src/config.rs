@@ -111,12 +111,12 @@ pub struct LoggingConfig {
     pub(crate) tname: bool,
     pub(crate) tid: bool,
     pub(crate) structured: MessageStructEnum,
+    pub(crate) level2sym: LevelSyms,
     pub(crate) console: Option<ConsoleWriter>,
-    pub(crate) file: Option<FileWriter>,
+    pub(crate) files: HashMap<PathBuf, FileWriter>,
     pub(crate) server: Option<LoggingServer>,
     pub(crate) clients: HashMap<String, ClientWriter>,
     pub(crate) syslog: Option<SyslogWriter>,
-    pub(crate) level2sym: LevelSyms,
 }
 
 impl LoggingConfig {
@@ -282,13 +282,15 @@ impl ConfigFile {
             None
         };
         // File writer
-        let file = if let Some(config) = file {
+        let mut files = HashMap::new();
+        if let Some(config) = file {
             self.config.file = Some(config.clone());
-            Some(FileWriter::new(config, stop.clone())?)
+            files.insert(config.path.clone(), FileWriter::new(config, stop.clone())?);
         } else if let Some(ref config) = self.config.file {
-            Some(FileWriter::new(config.to_owned(), stop.clone())?)
-        } else {
-            None
+            files.insert(
+                config.path.clone(),
+                FileWriter::new(config.to_owned(), stop.clone())?,
+            );
         };
         // Network writer
         let mut clients = HashMap::new();
@@ -326,7 +328,7 @@ impl ConfigFile {
             tid: false,
             structured: self.config.structured.clone(),
             console,
-            file,
+            files,
             server,
             clients,
             syslog: None,

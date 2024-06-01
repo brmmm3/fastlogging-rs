@@ -140,6 +140,10 @@ impl ConsoleWriter {
         Ok(())
     }
 
+    pub fn set_level(&self, level: u8) {
+        self.config.lock().unwrap().level = level;
+    }
+
     pub fn set_colors(&self, colors: bool) {
         self.config.lock().unwrap().colors = colors;
     }

@@ -136,6 +136,10 @@ impl SyslogWriter {
         Ok(())
     }
 
+    pub fn set_level(&self, level: u8) {
+        self.config.lock().unwrap().level = level;
+    }
+
     #[inline]
     pub fn send(&self, level: u8, message: String) -> Result<(), SendError<SyslogTypeEnum>> {
         self.tx.send(SyslogTypeEnum::Message((level, message)))
