@@ -24,15 +24,15 @@ pub struct ConsoleWriterConfig {
     pub(crate) colors: bool,
 }
 
-impl fmt::Display for ConsoleWriterConfig {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
 impl ConsoleWriterConfig {
     pub fn new(level: u8, colors: bool) -> Self {
         Self { level, colors }
+    }
+}
+
+impl fmt::Display for ConsoleWriterConfig {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
     }
 }
 

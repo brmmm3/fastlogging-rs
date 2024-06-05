@@ -552,28 +552,40 @@ impl Logging {
         Ok(())
     }
 
-    pub fn sync(&self, console: bool, file: bool, client: bool, timeout: f64) -> Result<(), Error> {
+    pub fn sync(
+        &self,
+        console: bool,
+        file: bool,
+        client: bool,
+        syslog: bool,
+        timeout: f64,
+    ) -> Result<(), Error> {
         let config: MutexGuard<LoggingConfig> = self.config.lock().unwrap();
         if console {
-            if let Some(ref console) = config.console {
-                console.sync(timeout)?;
+            if let Some(ref writer) = config.console {
+                writer.sync(timeout)?;
             }
         }
         if file {
-            for file in config.files.values() {
-                file.sync(timeout)?;
+            for writer in config.files.values() {
+                writer.sync(timeout)?;
             }
         }
         if client {
-            for client in config.clients.values() {
-                client.sync(timeout)?;
+            for writer in config.clients.values() {
+                writer.sync(timeout)?;
+            }
+        }
+        if syslog {
+            if let Some(ref writer) = config.syslog {
+                writer.sync(timeout)?;
             }
         }
         Ok(())
     }
 
     pub fn sync_all(&self, timeout: f64) -> Result<(), Error> {
-        self.sync(true, true, true, timeout)?;
+        self.sync(true, true, true, true, timeout)?;
         Ok(())
     }
 

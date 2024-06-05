@@ -1,8 +1,7 @@
 use std::{io::Error, thread};
 
 use fastlogging::{
-    ConsoleWriterConfig, ExtConfig, Logger, Logging, MessageStructEnum, WriterConfigEnum,
-    WriterTypeEnum, DEBUG,
+    ConsoleWriterConfig, ExtConfig, Logger, Logging, MessageStructEnum, WriterConfigEnum, DEBUG,
 };
 
 fn main() -> Result<(), Error> {
