@@ -1,8 +1,8 @@
 use jni::JNIEnv;
 
-use jni::objects::{ JClass, JString };
+use jni::objects::{JClass, JString};
 
-use jni::sys::{ jint, jlong };
+use jni::sys::{jint, jlong};
 
 use fastlogging::Logger;
 
@@ -10,11 +10,11 @@ use fastlogging::Logger;
 ///
 /// This function creates a new instance.
 #[no_mangle]
-pub unsafe extern "system" fn Java_JavaFastLogging_loggerNew(
+pub unsafe extern "system" fn Java_org_logging_FastLogging_loggerNew(
     mut env: JNIEnv,
     _class: JClass,
     level: jint, // Global log level
-    domain: JString
+    domain: JString,
 ) -> jlong {
     let domain: String = env.get_string(&domain).unwrap().into();
     let instance = Logger::new(level as u8, domain);
@@ -26,11 +26,11 @@ pub unsafe extern "system" fn Java_JavaFastLogging_loggerNew(
 ///
 /// Set log level.
 #[no_mangle]
-pub unsafe extern "system" fn Java_examples_logging_FastLogging_loggerSetLevel(
+pub unsafe extern "system" fn Java_org_logging_FastLogging_loggerSetLevel(
     mut _env: JNIEnv,
     _class: JClass,
     logger_ptr: jlong,
-    level: jint
+    level: jint,
 ) {
     let instance = &mut *(logger_ptr as *mut Logger);
 
@@ -41,11 +41,11 @@ pub unsafe extern "system" fn Java_examples_logging_FastLogging_loggerSetLevel(
 ///
 /// Set log domain.
 #[no_mangle]
-pub unsafe extern "system" fn Java_examples_logging_FastLogging_loggerSetDomain(
+pub unsafe extern "system" fn Java_org_logging_FastLogging_loggerSetDomain(
     mut env: JNIEnv,
     _class: JClass,
     logger_ptr: jlong,
-    domain: JString
+    domain: JString,
 ) {
     let instance = &mut *(logger_ptr as *mut Logger);
     let domain: String = env.get_string(&domain).unwrap().into();
@@ -55,13 +55,31 @@ pub unsafe extern "system" fn Java_examples_logging_FastLogging_loggerSetDomain(
 
 /// # Safety
 ///
-/// debug message.
+/// trace message.
 #[no_mangle]
-pub unsafe extern "system" fn Java_examples_logging_FastLogging_loggerDebug(
+pub unsafe extern "system" fn Java_org_logging_FastLogging_loggerTrace(
     mut env: JNIEnv,
     _class: JClass,
     logger_ptr: jlong,
-    message: JString
+    message: JString,
+) {
+    let instance = &mut *(logger_ptr as *mut Logger);
+    let message: String = env.get_string(&message).unwrap().into();
+    if let Err(err) = instance.trace(message) {
+        env.throw(err.to_string()).unwrap();
+        unreachable!();
+    }
+}
+
+/// # Safety
+///
+/// debug message.
+#[no_mangle]
+pub unsafe extern "system" fn Java_org_logging_FastLogging_loggerDebug(
+    mut env: JNIEnv,
+    _class: JClass,
+    logger_ptr: jlong,
+    message: JString,
 ) {
     let instance = &mut *(logger_ptr as *mut Logger);
     let message: String = env.get_string(&message).unwrap().into();
@@ -75,11 +93,11 @@ pub unsafe extern "system" fn Java_examples_logging_FastLogging_loggerDebug(
 ///
 /// debug message.
 #[no_mangle]
-pub unsafe extern "system" fn Java_examples_logging_FastLogging_loggerInfo(
+pub unsafe extern "system" fn Java_org_logging_FastLogging_loggerInfo(
     mut env: JNIEnv,
     _class: JClass,
     logger_ptr: jlong,
-    message: JString
+    message: JString,
 ) {
     let instance = &mut *(logger_ptr as *mut Logger);
     let message: String = env.get_string(&message).unwrap().into();
@@ -91,13 +109,31 @@ pub unsafe extern "system" fn Java_examples_logging_FastLogging_loggerInfo(
 
 /// # Safety
 ///
-/// debug message.
+/// trace message.
 #[no_mangle]
-pub unsafe extern "system" fn Java_examples_logging_FastLogging_loggerWarning(
+pub unsafe extern "system" fn Java_org_logging_FastLogging_loggerSuccess(
     mut env: JNIEnv,
     _class: JClass,
     logger_ptr: jlong,
-    message: JString
+    message: JString,
+) {
+    let instance = &mut *(logger_ptr as *mut Logger);
+    let message: String = env.get_string(&message).unwrap().into();
+    if let Err(err) = instance.success(message) {
+        env.throw(err.to_string()).unwrap();
+        unreachable!();
+    }
+}
+
+/// # Safety
+///
+/// debug message.
+#[no_mangle]
+pub unsafe extern "system" fn Java_org_logging_FastLogging_loggerWarning(
+    mut env: JNIEnv,
+    _class: JClass,
+    logger_ptr: jlong,
+    message: JString,
 ) {
     let instance = &mut *(logger_ptr as *mut Logger);
     let message: String = env.get_string(&message).unwrap().into();
@@ -111,11 +147,11 @@ pub unsafe extern "system" fn Java_examples_logging_FastLogging_loggerWarning(
 ///
 /// error message.
 #[no_mangle]
-pub unsafe extern "system" fn Java_examples_logging_FastLogging_loggerError(
+pub unsafe extern "system" fn Java_org_logging_FastLogging_loggerError(
     mut env: JNIEnv,
     _class: JClass,
     logger_ptr: jlong,
-    message: JString
+    message: JString,
 ) {
     let instance = &mut *(logger_ptr as *mut Logger);
     let message: String = env.get_string(&message).unwrap().into();
@@ -129,11 +165,11 @@ pub unsafe extern "system" fn Java_examples_logging_FastLogging_loggerError(
 ///
 /// error message.
 #[no_mangle]
-pub unsafe extern "system" fn Java_examples_logging_FastLogging_loggerCritical(
+pub unsafe extern "system" fn Java_org_logging_FastLogging_loggerCritical(
     mut env: JNIEnv,
     _class: JClass,
     logger_ptr: jlong,
-    message: JString
+    message: JString,
 ) {
     let instance = &mut *(logger_ptr as *mut Logger);
     let message: String = env.get_string(&message).unwrap().into();
@@ -147,11 +183,11 @@ pub unsafe extern "system" fn Java_examples_logging_FastLogging_loggerCritical(
 ///
 /// error message.
 #[no_mangle]
-pub unsafe extern "system" fn Java_examples_logging_FastLogging_loggerFatal(
+pub unsafe extern "system" fn Java_org_logging_FastLogging_loggerFatal(
     mut env: JNIEnv,
     _class: JClass,
     logger_ptr: jlong,
-    message: JString
+    message: JString,
 ) {
     let instance = &mut *(logger_ptr as *mut Logger);
     let message: String = env.get_string(&message).unwrap().into();
@@ -165,11 +201,11 @@ pub unsafe extern "system" fn Java_examples_logging_FastLogging_loggerFatal(
 ///
 /// error message.
 #[no_mangle]
-pub unsafe extern "system" fn Java_examples_logging_FastLogging_loggerException(
+pub unsafe extern "system" fn Java_org_logging_FastLogging_loggerException(
     mut env: JNIEnv,
     _class: JClass,
     logger_ptr: jlong,
-    message: JString
+    message: JString,
 ) {
     let instance = &mut *(logger_ptr as *mut Logger);
     let message: String = env.get_string(&message).unwrap().into();

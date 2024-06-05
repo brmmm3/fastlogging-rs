@@ -1,40 +1,17 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use jni::JNIEnv;
 
-use jni::objects::{ JClass, JString };
+use jni::objects::{JClass, JString};
 
-use jni::sys::{ jboolean, jdouble, jint, jlong };
+use jni::sys::{jboolean, jbyte, jchar, jdouble, jint, jlong};
 
-use fastlogging::{ LevelSyms, Logger, Logging, NOLOG };
+use fastlogging::{
+    ClientWriterConfig, ConsoleWriterConfig, EncryptionMethod, ExtConfig, FileWriterConfig,
+    LevelSyms, Logger, Logging, ServerConfig, WriterTypeEnum,
+};
 
-#[inline]
-fn throw_exception(env: &mut JNIEnv, error: String) {
-    eprintln!("{error}");
-    env.throw(error).unwrap();
-}
-
-#[inline]
-fn get_string(env: &mut JNIEnv, s: JString) -> String {
-    match env.get_string(&s) {
-        Ok(s) => s.into(),
-        Err(err) => {
-            throw_exception(env, err.to_string());
-            unreachable!();
-        }
-    }
-}
-
-#[inline]
-fn get_option_vec_u8(env: &mut JNIEnv, s: JString) -> Option<Vec<u8>> {
-    match env.get_string(&s) {
-        Ok(k) => {
-            let k: String = k.into();
-            Some(k.into_bytes())
-        }
-        Err(_) => None,
-    }
-}
+use crate::{get_string, throw_exception};
 
 /// # Safety
 ///
@@ -45,52 +22,70 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingNew(
     _class: JClass,
     level: jint, // Global log level
     domain: JString,
-    console: jboolean, // If true start ConsoleLogging
-    file: JString, // If path is defined start FileLogging
-    server: JString, // If address is defined start LoggingServer
-    connect: JString, // If address is defined start ClientLogging
-    max_size: jint, // Maximum size of log files
-    backlog: jint // Maximum number of backup log files
+    ext_config: *mut ExtConfig,
+    console: *mut ConsoleWriterConfig,
+    file: *mut FileWriterConfig,
+    server: *mut ServerConfig,
+    connect: *mut ClientWriterConfig,
+    syslog: jbyte,   // Syslog log level
+    config: JString, // Optional configuration file path
 ) -> jlong {
     let domain: Option<String> = match domain.is_null() {
         true => None,
-        false => {
-            match env.get_string(&domain) {
-                Ok(s) => Some(s.into()),
-                Err(err) => {
-                    eprintln!("{err:?}");
-                    None
-                }
+        false => match env.get_string(&domain) {
+            Ok(s) => Some(s.into()),
+            Err(err) => {
+                eprintln!("{err:?}");
+                None
             }
-        }
+        },
     };
-    let console: Option<bool> = Some(console != 0);
-    let file: Option<PathBuf> = match file.is_null() {
+    let ext_config = if ext_config.is_null() {
+        None
+    } else {
+        Some(*Box::from_raw(ext_config))
+    };
+    let console = if console.is_null() {
+        None
+    } else {
+        Some(*Box::from_raw(console))
+    };
+    let file = if file.is_null() {
+        None
+    } else {
+        Some(*Box::from_raw(file))
+    };
+    let server = if server.is_null() {
+        None
+    } else {
+        Some(*Box::from_raw(server))
+    };
+    let connect = if connect.is_null() {
+        None
+    } else {
+        Some(*Box::from_raw(connect))
+    };
+    let syslog = if syslog >= 0 {
+        Some(syslog as u8)
+    } else {
+        None
+    };
+    let config: Option<PathBuf> = match config.is_null() {
+        false => Some(PathBuf::from(
+            env.get_string(&config).unwrap().to_str().unwrap(),
+        )),
         true => None,
-        false => {
-            let s: String = env.get_string(&file).unwrap().into();
-            Some(PathBuf::from(s))
-        }
     };
-    let server: Option<String> = match server.is_null() {
-        true => None,
-        false => Some(env.get_string(&server).unwrap().into()),
-    };
-    let connect: Option<String> = match connect.is_null() {
-        true => None,
-        false => Some(env.get_string(&connect).unwrap().into()),
-    };
-    let max_size: Option<usize> = Some(max_size as usize);
-    let backlog: Option<usize> = Some(backlog as usize);
     let instance = Logging::new(
         Some(level as u8),
         domain,
+        ext_config,
         console,
         file,
         server,
         connect,
-        max_size,
-        backlog
+        syslog,
+        config,
     );
 
     Box::into_raw(Box::new(instance)) as jlong
@@ -104,10 +99,10 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingShutdown(
     mut env: JNIEnv,
     _class: JClass,
     logging_ptr: jlong,
-    now: jboolean
+    now: jboolean,
 ) {
     let instance = &mut *(logging_ptr as *mut Logging);
-    if let Err(err) = instance.shutdown(Some(now != 0)) {
+    if let Err(err) = instance.shutdown(now != 0) {
         throw_exception(&mut env, err.to_string());
         unreachable!();
     }
@@ -122,11 +117,10 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingAddLogger(
     mut _env: JNIEnv,
     _class: JClass,
     logging_ptr: jlong,
-    logger_ptr: jlong
+    logger_ptr: jlong,
 ) {
     let instance = &mut *(logging_ptr as *mut Logging);
     let logger = &mut *(logger_ptr as *mut Logger);
-
     instance.add_logger(logger);
 }
 
@@ -138,11 +132,10 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingRemoveLogger(
     mut _env: JNIEnv,
     _class: JClass,
     logging_ptr: jlong,
-    logger_ptr: jlong
+    logger_ptr: jlong,
 ) {
     let instance = &mut *(logging_ptr as *mut Logging);
     let logger = &mut *(logger_ptr as *mut Logger);
-
     instance.remove_logger(logger);
 }
 
@@ -151,14 +144,21 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingRemoveLogger(
 /// Set log level.
 #[no_mangle]
 pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingSetLevel(
-    mut _env: JNIEnv,
+    mut env: JNIEnv,
     _class: JClass,
     logging_ptr: jlong,
-    level: jint
-) {
+    writer: *mut WriterTypeEnum,
+    level: jint,
+) -> jlong {
     let instance = &mut *(logging_ptr as *mut Logging);
-
-    instance.set_level(level as u8);
+    let writer = (*Box::from_raw(writer));
+    match instance.set_level(writer, level as u8) {
+        Ok(_) => 0,
+        Err(err) => {
+            throw_exception(&mut env, err.to_string());
+            unreachable!();
+        }
+    }
 }
 
 /// # Safety
@@ -169,10 +169,9 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingSetDomain(
     mut env: JNIEnv,
     _class: JClass,
     logging_ptr: jlong,
-    domain: JString
+    domain: JString,
 ) {
     let instance = &mut *(logging_ptr as *mut Logging);
-
     instance.set_domain(get_string(&mut env, domain));
 }
 
@@ -184,33 +183,35 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingSetLevel2Sym(
     mut _env: JNIEnv,
     _class: JClass,
     logging_ptr: jlong,
-    level2sym_ptr: jlong
+    level2sym_ptr: jlong,
 ) {
     let instance = &mut *(logging_ptr as *mut Logging);
     let level2sym = &mut *(level2sym_ptr as *mut LevelSyms);
-
     instance.set_level2sym(level2sym.to_owned());
 }
 
 /// # Safety
 ///
-/// Set console logger level
+/// This function destroys an instance.
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingSetConsoleWriter(
+pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingSync(
     mut env: JNIEnv,
     _class: JClass,
+    console: jboolean,
+    file: jboolean,
+    client: jboolean,
+    syslog: jboolean,
     logging_ptr: jlong,
-    level: jint
+    timeout: jdouble,
 ) {
     let instance = &mut *(logging_ptr as *mut Logging);
-
-    if
-        let Err(err) = (if level < (NOLOG as i32) {
-            instance.set_console_writer(Some(level as u8))
-        } else {
-            instance.set_console_writer(None)
-        })
-    {
+    if let Err(err) = instance.sync(
+        console != 0,
+        file != 0,
+        client != 0,
+        syslog != 0,
+        timeout as f64,
+    ) {
         throw_exception(&mut env, err.to_string());
         unreachable!();
     }
@@ -220,44 +221,16 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingSetConsoleWrit
 ///
 /// This function destroys an instance.
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingSetConsoleColors(
-    mut _env: JNIEnv,
-    _class: JClass,
-    logging_ptr: jlong,
-    colors: jboolean
-) {
-    let instance = &mut *(logging_ptr as *mut Logging);
-
-    instance.set_console_colors(colors != 0);
-}
-
-/// # Safety
-///
-/// Set console logger level
-#[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingSetFileWriter(
+pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingSyncAll(
     mut env: JNIEnv,
     _class: JClass,
     logging_ptr: jlong,
-    level: jint,
-    path: JString,
-    max_size: jint,
-    backlog: jint
+    timeout: jdouble,
 ) {
     let instance = &mut *(logging_ptr as *mut Logging);
-    if let Ok(path) = env.get_string(&path) {
-        let path: String = path.into();
-        if
-            let Err(err) = instance.set_file_writer(
-                Some(level as u8),
-                Some(PathBuf::from(path)),
-                Some(max_size as usize),
-                Some(backlog as usize)
-            )
-        {
-            throw_exception(&mut env, err.to_string());
-            unreachable!();
-        }
+    if let Err(err) = instance.sync_all(timeout as f64) {
+        throw_exception(&mut env, err.to_string());
+        unreachable!();
     }
 }
 
@@ -268,11 +241,16 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingSetFileWriter(
 pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingRotate(
     mut env: JNIEnv,
     _class: JClass,
-    logging_ptr: jlong
+    logging_ptr: jlong,
+    path: JString,
 ) {
     let instance = &mut *(logging_ptr as *mut Logging);
-
-    if let Err(err) = instance.rotate() {
+    let path = if !path.is_null() {
+        Some(PathBuf::from(get_string(&mut env, path)))
+    } else {
+        None
+    };
+    if let Err(err) = instance.rotate(path) {
         throw_exception(&mut env, err.to_string());
         unreachable!();
     }
@@ -280,17 +258,17 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingRotate(
 
 /// # Safety
 ///
-/// This function destroys an instance.
+/// Set server/client encryption
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingSync(
+pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingSetEncryption(
     mut env: JNIEnv,
     _class: JClass,
     logging_ptr: jlong,
-    timeout: jdouble
+    writer: WriterTypeEnum,
+    key: EncryptionMethod,
 ) {
     let instance = &mut *(logging_ptr as *mut Logging);
-
-    if let Err(err) = instance.sync(timeout as f64) {
+    if let Err(err) = instance.set_encryption(writer, key) {
         throw_exception(&mut env, err.to_string());
         unreachable!();
     }
@@ -298,165 +276,85 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingSync(
 
 /// # Safety
 ///
-/// Connect to fastlogging server
+/// Get configuration
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingConnect(
+pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingGetConfig(
+    _env: JNIEnv,
+    _class: JClass,
+    logging_ptr: jlong,
+    writer: WriterTypeEnum,
+) -> jlong {
+    let instance = &mut *(logging_ptr as *mut Logging);
+    Box::into_raw(Box::new(instance.get_config(writer))) as jlong
+}
+
+/// # Safety
+///
+/// Get server configuration
+#[no_mangle]
+pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingGetServerConfig(
+    _env: JNIEnv,
+    _class: JClass,
+    logging_ptr: jlong,
+) -> jlong {
+    let instance = &mut *(logging_ptr as *mut Logging);
+    Box::into_raw(Box::new(instance.get_server_config())) as jlong
+}
+
+/// # Safety
+///
+/// Get server configuration
+#[no_mangle]
+pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingGetServerAuthKey(
+    _env: JNIEnv,
+    _class: JClass,
+    logging_ptr: jlong,
+) -> jlong {
+    let instance = &mut *(logging_ptr as *mut Logging);
+    Box::into_raw(Box::new(instance.get_server_auth_key())) as jlong
+}
+
+/// # Safety
+///
+/// Get server configuration
+#[no_mangle]
+pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingGetConfigString(
+    _env: JNIEnv,
+    _class: JClass,
+    logging_ptr: jlong,
+) -> jlong {
+    let instance = &mut *(logging_ptr as *mut Logging);
+    Box::into_raw(Box::new(instance.get_config_string())) as jlong
+}
+
+/// # Safety
+///
+/// Get server configuration
+#[no_mangle]
+pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingSaveConfig(
     mut env: JNIEnv,
     _class: JClass,
     logging_ptr: jlong,
-    address: JString,
-    level: jint,
-    key: JString
-) {
+    path: JString,
+) -> jlong {
     let instance = &mut *(logging_ptr as *mut Logging);
-
-    if
-        let Err(err) = instance.connect(
-            get_string(&mut env, address),
-            level as u8,
-            get_option_vec_u8(&mut env, key)
-        )
-    {
-        throw_exception(&mut env, err.to_string());
-        unreachable!();
-    }
+    Box::into_raw(Box::new(
+        instance.save_config(Path::new(&get_string(&mut env, path))),
+    )) as jlong
 }
 
 /// # Safety
 ///
-/// Connect to fastlogging server
+/// trace message.
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingDisconnect(
+pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingTrace(
     mut env: JNIEnv,
     _class: JClass,
     logging_ptr: jlong,
-    address: JString
+    message: JString,
 ) {
     let instance = &mut *(logging_ptr as *mut Logging);
-
-    if let Err(err) = instance.disconnect(&get_string(&mut env, address)) {
-        throw_exception(&mut env, err.to_string());
-        unreachable!();
-    }
-}
-
-/// # Safety
-///
-/// Connect to fastlogging server
-#[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingSetClientLevel(
-    mut env: JNIEnv,
-    _class: JClass,
-    logging_ptr: jlong,
-    address: JString,
-    level: jint
-) {
-    let instance = &mut *(logging_ptr as *mut Logging);
-
-    if let Err(err) = instance.set_client_level(&get_string(&mut env, address), level as u8) {
-        throw_exception(&mut env, err.to_string());
-        unreachable!();
-    }
-}
-
-/// # Safety
-///
-/// Connect to fastlogging server
-#[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingSetClientEncryption(
-    mut env: JNIEnv,
-    _class: JClass,
-    logging_ptr: jlong,
-    address: JString,
-    key: JString
-) {
-    let instance = &mut *(logging_ptr as *mut Logging);
-
-    if
-        let Err(err) = instance.set_client_encryption(
-            &get_string(&mut env, address),
-            get_option_vec_u8(&mut env, key)
-        )
-    {
-        throw_exception(&mut env, err.to_string());
-        unreachable!();
-    }
-}
-
-/// # Safety
-///
-/// Connect to fastlogging server
-#[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingServerStart(
-    mut env: JNIEnv,
-    _class: JClass,
-    logging_ptr: jlong,
-    address: JString,
-    level: jint,
-    key: JString
-) {
-    let instance = &mut *(logging_ptr as *mut Logging);
-
-    if
-        let Err(err) = instance.server_start(
-            get_string(&mut env, address),
-            level as u8,
-            get_option_vec_u8(&mut env, key)
-        )
-    {
-        throw_exception(&mut env, err.to_string());
-        unreachable!();
-    }
-}
-
-/// # Safety
-///
-/// Connect to fastlogging server
-#[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingServerShutdown(
-    mut env: JNIEnv,
-    _class: JClass,
-    logging_ptr: jlong
-) {
-    let instance = &mut *(logging_ptr as *mut Logging);
-
-    if let Err(err) = instance.server_shutdown() {
-        throw_exception(&mut env, err.to_string());
-        unreachable!();
-    }
-}
-
-/// # Safety
-///
-/// Connect to fastlogging server
-#[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingSetServerLevel(
-    mut env: JNIEnv,
-    _class: JClass,
-    logging_ptr: jlong,
-    level: jint
-) {
-    let instance = &mut *(logging_ptr as *mut Logging);
-
-    if let Err(err) = instance.set_server_level(level as u8) {
-        throw_exception(&mut env, err.to_string());
-        unreachable!();
-    }
-}
-
-/// # Safety
-///
-/// Connect to fastlogging server
-#[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingSetServerEncryption(
-    mut env: JNIEnv,
-    _class: JClass,
-    logging_ptr: jlong,
-    key: JString
-) {
-    let instance = &mut *(logging_ptr as *mut Logging);
-
-    if let Err(err) = instance.set_server_encryption(get_option_vec_u8(&mut env, key)) {
+    if let Err(err) = instance.trace(get_string(&mut env, message)) {
         throw_exception(&mut env, err.to_string());
         unreachable!();
     }
@@ -470,10 +368,9 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingDebug(
     mut env: JNIEnv,
     _class: JClass,
     logging_ptr: jlong,
-    message: JString
+    message: JString,
 ) {
     let instance = &mut *(logging_ptr as *mut Logging);
-
     if let Err(err) = instance.debug(get_string(&mut env, message)) {
         throw_exception(&mut env, err.to_string());
         unreachable!();
@@ -488,11 +385,27 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingInfo(
     mut env: JNIEnv,
     _class: JClass,
     logging_ptr: jlong,
-    message: JString
+    message: JString,
 ) {
     let instance = &mut *(logging_ptr as *mut Logging);
-
     if let Err(err) = instance.info(get_string(&mut env, message)) {
+        throw_exception(&mut env, err.to_string());
+        unreachable!();
+    }
+}
+
+/// # Safety
+///
+/// success message.
+#[no_mangle]
+pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingSuccess(
+    mut env: JNIEnv,
+    _class: JClass,
+    logging_ptr: jlong,
+    message: JString,
+) {
+    let instance = &mut *(logging_ptr as *mut Logging);
+    if let Err(err) = instance.success(get_string(&mut env, message)) {
         throw_exception(&mut env, err.to_string());
         unreachable!();
     }
@@ -506,10 +419,9 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingWarning(
     mut env: JNIEnv,
     _class: JClass,
     logging_ptr: jlong,
-    message: JString
+    message: JString,
 ) {
     let instance = &mut *(logging_ptr as *mut Logging);
-
     if let Err(err) = instance.warning(get_string(&mut env, message)) {
         throw_exception(&mut env, err.to_string());
         unreachable!();
@@ -524,10 +436,9 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingError(
     mut env: JNIEnv,
     _class: JClass,
     logging_ptr: jlong,
-    message: JString
+    message: JString,
 ) {
     let instance = &mut *(logging_ptr as *mut Logging);
-
     if let Err(err) = instance.error(get_string(&mut env, message)) {
         throw_exception(&mut env, err.to_string());
         unreachable!();
@@ -542,10 +453,9 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingCritical(
     mut env: JNIEnv,
     _class: JClass,
     logging_ptr: jlong,
-    message: JString
+    message: JString,
 ) {
     let instance = &mut *(logging_ptr as *mut Logging);
-
     if let Err(err) = instance.critical(get_string(&mut env, message)) {
         throw_exception(&mut env, err.to_string());
         unreachable!();
@@ -560,10 +470,9 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingFatal(
     mut env: JNIEnv,
     _class: JClass,
     logging_ptr: jlong,
-    message: JString
+    message: JString,
 ) {
     let instance = &mut *(logging_ptr as *mut Logging);
-
     if let Err(err) = instance.fatal(get_string(&mut env, message)) {
         throw_exception(&mut env, err.to_string());
         unreachable!();
@@ -578,10 +487,9 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingException(
     mut env: JNIEnv,
     _class: JClass,
     logging_ptr: jlong,
-    message: JString
+    message: JString,
 ) {
     let instance = &mut *(logging_ptr as *mut Logging);
-
     let message: String = if message.is_null() {
         "EXCEPTION".to_owned()
     } else {
