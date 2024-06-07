@@ -57,7 +57,12 @@ typedef enum
 
 typedef void *ExtConfig;
 
-ExtConfig ext_config_new(MessageStructEnum structured, int8_t hostname, int8_t pname, int8_t pid, int8_t tname, int8_t tid);
+ExtConfig ext_config_new(MessageStructEnum structured,
+                         int8_t hostname,
+                         int8_t pname,
+                         int8_t pid,
+                         int8_t tname,
+                         int8_t tid);
 
 // Console writer
 
@@ -69,28 +74,40 @@ ConsoleWriterConfig console_writer_config_new(uint8_t level, int8_t colors);
 
 typedef void *FileWriterConfig;
 
-FileWriterConfig file_writer_config_new(uint8_t level, const char *path, uint32_t size, uint32_t backlog,
-                                        int32_t timeout, int64_t time, CompressionMethodEnum compression);
+FileWriterConfig file_writer_config_new(uint8_t level,
+                                        const char *path,
+                                        uint32_t size,
+                                        uint32_t backlog,
+                                        int32_t timeout,
+                                        int64_t time,
+                                        CompressionMethodEnum compression);
 
 // Client writer
 
 typedef void *ClientWriterConfig;
 
-ClientWriterConfig client_writer_config_new(uint8_t level, const char *address, EncryptionMethod encryption,
+ClientWriterConfig client_writer_config_new(uint8_t level,
+                                            const char *address,
+                                            EncryptionMethod encryption,
                                             const char *key);
 
 // Server
 
 typedef void *ServerConfig;
 
-ServerConfig server_config_new(uint8_t level, const char *address, EncryptionMethod encryption,
+ServerConfig server_config_new(uint8_t level,
+                               const char *address,
+                               EncryptionMethod encryption,
                                const char *key);
 
 // Syslog writer
 
 typedef void *SyslogWriterConfig;
 
-SyslogWriterConfig syslog_writer_config_new(uint8_t level, const char *hostname, const char *pname, uint32_t pid);
+SyslogWriterConfig syslog_writer_config_new(uint8_t level,
+                                            const char *hostname,
+                                            const char *pname,
+                                            uint32_t pid);
 
 // Logger module
 
@@ -100,9 +117,11 @@ Logger logger_new(uint8_t level, const char *domain);
 
 Logger logger_new_ext(uint8_t level, const char *domain, int8_t tname, int8_t tid);
 
-void logger_set_level(Logger logger, WriterTypeEnum writer, uint8_t level);
+void logger_set_level(Logger logger, uint8_t level);
 
 void logger_set_domain(Logger logger, const char *domain);
+
+// Logger calls
 
 int logger_trace(Logger logger, const char *message);
 
@@ -128,8 +147,14 @@ typedef void *Logging;
 
 Logging logging_init();
 
-Logging logging_new(uint8_t level, const char *domain, ExtConfig *ext_config, ConsoleWriterConfig *console,
-                    FileWriterConfig *file, ServerConfig *server, ClientWriterConfig *connect, int8_t syslog,
+Logging logging_new(uint8_t level,
+                    const char *domain,
+                    ExtConfig *ext_config,
+                    ConsoleWriterConfig *console,
+                    FileWriterConfig *file,
+                    ServerConfig *server,
+                    ClientWriterConfig *connect,
+                    int8_t syslog,
                     const char *config);
 
 int logging_shutdown(Logging logging, int8_t now);
@@ -168,9 +193,9 @@ WriterConfigEnum logging_get_config(Logging logging, WriterTypeEnum writer);
 
 ServerConfig logging_get_server_config(Logging logging);
 
-const char *get_server_auth_key(Logging logging);
+const char *logging_get_server_auth_key(Logging logging);
 
-const char *get_config_string(Logging logging);
+const char *logging_get_config_string(Logging logging);
 
 int logging_save_config(Logging logging, const char *path);
 

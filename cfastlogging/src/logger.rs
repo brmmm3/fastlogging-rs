@@ -1,13 +1,13 @@
-use std::ptr::null;
-use std::ffi::{ c_char, CStr };
+use std::ffi::{c_char, CStr};
 use std::os::raw::c_uchar;
+use std::ptr::null;
 
 use fastlogging::Logger;
 
 #[no_mangle]
 pub unsafe extern "C" fn logger_new(
     level: c_uchar, // Global log level
-    domain: *const c_char
+    domain: *const c_char,
 ) -> Box<Logger> {
     let domain = if domain != null() {
         let c_str = unsafe { CStr::from_ptr(domain) };
@@ -16,6 +16,22 @@ pub unsafe extern "C" fn logger_new(
         "".to_string()
     };
     Box::new(Logger::new(level as u8, domain))
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn logger_new_ext(
+    level: c_uchar, // Global log level
+    domain: *const c_char,
+    tname: c_char,
+    tid: c_char,
+) -> Box<Logger> {
+    let domain = if domain != null() {
+        let c_str = unsafe { CStr::from_ptr(domain) };
+        c_str.to_str().unwrap().to_string()
+    } else {
+        "".to_string()
+    };
+    Box::new(Logger::new_ext(level as u8, domain, tname != 0, tid != 0))
 }
 
 #[no_mangle]
@@ -30,6 +46,17 @@ pub unsafe extern "C" fn logger_set_domain(logger: &mut Logger, domain: *const c
 }
 
 // Logger calls
+
+#[no_mangle]
+pub unsafe extern "C" fn logger_trace(logger: &Logger, message: *const c_char) -> isize {
+    let c_str = unsafe { CStr::from_ptr(message) };
+    if let Err(err) = logger.trace(c_str.to_str().unwrap().to_string()) {
+        eprintln!("logger_trace failed: {err:?}");
+        err.raw_os_error().unwrap_or(nix::Error::EPIPE as i32) as isize
+    } else {
+        0
+    }
+}
 
 #[no_mangle]
 pub unsafe extern "C" fn logger_debug(logger: &Logger, message: *const c_char) -> isize {
@@ -47,6 +74,17 @@ pub unsafe extern "C" fn logger_info(logger: &Logger, message: *const c_char) ->
     let c_str = unsafe { CStr::from_ptr(message) };
     if let Err(err) = logger.info(c_str.to_str().unwrap().to_string()) {
         eprintln!("logger_info failed: {err:?}");
+        err.raw_os_error().unwrap_or(nix::Error::EPIPE as i32) as isize
+    } else {
+        0
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn logger_success(logger: &Logger, message: *const c_char) -> isize {
+    let c_str = unsafe { CStr::from_ptr(message) };
+    if let Err(err) = logger.success(c_str.to_str().unwrap().to_string()) {
+        eprintln!("logger_success failed: {err:?}");
         err.raw_os_error().unwrap_or(nix::Error::EPIPE as i32) as isize
     } else {
         0
