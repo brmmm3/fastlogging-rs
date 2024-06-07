@@ -1,6 +1,6 @@
 use std::io::{Error, ErrorKind};
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
 use std::thread::{self, JoinHandle};
 
 use chrono::Local;
@@ -18,6 +18,8 @@ use crate::{
     level2short, level2str, level2string, level2sym, LevelSyms, MessageStructEnum, RootConfig,
     SyslogWriter, WriterConfigEnum, WriterTypeEnum, SUCCESS, TRACE,
 };
+
+pub static LOGGING: OnceLock<Logging> = OnceLock::new();
 
 #[inline]
 fn build_string_message(
@@ -289,6 +291,32 @@ fn logging_thread(
         Err(err)
     } else {
         Ok(())
+    }
+}
+
+pub fn logging_init() -> &'static Logging {
+    match LOGGING.get() {
+        Some(l) => l,
+        None => {
+            let console_writer = ConsoleWriterConfig::new(DEBUG, false);
+            LOGGING
+                .set(
+                    Logging::new(
+                        None,
+                        None,
+                        None,
+                        Some(console_writer),
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                    )
+                    .unwrap(),
+                )
+                .unwrap();
+            LOGGING.get().unwrap()
+        }
     }
 }
 

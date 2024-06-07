@@ -14,6 +14,6 @@ pub use console::{ConsoleWriter, ConsoleWriterConfig};
 mod syslog;
 pub use syslog::{SyslogWriter, SyslogWriterConfig};
 mod logging;
-pub use logging::Logging;
+pub use logging::{logging_init, Logging};
 mod logger;
 pub use logger::Logger;
