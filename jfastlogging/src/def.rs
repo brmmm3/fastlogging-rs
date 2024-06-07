@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, UNIX_EPOCH};
 
 use jni::JNIEnv;
 
@@ -47,13 +47,14 @@ pub fn get_option_vec_u8(env: &mut JNIEnv, s: JString) -> Option<Vec<u8>> {
 pub unsafe extern "system" fn Java_org_logging_FastLogging_defExtConfigNew(
     _env: JNIEnv,
     _class: JClass,
-    structured: MessageStructEnum,
+    structured: *mut MessageStructEnum,
     hostname: jint,
     pname: jint,
     pid: jint,
     tname: jint,
     tid: jint,
 ) -> jlong {
+    let structured = *Box::from_raw(structured);
     let instance = ExtConfig::new(
         structured,
         hostname != 0,
@@ -92,8 +93,13 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_defFileWriterConfigNe
     backlog: jint,
     timeout: jint,
     time: jlong,
-    compression: Option<CompressionMethodEnum>,
+    compression: *mut CompressionMethodEnum,
 ) -> jlong {
+    let compression = if compression.is_null() {
+        None
+    } else {
+        Some(*Box::from_raw(compression))
+    };
     let timeout = if timeout > 0 {
         Some(Duration::from_secs(timeout as u64))
     } else {
@@ -125,8 +131,9 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_defClientWriterConfig
     _class: JClass,
     level: jint,
     address: JString,
-    key: EncryptionMethod,
+    key: *mut EncryptionMethod,
 ) -> jlong {
+    let key = *Box::from_raw(key);
     let instance = ClientWriterConfig::new(level as u8, get_string(&mut env, address), key);
     Box::into_raw(Box::new(instance)) as jlong
 }
@@ -140,8 +147,9 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_defServerConfigNew(
     _class: JClass,
     level: jint,
     address: JString,
-    key: EncryptionMethod,
+    key: *mut EncryptionMethod,
 ) -> jlong {
+    let key = *Box::from_raw(key);
     let instance = ServerConfig::new(level as u8, get_string(&mut env, address), key);
     Box::into_raw(Box::new(instance)) as jlong
 }

@@ -1,17 +1,175 @@
+use std::ops::Add;
 use std::path::{Path, PathBuf};
+use std::time::{Duration, SystemTime};
 
 use jni::JNIEnv;
 
 use jni::objects::{JClass, JString};
 
-use jni::sys::{jboolean, jbyte, jchar, jdouble, jint, jlong};
+use jni::sys::{jboolean, jbyte, jdouble, jint, jlong};
 
 use fastlogging::{
-    ClientWriterConfig, ConsoleWriterConfig, EncryptionMethod, ExtConfig, FileWriterConfig,
-    LevelSyms, Logger, Logging, ServerConfig, WriterTypeEnum,
+    ClientWriterConfig, CompressionMethodEnum, ConsoleWriterConfig, EncryptionMethod, ExtConfig,
+    FileWriterConfig, LevelSyms, Logger, Logging, MessageStructEnum, ServerConfig,
+    SyslogWriterConfig, WriterTypeEnum,
 };
 
 use crate::{get_string, throw_exception};
+
+#[no_mangle]
+pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingExtConfigNew(
+    _env: JNIEnv,
+    _class: JClass,
+    structured: jint,
+    hostname: jboolean,
+    pname: jboolean,
+    pid: jboolean,
+    tname: jboolean,
+    tid: jboolean,
+) -> Box<ExtConfig> {
+    let structured = match structured {
+        0 => MessageStructEnum::String,
+        1 => MessageStructEnum::Json,
+        2 => MessageStructEnum::Xml,
+        _ => MessageStructEnum::String,
+    };
+    Box::new(ExtConfig::new(
+        structured,
+        hostname != 0,
+        pname != 0,
+        pid != 0,
+        tname != 0,
+        tid != 0,
+    ))
+}
+
+#[no_mangle]
+pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingConsoleWriterConfigNew(
+    _env: JNIEnv,
+    _class: JClass,
+    level: jint,
+    colors: jboolean,
+) -> Box<ConsoleWriterConfig> {
+    Box::new(ConsoleWriterConfig::new(level as u8, colors != 0))
+}
+
+#[no_mangle]
+pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingFileWriterConfigNew(
+    mut env: JNIEnv,
+    _class: JClass,
+    level: jint,
+    path: JString,
+    size: jint,
+    backlog: jint,
+    timeout: jint,
+    time: jlong,
+    compression: *mut CompressionMethodEnum,
+) -> Box<FileWriterConfig> {
+    let path: String = env.get_string(&path).unwrap().into();
+    let timeout = if timeout < 0 {
+        None
+    } else {
+        Some(Duration::from_secs(timeout as u64))
+    };
+    let time = if time < 0 {
+        None
+    } else {
+        Some(SystemTime::now().add(Duration::from_secs(time as u64)))
+    };
+    let compression = if compression.is_null() {
+        None
+    } else {
+        Some(*Box::from_raw(compression))
+    };
+    Box::new(
+        FileWriterConfig::new(
+            level as u8,
+            PathBuf::from(path),
+            size as usize,
+            backlog as usize,
+            timeout,
+            time,
+            compression,
+        )
+        .unwrap(),
+    )
+}
+
+#[no_mangle]
+pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingClientWriterConfigNew(
+    mut env: JNIEnv,
+    _class: JClass,
+    level: jint,
+    address: JString,
+    encryption: jint,
+    key: JString,
+) -> Box<ClientWriterConfig> {
+    let address: String = env.get_string(&address).unwrap().into();
+    let key = if encryption == 0 || key.is_null() {
+        EncryptionMethod::NONE
+    } else {
+        let key: String = env.get_string(&key).unwrap().into();
+        if encryption == 1 {
+            EncryptionMethod::AuthKey(key.into_bytes())
+        } else {
+            EncryptionMethod::AES(key.into_bytes())
+        }
+    };
+    Box::new(ClientWriterConfig::new(level as u8, address, key))
+}
+
+#[no_mangle]
+pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingServerConfigNew(
+    mut env: JNIEnv,
+    _class: JClass,
+    level: jint,
+    address: JString,
+    encryption: jint,
+    key: JString,
+) -> Box<ServerConfig> {
+    let address: String = env.get_string(&address).unwrap().into();
+    let key = if encryption == 0 || key.is_null() {
+        EncryptionMethod::NONE
+    } else {
+        let key: String = env.get_string(&key).unwrap().into();
+        if encryption == 1 {
+            EncryptionMethod::AuthKey(key.into_bytes())
+        } else {
+            EncryptionMethod::AES(key.into_bytes())
+        }
+    };
+    Box::new(ServerConfig::new(level as u8, address, key))
+}
+
+#[no_mangle]
+pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingSyslogWriterConfigNew(
+    mut env: JNIEnv,
+    _class: JClass,
+    level: jint,
+    hostname: JString,
+    pname: JString,
+    pid: jint,
+) -> jlong {
+    let hostname: Option<String> = env.get_string(&hostname).ok().map(|s| s.into());
+    let pname: String = env.get_string(&pname).unwrap().into();
+    Box::into_raw(Box::new(SyslogWriterConfig::new(
+        level as u8,
+        hostname,
+        pname,
+        pid as u32,
+    ))) as jlong
+}
+
+/// # Safety
+///
+/// Create new default instance.
+#[no_mangle]
+pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingInit(
+    _env: JNIEnv,
+    _class: JClass,
+) -> jlong {
+    Box::into_raw(Box::new(fastlogging::logging_init())) as jlong
+}
 
 /// # Safety
 ///
@@ -30,16 +188,7 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingNew(
     syslog: jbyte,   // Syslog log level
     config: JString, // Optional configuration file path
 ) -> jlong {
-    let domain: Option<String> = match domain.is_null() {
-        true => None,
-        false => match env.get_string(&domain) {
-            Ok(s) => Some(s.into()),
-            Err(err) => {
-                eprintln!("{err:?}");
-                None
-            }
-        },
-    };
+    let domain: Option<String> = env.get_string(&domain).ok().map(|s| s.into());
     let ext_config = if ext_config.is_null() {
         None
     } else {
@@ -151,7 +300,7 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingSetLevel(
     level: jint,
 ) -> jlong {
     let instance = &mut *(logging_ptr as *mut Logging);
-    let writer = (*Box::from_raw(writer));
+    let writer = *Box::from_raw(writer);
     match instance.set_level(writer, level as u8) {
         Ok(_) => 0,
         Err(err) => {
@@ -264,9 +413,11 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingSetEncryption(
     mut env: JNIEnv,
     _class: JClass,
     logging_ptr: jlong,
-    writer: WriterTypeEnum,
-    key: EncryptionMethod,
+    writer: *mut WriterTypeEnum,
+    key: *mut EncryptionMethod,
 ) {
+    let writer = *Box::from_raw(writer);
+    let key = *Box::from_raw(key);
     let instance = &mut *(logging_ptr as *mut Logging);
     if let Err(err) = instance.set_encryption(writer, key) {
         throw_exception(&mut env, err.to_string());
@@ -282,8 +433,9 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingGetConfig(
     _env: JNIEnv,
     _class: JClass,
     logging_ptr: jlong,
-    writer: WriterTypeEnum,
+    writer: *mut WriterTypeEnum,
 ) -> jlong {
+    let writer = *Box::from_raw(writer);
     let instance = &mut *(logging_ptr as *mut Logging);
     Box::into_raw(Box::new(instance.get_config(writer))) as jlong
 }
