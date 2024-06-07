@@ -6,104 +6,192 @@
 // Lets use some types which we can easily pair with rust types.
 #include <stdint.h>
 
-enum LevelSyms
+typedef enum
 {
     Sym = 0,
     Short = 1,
     Str = 2
-};
+} LevelSyms;
 
-typedef void *Logging;
+typedef enum
+{
+    Message = 0,
+    Sync = 1,
+    Rotate = 2,
+    Stop = 3
+} FileTypeEnum;
+
+typedef enum
+{
+    Store = 0,
+    Deflate = 1,
+    Zstd = 2,
+    Lzma = 3
+} CompressionMethodEnum;
+
+typedef enum
+{
+    Root = 0,
+    Console = 1,
+    File = 2,
+    Client = 3,
+    Server = 4,
+    Syslog = 5
+} WriterTypeEnum;
+
+typedef void *WriterConfigEnum;
+
+typedef enum
+{
+    String = 0,
+    Json = 1,
+    Xml = 2
+} MessageStructEnum;
+
+typedef enum
+{
+    NONE = 0,
+    AuthKey = 1,
+    AES = 2
+} EncryptionMethod;
+
+typedef void *ExtConfig;
+
+ExtConfig ext_config_new(MessageStructEnum structured, int8_t hostname, int8_t pname, int8_t pid, int8_t tname, int8_t tid);
+
+// Console writer
+
+typedef void *ConsoleWriterConfig;
+
+ConsoleWriterConfig console_writer_config_new(uint8_t level, int8_t colors);
+
+// File writer
+
+typedef void *FileWriterConfig;
+
+FileWriterConfig file_writer_config_new(uint8_t level, const char *path, uint32_t size, uint32_t backlog,
+                                        int32_t timeout, int64_t time, CompressionMethodEnum compression);
+
+// Client writer
+
+typedef void *ClientWriterConfig;
+
+ClientWriterConfig client_writer_config_new(uint8_t level, const char *address, EncryptionMethod encryption,
+                                            const char *key);
+
+// Server
+
+typedef void *ServerConfig;
+
+ServerConfig server_config_new(uint8_t level, const char *address, EncryptionMethod encryption,
+                               const char *key);
+
+// Syslog writer
+
+typedef void *SyslogWriterConfig;
+
+SyslogWriterConfig syslog_writer_config_new(uint8_t level, const char *hostname, const char *pname, uint32_t pid);
+
+// Logger module
+
 typedef void *Logger;
+
+Logger logger_new(uint8_t level, const char *domain);
+
+Logger logger_new_ext(uint8_t level, const char *domain, int8_t tname, int8_t tid);
+
+void logger_set_level(Logger logger, WriterTypeEnum writer, uint8_t level);
+
+void logger_set_domain(Logger logger, const char *domain);
+
+int logger_trace(Logger logger, const char *message);
+
+int logger_debug(Logger logger, const char *message);
+
+int logger_info(Logger logger, const char *message);
+
+int logger_success(Logger logger, const char *message);
+
+int logger_warning(Logger logger, const char *message);
+
+int logger_error(Logger logger, const char *message);
+
+int logger_critical(Logger logger, const char *message);
+
+int logger_fatal(Logger logger, const char *message);
+
+int logger_exception(Logger logger, const char *message);
 
 // Logging module
 
+typedef void *Logging;
+
 Logging logging_init();
 
-Logging logging_new(uint8_t level, char *domain, int console, char *file, char *server, char *connect, uint32_t max_size, uint32_t backlog);
+Logging logging_new(uint8_t level, const char *domain, ExtConfig *ext_config, ConsoleWriterConfig *console,
+                    FileWriterConfig *file, ServerConfig *server, ClientWriterConfig *connect, int8_t syslog,
+                    const char *config);
 
-int logging_shutdown(Logging logging, uint8_t now);
+int logging_shutdown(Logging logging, int8_t now);
 
 void logging_add_logger(Logging logging, Logger logger);
 
 void logging_remove_logger(Logging logging, Logger logger);
 
-void logging_set_level(Logging logging, uint8_t level);
+int logging_set_level(Logging logging, WriterTypeEnum writer, uint8_t level);
 
-void logging_set_domain(Logging logging, char *domain);
+void logging_set_domain(Logging logging, const char *domain);
 
 void logging_set_level2sym(Logging logging, uint8_t level2sym);
 
-// Console writer
+void logging_set_ext_config(Logging logging, ExtConfig ext_config);
 
-int logging_set_console_writer(Logging logging, int8_t level);
+int logging_add_writer(Logging logging, WriterConfigEnum writer);
 
-void logging_set_console_colors(Logging logging, uint8_t colors);
+int logging_remove_writer(Logging logging, WriterTypeEnum writer);
+
+int logging_sync(Logging logging, int8_t console, int8_t file, int8_t client, int8_t syslog, double timeout);
+
+int logging_sync_all(Logging logging, double timeout);
 
 // File writer
 
-int logging_set_file_writer(Logging logging, int8_t level, const char *path, int max_size, int backlog);
+int logging_rotate(Logging logging, const char *path);
 
-int logging_rotate(Logging logging);
+// Network
 
-int logging_sync(Logging logging, double timeout);
+int logging_set_encryption(Logging logging, WriterTypeEnum writer, EncryptionMethod encryption, char *key);
 
-// Network client
+// Config
 
-int logging_connect(Logging logging, const char *address, uint8_t level, const char *key);
+WriterConfigEnum logging_get_config(Logging logging, WriterTypeEnum writer);
 
-int logging_disconnect(Logging logging, const char *address);
+ServerConfig logging_get_server_config(Logging logging);
 
-int logging_set_client_level(Logging logging, const char *address, uint8_t level);
+const char *get_server_auth_key(Logging logging);
 
-int logging_set_client_encryption(Logging logging, const char *address, const char *key);
+const char *get_config_string(Logging logging);
 
-// Network server
-
-int logging_server_start(Logging logging, const char *address, uint8_t level, const char *key);
-
-int logging_server_shutdown(Logging logging);
-
-int logging_set_server_level(Logging logging, uint8_t level);
-
-int logging_set_server_encryption(Logging logging, const char *key);
+int logging_save_config(Logging logging, const char *path);
 
 // Logging calls
 
-int logging_debug(Logging logging, char *message);
+int logging_trace(Logging logging, const char *message);
 
-int logging_info(Logging logging, char *message);
+int logging_debug(Logging logging, const char *message);
 
-int logging_warning(Logging logging, char *message);
+int logging_info(Logging logging, const char *message);
 
-int logging_error(Logging logging, char *message);
+int logging_success(Logging logging, const char *message);
 
-int logging_critical(Logging logging, char *message);
+int logging_warning(Logging logging, const char *message);
 
-int logging_fatal(Logging logging, char *message);
+int logging_error(Logging logging, const char *message);
 
-int logging_exception(Logging logging, char *message);
+int logging_critical(Logging logging, const char *message);
 
-// Logger module
+int logging_fatal(Logging logging, const char *message);
 
-Logger logger_new(uint8_t level, char *domain);
-
-void logger_set_level(Logger logger, uint8_t level);
-
-void logger_set_domain(Logger logger, char *domain);
-
-int logger_debug(Logger logger, char *message);
-
-int logger_info(Logger logger, char *message);
-
-int logger_warning(Logger logger, char *message);
-
-int logger_error(Logger logger, char *message);
-
-int logger_critical(Logger logger, char *message);
-
-int logger_fatal(Logger logger, char *message);
-
-int logger_exception(Logger logger, char *message);
+int logging_exception(Logging logging, const char *message);
 
 #endif

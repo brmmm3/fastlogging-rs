@@ -23,5 +23,6 @@ name = "cfastlogging"
 crate_type = ["rlib", "cdylib", "staticlib"]
 
 [dependencies]
-nix = "0.28"
+nix = "0.29"
+zip = { version = "2.1", default-features = false, features = ["deflate"] }
 fastlogging = { path = "../fastlogging", version = "0.1.0" }
