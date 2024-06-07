@@ -84,9 +84,13 @@ fn sync(
     console: Option<bool>,
     file: Option<bool>,
     client: Option<bool>,
+    syslog: Option<bool>,
     timeout: Option<f64>,
 ) -> PyResult<()> {
-    LOGGING.lock().unwrap().sync(console, file, client, timeout)
+    LOGGING
+        .lock()
+        .unwrap()
+        .sync(console, file, client, syslog, timeout)
 }
 
 #[pyfunction]

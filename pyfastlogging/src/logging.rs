@@ -152,6 +152,7 @@ impl Logging {
         console: Option<bool>,
         file: Option<bool>,
         client: Option<bool>,
+        syslog: Option<bool>,
         timeout: Option<f64>,
     ) -> PyResult<()> {
         self.instance
@@ -159,6 +160,7 @@ impl Logging {
                 console.unwrap_or_default(),
                 file.unwrap_or_default(),
                 client.unwrap_or_default(),
+                syslog.unwrap_or_default(),
                 timeout.unwrap_or(1.0),
             )
             .map_err(PyException::new_err)
@@ -166,7 +168,7 @@ impl Logging {
 
     pub fn sync_all(&self, timeout: Option<f64>) -> PyResult<()> {
         self.instance
-            .sync(true, true, true, timeout.unwrap_or(1.0))
+            .sync(true, true, true, true, timeout.unwrap_or(1.0))
             .map_err(PyException::new_err)
     }
 
