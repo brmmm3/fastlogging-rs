@@ -320,6 +320,7 @@ pub fn logging_init() -> &'static Logging {
     }
 }
 
+#[repr(C)]
 #[derive(Debug)]
 pub struct Logging {
     pub level: u8,
@@ -669,7 +670,7 @@ impl Logging {
 
     // Config
 
-    pub fn get_config(&self, writer: WriterTypeEnum) -> Result<WriterConfigEnum, Error> {
+    pub fn get_config(&self, writer: &WriterTypeEnum) -> Result<WriterConfigEnum, Error> {
         let mut config = self.config.lock().unwrap();
         Ok(match writer {
             WriterTypeEnum::Root => WriterConfigEnum::Root(RootConfig {
@@ -694,7 +695,7 @@ impl Logging {
                 }
             }
             WriterTypeEnum::File(path) => {
-                if let Some(writer) = config.files.get_mut(&path) {
+                if let Some(writer) = config.files.get_mut(path) {
                     WriterConfigEnum::File(writer.config.lock().unwrap().clone())
                 } else {
                     return Err(Error::new(
@@ -704,7 +705,7 @@ impl Logging {
                 }
             }
             WriterTypeEnum::Client(address) => {
-                if let Some(writer) = config.clients.get_mut(&address) {
+                if let Some(writer) = config.clients.get_mut(address) {
                     let cfg = writer.config.lock().unwrap();
                     WriterConfigEnum::Client(ClientWriterConfig::new(
                         cfg.level,
@@ -747,7 +748,7 @@ impl Logging {
     }
 
     pub fn get_server_config(&self) -> Option<ServerConfig> {
-        if let Ok(WriterConfigEnum::Server(config)) = self.get_config(WriterTypeEnum::Server) {
+        if let Ok(WriterConfigEnum::Server(config)) = self.get_config(&WriterTypeEnum::Server) {
             Some(config)
         } else {
             None

@@ -1,23 +1,28 @@
 use std::ffi::{c_char, CStr};
 use std::os::raw::c_uchar;
-use std::ptr::null;
 
 use fastlogging::Logger;
 
+/// # Safety
+///
+/// Create new logger.
 #[no_mangle]
 pub unsafe extern "C" fn logger_new(
     level: c_uchar, // Global log level
     domain: *const c_char,
 ) -> Box<Logger> {
-    let domain = if domain != null() {
+    let domain = if !domain.is_null() {
         let c_str = unsafe { CStr::from_ptr(domain) };
         c_str.to_str().unwrap().to_string()
     } else {
         "".to_string()
     };
-    Box::new(Logger::new(level as u8, domain))
+    Box::new(Logger::new(level, domain))
 }
 
+/// # Safety
+///
+/// Create new logger with extended configuration.
 #[no_mangle]
 pub unsafe extern "C" fn logger_new_ext(
     level: c_uchar, // Global log level
@@ -25,20 +30,26 @@ pub unsafe extern "C" fn logger_new_ext(
     tname: c_char,
     tid: c_char,
 ) -> Box<Logger> {
-    let domain = if domain != null() {
+    let domain = if !domain.is_null() {
         let c_str = unsafe { CStr::from_ptr(domain) };
         c_str.to_str().unwrap().to_string()
     } else {
         "".to_string()
     };
-    Box::new(Logger::new_ext(level as u8, domain, tname != 0, tid != 0))
+    Box::new(Logger::new_ext(level, domain, tname != 0, tid != 0))
 }
 
+/// # Safety
+///
+/// Set log level.
 #[no_mangle]
 pub unsafe extern "C" fn logger_set_level(logger: &mut Logger, level: u8) {
     logger.set_level(level);
 }
 
+/// # Safety
+///
+/// Set domain.
 #[no_mangle]
 pub unsafe extern "C" fn logger_set_domain(logger: &mut Logger, domain: *const c_char) {
     let c_str = unsafe { CStr::from_ptr(domain) };
@@ -47,6 +58,9 @@ pub unsafe extern "C" fn logger_set_domain(logger: &mut Logger, domain: *const c
 
 // Logger calls
 
+/// # Safety
+///
+/// trace message.
 #[no_mangle]
 pub unsafe extern "C" fn logger_trace(logger: &Logger, message: *const c_char) -> isize {
     let c_str = unsafe { CStr::from_ptr(message) };
@@ -58,6 +72,9 @@ pub unsafe extern "C" fn logger_trace(logger: &Logger, message: *const c_char) -
     }
 }
 
+/// # Safety
+///
+/// debug message.
 #[no_mangle]
 pub unsafe extern "C" fn logger_debug(logger: &Logger, message: *const c_char) -> isize {
     let c_str = unsafe { CStr::from_ptr(message) };
@@ -69,6 +86,9 @@ pub unsafe extern "C" fn logger_debug(logger: &Logger, message: *const c_char) -
     }
 }
 
+/// # Safety
+///
+/// info message.
 #[no_mangle]
 pub unsafe extern "C" fn logger_info(logger: &Logger, message: *const c_char) -> isize {
     let c_str = unsafe { CStr::from_ptr(message) };
@@ -80,6 +100,9 @@ pub unsafe extern "C" fn logger_info(logger: &Logger, message: *const c_char) ->
     }
 }
 
+/// # Safety
+///
+/// success message.
 #[no_mangle]
 pub unsafe extern "C" fn logger_success(logger: &Logger, message: *const c_char) -> isize {
     let c_str = unsafe { CStr::from_ptr(message) };
@@ -91,6 +114,9 @@ pub unsafe extern "C" fn logger_success(logger: &Logger, message: *const c_char)
     }
 }
 
+/// # Safety
+///
+/// warning message.
 #[no_mangle]
 pub unsafe extern "C" fn logger_warning(logger: &Logger, message: *const c_char) -> isize {
     let c_str = unsafe { CStr::from_ptr(message) };
@@ -102,6 +128,9 @@ pub unsafe extern "C" fn logger_warning(logger: &Logger, message: *const c_char)
     }
 }
 
+/// # Safety
+///
+/// error message.
 #[no_mangle]
 pub unsafe extern "C" fn logger_error(logger: &Logger, message: *const c_char) -> isize {
     let c_str = unsafe { CStr::from_ptr(message) };
@@ -113,6 +142,9 @@ pub unsafe extern "C" fn logger_error(logger: &Logger, message: *const c_char) -
     }
 }
 
+/// # Safety
+///
+/// critical message.
 #[no_mangle]
 pub unsafe extern "C" fn logger_critical(logger: &Logger, message: *const c_char) -> isize {
     let c_str = unsafe { CStr::from_ptr(message) };
@@ -124,6 +156,9 @@ pub unsafe extern "C" fn logger_critical(logger: &Logger, message: *const c_char
     }
 }
 
+/// # Safety
+///
+/// fatal message.
 #[no_mangle]
 pub unsafe extern "C" fn logger_fatal(logger: &Logger, message: *const c_char) -> isize {
     let c_str = unsafe { CStr::from_ptr(message) };
@@ -135,6 +170,9 @@ pub unsafe extern "C" fn logger_fatal(logger: &Logger, message: *const c_char) -
     }
 }
 
+/// # Safety
+///
+/// exception message.
 #[no_mangle]
 pub unsafe extern "C" fn logger_exception(logger: &Logger, message: *const c_char) -> isize {
     let c_str = unsafe { CStr::from_ptr(message) };

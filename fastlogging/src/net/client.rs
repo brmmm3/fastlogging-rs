@@ -19,6 +19,7 @@ pub enum ClientTypeEnum {
     Stop,
 }
 
+#[repr(C)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClientWriterConfig {
     pub(crate) level: u8,

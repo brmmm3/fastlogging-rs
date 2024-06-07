@@ -84,6 +84,7 @@ impl fmt::Display for LevelSyms {
     }
 }
 
+#[repr(C)]
 #[derive(Debug, Clone)]
 pub struct RootConfig {
     pub level: u8,

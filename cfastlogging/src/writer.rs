@@ -1,7 +1,6 @@
 use std::ffi::{c_char, c_int, c_longlong, c_uchar, c_uint, CStr};
 use std::ops::Add;
 use std::path::PathBuf;
-use std::ptr::null;
 use std::time::{Duration, SystemTime};
 
 use fastlogging::{
@@ -65,7 +64,7 @@ pub unsafe extern "C" fn client_writer_config_new(
     encryption: c_uchar,
     key: *const c_char,
 ) -> Box<ClientWriterConfig> {
-    let key = if encryption == 0 || key == null() {
+    let key = if encryption == 0 || key.is_null() {
         EncryptionMethod::NONE
     } else {
         let key = (unsafe { CStr::from_ptr(key) })
@@ -89,7 +88,7 @@ pub unsafe extern "C" fn server_config_new(
     encryption: c_uchar,
     key: *const c_char,
 ) -> Box<ServerConfig> {
-    let key = if encryption == 0 || key == null() {
+    let key = if encryption == 0 || key.is_null() {
         EncryptionMethod::NONE
     } else {
         let key = (unsafe { CStr::from_ptr(key) })

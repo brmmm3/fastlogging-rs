@@ -1,6 +1,4 @@
-use std::ops::Add;
 use std::path::{Path, PathBuf};
-use std::time::{Duration, SystemTime};
 
 use jni::JNIEnv;
 
@@ -9,15 +7,17 @@ use jni::objects::{JClass, JString};
 use jni::sys::{jboolean, jbyte, jdouble, jint, jlong};
 
 use fastlogging::{
-    ClientWriterConfig, CompressionMethodEnum, ConsoleWriterConfig, EncryptionMethod, ExtConfig,
-    FileWriterConfig, LevelSyms, Logger, Logging, MessageStructEnum, ServerConfig,
-    SyslogWriterConfig, WriterTypeEnum,
+    ClientWriterConfig, ConsoleWriterConfig, EncryptionMethod, ExtConfig, FileWriterConfig,
+    LevelSyms, Logger, Logging, MessageStructEnum, ServerConfig, WriterTypeEnum,
 };
 
 use crate::{get_string, throw_exception};
 
+/// # Safety
+///
+/// Create new extended configuration.
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingExtConfigNew(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingExtConfigNew(
     _env: JNIEnv,
     _class: JClass,
     structured: jint,
@@ -43,128 +43,11 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingExtConfigNew(
     ))
 }
 
-#[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingConsoleWriterConfigNew(
-    _env: JNIEnv,
-    _class: JClass,
-    level: jint,
-    colors: jboolean,
-) -> Box<ConsoleWriterConfig> {
-    Box::new(ConsoleWriterConfig::new(level as u8, colors != 0))
-}
-
-#[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingFileWriterConfigNew(
-    mut env: JNIEnv,
-    _class: JClass,
-    level: jint,
-    path: JString,
-    size: jint,
-    backlog: jint,
-    timeout: jint,
-    time: jlong,
-    compression: *mut CompressionMethodEnum,
-) -> Box<FileWriterConfig> {
-    let path: String = env.get_string(&path).unwrap().into();
-    let timeout = if timeout < 0 {
-        None
-    } else {
-        Some(Duration::from_secs(timeout as u64))
-    };
-    let time = if time < 0 {
-        None
-    } else {
-        Some(SystemTime::now().add(Duration::from_secs(time as u64)))
-    };
-    let compression = if compression.is_null() {
-        None
-    } else {
-        Some(*Box::from_raw(compression))
-    };
-    Box::new(
-        FileWriterConfig::new(
-            level as u8,
-            PathBuf::from(path),
-            size as usize,
-            backlog as usize,
-            timeout,
-            time,
-            compression,
-        )
-        .unwrap(),
-    )
-}
-
-#[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingClientWriterConfigNew(
-    mut env: JNIEnv,
-    _class: JClass,
-    level: jint,
-    address: JString,
-    encryption: jint,
-    key: JString,
-) -> Box<ClientWriterConfig> {
-    let address: String = env.get_string(&address).unwrap().into();
-    let key = if encryption == 0 || key.is_null() {
-        EncryptionMethod::NONE
-    } else {
-        let key: String = env.get_string(&key).unwrap().into();
-        if encryption == 1 {
-            EncryptionMethod::AuthKey(key.into_bytes())
-        } else {
-            EncryptionMethod::AES(key.into_bytes())
-        }
-    };
-    Box::new(ClientWriterConfig::new(level as u8, address, key))
-}
-
-#[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingServerConfigNew(
-    mut env: JNIEnv,
-    _class: JClass,
-    level: jint,
-    address: JString,
-    encryption: jint,
-    key: JString,
-) -> Box<ServerConfig> {
-    let address: String = env.get_string(&address).unwrap().into();
-    let key = if encryption == 0 || key.is_null() {
-        EncryptionMethod::NONE
-    } else {
-        let key: String = env.get_string(&key).unwrap().into();
-        if encryption == 1 {
-            EncryptionMethod::AuthKey(key.into_bytes())
-        } else {
-            EncryptionMethod::AES(key.into_bytes())
-        }
-    };
-    Box::new(ServerConfig::new(level as u8, address, key))
-}
-
-#[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingSyslogWriterConfigNew(
-    mut env: JNIEnv,
-    _class: JClass,
-    level: jint,
-    hostname: JString,
-    pname: JString,
-    pid: jint,
-) -> jlong {
-    let hostname: Option<String> = env.get_string(&hostname).ok().map(|s| s.into());
-    let pname: String = env.get_string(&pname).unwrap().into();
-    Box::into_raw(Box::new(SyslogWriterConfig::new(
-        level as u8,
-        hostname,
-        pname,
-        pid as u32,
-    ))) as jlong
-}
-
 /// # Safety
 ///
 /// Create new default instance.
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingInit(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingInit(
     _env: JNIEnv,
     _class: JClass,
 ) -> jlong {
@@ -175,7 +58,7 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingInit(
 ///
 /// Create new instance.
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingNew(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingNew(
     mut env: JNIEnv,
     _class: JClass,
     level: jint, // Global log level
@@ -244,7 +127,7 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingNew(
 ///
 /// This function destroys an instance.
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingShutdown(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingShutdown(
     mut env: JNIEnv,
     _class: JClass,
     logging_ptr: jlong,
@@ -262,7 +145,7 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingShutdown(
 ///
 /// Add a Logger instance
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingAddLogger(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingAddLogger(
     mut _env: JNIEnv,
     _class: JClass,
     logging_ptr: jlong,
@@ -277,7 +160,7 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingAddLogger(
 ///
 /// Remove a Logger instance
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingRemoveLogger(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingRemoveLogger(
     mut _env: JNIEnv,
     _class: JClass,
     logging_ptr: jlong,
@@ -292,7 +175,7 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingRemoveLogger(
 ///
 /// Set log level.
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingSetLevel(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingSetLevel(
     mut env: JNIEnv,
     _class: JClass,
     logging_ptr: jlong,
@@ -314,7 +197,7 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingSetLevel(
 ///
 /// Set log domain.
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingSetDomain(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingSetDomain(
     mut env: JNIEnv,
     _class: JClass,
     logging_ptr: jlong,
@@ -328,7 +211,7 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingSetDomain(
 ///
 /// Set log level symbols.
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingSetLevel2Sym(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingSetLevel2Sym(
     mut _env: JNIEnv,
     _class: JClass,
     logging_ptr: jlong,
@@ -343,7 +226,7 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingSetLevel2Sym(
 ///
 /// This function destroys an instance.
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingSync(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingSync(
     mut env: JNIEnv,
     _class: JClass,
     console: jboolean,
@@ -354,15 +237,8 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingSync(
     timeout: jdouble,
 ) {
     let instance = &mut *(logging_ptr as *mut Logging);
-    if let Err(err) = instance.sync(
-        console != 0,
-        file != 0,
-        client != 0,
-        syslog != 0,
-        timeout as f64,
-    ) {
+    if let Err(err) = instance.sync(console != 0, file != 0, client != 0, syslog != 0, timeout) {
         throw_exception(&mut env, err.to_string());
-        unreachable!();
     }
 }
 
@@ -370,14 +246,14 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingSync(
 ///
 /// This function destroys an instance.
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingSyncAll(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingSyncAll(
     mut env: JNIEnv,
     _class: JClass,
     logging_ptr: jlong,
     timeout: jdouble,
 ) {
     let instance = &mut *(logging_ptr as *mut Logging);
-    if let Err(err) = instance.sync_all(timeout as f64) {
+    if let Err(err) = instance.sync_all(timeout) {
         throw_exception(&mut env, err.to_string());
         unreachable!();
     }
@@ -387,7 +263,7 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingSyncAll(
 ///
 /// This function destroys an instance.
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingRotate(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingRotate(
     mut env: JNIEnv,
     _class: JClass,
     logging_ptr: jlong,
@@ -409,7 +285,7 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingRotate(
 ///
 /// Set server/client encryption
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingSetEncryption(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingSetEncryption(
     mut env: JNIEnv,
     _class: JClass,
     logging_ptr: jlong,
@@ -429,7 +305,7 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingSetEncryption(
 ///
 /// Get configuration
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingGetConfig(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingGetConfig(
     _env: JNIEnv,
     _class: JClass,
     logging_ptr: jlong,
@@ -437,14 +313,14 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingGetConfig(
 ) -> jlong {
     let writer = *Box::from_raw(writer);
     let instance = &mut *(logging_ptr as *mut Logging);
-    Box::into_raw(Box::new(instance.get_config(writer))) as jlong
+    Box::into_raw(Box::new(instance.get_config(&writer))) as jlong
 }
 
 /// # Safety
 ///
 /// Get server configuration
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingGetServerConfig(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingGetServerConfig(
     _env: JNIEnv,
     _class: JClass,
     logging_ptr: jlong,
@@ -457,7 +333,7 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingGetServerConfi
 ///
 /// Get server configuration
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingGetServerAuthKey(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingGetServerAuthKey(
     _env: JNIEnv,
     _class: JClass,
     logging_ptr: jlong,
@@ -470,7 +346,7 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingGetServerAuthK
 ///
 /// Get server configuration
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingGetConfigString(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingGetConfigString(
     _env: JNIEnv,
     _class: JClass,
     logging_ptr: jlong,
@@ -483,7 +359,7 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingGetConfigStrin
 ///
 /// Get server configuration
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingSaveConfig(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingSaveConfig(
     mut env: JNIEnv,
     _class: JClass,
     logging_ptr: jlong,
@@ -499,7 +375,7 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingSaveConfig(
 ///
 /// trace message.
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingTrace(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingTrace(
     mut env: JNIEnv,
     _class: JClass,
     logging_ptr: jlong,
@@ -516,7 +392,7 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingTrace(
 ///
 /// debug message.
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingDebug(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingDebug(
     mut env: JNIEnv,
     _class: JClass,
     logging_ptr: jlong,
@@ -533,7 +409,7 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingDebug(
 ///
 /// info message.
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingInfo(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingInfo(
     mut env: JNIEnv,
     _class: JClass,
     logging_ptr: jlong,
@@ -550,7 +426,7 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingInfo(
 ///
 /// success message.
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingSuccess(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingSuccess(
     mut env: JNIEnv,
     _class: JClass,
     logging_ptr: jlong,
@@ -567,7 +443,7 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingSuccess(
 ///
 /// warning message.
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingWarning(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingWarning(
     mut env: JNIEnv,
     _class: JClass,
     logging_ptr: jlong,
@@ -584,7 +460,7 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingWarning(
 ///
 /// error message.
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingError(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingError(
     mut env: JNIEnv,
     _class: JClass,
     logging_ptr: jlong,
@@ -601,7 +477,7 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingError(
 ///
 /// critical error message.
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingCritical(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingCritical(
     mut env: JNIEnv,
     _class: JClass,
     logging_ptr: jlong,
@@ -618,7 +494,7 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingCritical(
 ///
 /// fatal error message.
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingFatal(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingFatal(
     mut env: JNIEnv,
     _class: JClass,
     logging_ptr: jlong,
@@ -635,7 +511,7 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingFatal(
 ///
 /// exception error message.
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggingException(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingException(
     mut env: JNIEnv,
     _class: JClass,
     logging_ptr: jlong,

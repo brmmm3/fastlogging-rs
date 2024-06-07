@@ -10,6 +10,7 @@ use crate::{
     SUCCESS, TRACE,
 };
 
+#[repr(C)]
 #[derive(Debug)]
 pub struct Logger {
     pub(crate) level: u8,

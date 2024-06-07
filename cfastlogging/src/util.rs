@@ -1,5 +1,4 @@
 use std::ffi::{c_char, CStr};
-use std::ptr::null;
 
 #[inline]
 pub fn char2string(s: *const c_char) -> String {
@@ -9,7 +8,7 @@ pub fn char2string(s: *const c_char) -> String {
 
 #[inline]
 pub fn option_char2string(s: *const c_char) -> Option<String> {
-    if s != null() {
+    if !s.is_null() {
         Some(char2string(s))
     } else {
         None

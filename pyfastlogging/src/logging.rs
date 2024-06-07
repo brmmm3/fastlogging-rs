@@ -194,7 +194,7 @@ impl Logging {
 
     pub fn get_config(&self, writer: WriterTypeEnum) -> PyResult<WriterConfigEnum> {
         self.instance
-            .get_config(writer.into())
+            .get_config(&(writer.into()))
             .map(|c| c.into())
             .map_err(PyException::new_err)
     }

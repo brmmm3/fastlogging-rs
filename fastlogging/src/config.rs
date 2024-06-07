@@ -19,6 +19,7 @@ use crate::{
     SyslogWriter, SyslogWriterConfig, NOTSET,
 };
 
+#[repr(C)]
 #[derive(Debug, Clone)]
 pub struct ExtConfig {
     pub(crate) structured: MessageStructEnum,
@@ -62,6 +63,7 @@ impl Default for ExtConfig {
     }
 }
 
+#[repr(C)]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FileConfig {
     pub(crate) level: u8,
@@ -101,6 +103,7 @@ impl Default for FileConfig {
     }
 }
 
+#[repr(C)]
 #[derive(Debug)]
 pub struct LoggingConfig {
     pub(crate) level: u8,
@@ -148,6 +151,7 @@ impl LoggingConfig {
     }
 }
 
+#[repr(C)]
 #[derive(Debug)]
 pub struct ConfigFile {
     pub(crate) path: PathBuf,

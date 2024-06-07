@@ -12,6 +12,7 @@ use super::{EncryptionMethod, NonceGenerator};
 pub static AUTH_KEY: Lazy<Vec<u8>> =
     Lazy::new(|| thread_rng().sample_iter(&Alphanumeric).take(32).collect());
 
+#[repr(C)]
 #[derive(Debug)]
 pub struct NetConfig {
     pub level: u8,

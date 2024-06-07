@@ -10,7 +10,7 @@ use fastlogging::Logger;
 ///
 /// This function creates a new instance.
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggerNew(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerNew(
     mut env: JNIEnv,
     _class: JClass,
     level: jint, // Global log level
@@ -26,7 +26,7 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggerNew(
 ///
 /// Set log level.
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggerSetLevel(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerSetLevel(
     mut _env: JNIEnv,
     _class: JClass,
     logger_ptr: jlong,
@@ -41,7 +41,7 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggerSetLevel(
 ///
 /// Set log domain.
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggerSetDomain(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerSetDomain(
     mut env: JNIEnv,
     _class: JClass,
     logger_ptr: jlong,
@@ -57,7 +57,7 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggerSetDomain(
 ///
 /// trace message.
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggerTrace(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerTrace(
     mut env: JNIEnv,
     _class: JClass,
     logger_ptr: jlong,
@@ -75,7 +75,7 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggerTrace(
 ///
 /// debug message.
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggerDebug(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerDebug(
     mut env: JNIEnv,
     _class: JClass,
     logger_ptr: jlong,
@@ -93,7 +93,7 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggerDebug(
 ///
 /// debug message.
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggerInfo(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerInfo(
     mut env: JNIEnv,
     _class: JClass,
     logger_ptr: jlong,
@@ -111,7 +111,7 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggerInfo(
 ///
 /// trace message.
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggerSuccess(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerSuccess(
     mut env: JNIEnv,
     _class: JClass,
     logger_ptr: jlong,
@@ -129,7 +129,7 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggerSuccess(
 ///
 /// debug message.
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggerWarning(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerWarning(
     mut env: JNIEnv,
     _class: JClass,
     logger_ptr: jlong,
@@ -147,7 +147,7 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggerWarning(
 ///
 /// error message.
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggerError(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerError(
     mut env: JNIEnv,
     _class: JClass,
     logger_ptr: jlong,
@@ -165,7 +165,7 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggerError(
 ///
 /// error message.
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggerCritical(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerCritical(
     mut env: JNIEnv,
     _class: JClass,
     logger_ptr: jlong,
@@ -183,7 +183,7 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggerCritical(
 ///
 /// error message.
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggerFatal(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerFatal(
     mut env: JNIEnv,
     _class: JClass,
     logger_ptr: jlong,
@@ -201,7 +201,7 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_loggerFatal(
 ///
 /// error message.
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_loggerException(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerException(
     mut env: JNIEnv,
     _class: JClass,
     logger_ptr: jlong,

@@ -42,6 +42,7 @@ impl From<CompressionMethodEnum> for zip::CompressionMethod {
     }
 }
 
+#[repr(C)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileWriterConfig {
     level: u8,                          // Log level

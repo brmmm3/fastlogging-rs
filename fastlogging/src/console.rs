@@ -18,6 +18,7 @@ pub enum ConsoleTypeEnum {
     Stop,
 }
 
+#[repr(C)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConsoleWriterConfig {
     pub(crate) level: u8, // Log level

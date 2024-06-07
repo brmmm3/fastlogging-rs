@@ -44,7 +44,7 @@ pub fn get_option_vec_u8(env: &mut JNIEnv, s: JString) -> Option<Vec<u8>> {
 ///
 /// Create new instance.
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_defExtConfigNew(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_defExtConfigNew(
     _env: JNIEnv,
     _class: JClass,
     structured: *mut MessageStructEnum,
@@ -70,7 +70,7 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_defExtConfigNew(
 ///
 /// Create new instance.
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_defConsoleWriterConfigNew(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_defConsoleWriterConfigNew(
     _env: JNIEnv,
     _class: JClass,
     level: jint,
@@ -84,7 +84,7 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_defConsoleWriterConfi
 ///
 /// Create new instance.
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_defFileWriterConfigNew(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_defFileWriterConfigNew(
     mut env: JNIEnv,
     _class: JClass,
     level: jint,
@@ -126,7 +126,7 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_defFileWriterConfigNe
 ///
 /// Create new instance.
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_defClientWriterConfigNew(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_defClientWriterConfigNew(
     mut env: JNIEnv,
     _class: JClass,
     level: jint,
@@ -142,7 +142,7 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_defClientWriterConfig
 ///
 /// Create new instance.
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_defServerConfigNew(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_defServerConfigNew(
     mut env: JNIEnv,
     _class: JClass,
     level: jint,
@@ -158,7 +158,7 @@ pub unsafe extern "system" fn Java_org_logging_FastLogging_defServerConfigNew(
 ///
 /// Create new instance.
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_logging_FastLogging_defSyslogWriterConfigNew(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_defSyslogWriterConfigNew(
     mut env: JNIEnv,
     _class: JClass,
     level: jint,
