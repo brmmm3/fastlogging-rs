@@ -5,6 +5,9 @@ ROOT_DIR := $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
 .PHONY: build-all
 build-all: build-dynamic build-static build-dynamic-package
 
+#.PHONY: build-all-debug
+#build-all: build-dynamic-debug
+
 .PHONY: run-all
 run-all: run-dynamic run-static
 
@@ -22,6 +25,11 @@ build-dynamic:
 	@cp ../target/release/libcfastlogging.so lib/
 	go build -x -ldflags="-r $(ROOT_DIR)lib" -o bin/console_dynamic examples/console_dynamic/main.go
 
+.PHONY: build-dynamic-debug
+build-dynamic-debug:
+	@cp ../target/debug/libcfastlogging.so lib/
+	go build -x -ldflags="-r $(ROOT_DIR)lib" -o bin/console_dynamic examples/console_dynamic/main.go
+
 .PHONY: run-dynamic
 run-dynamic: build-dynamic
 	@./examples/console_dynamic
@@ -37,4 +45,4 @@ run-dynamic: build-dynamic-package
 
 .PHONY: clean
 clean:
-	rm -rf examples/console_dynamic examples/console_static examples/console_dynamic_package
+	rm -rf bin

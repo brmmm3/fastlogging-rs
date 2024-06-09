@@ -6,11 +6,21 @@ First install `cbindgen`:
 cargo install cbindgen
 ```
 
-In directory `lib/gofastlogging` run to create `gofastlogging.h`:
+In directory `cfastlogging` run:
+
+```bash
+cargo build --release`
+```
+
+to build `libcfastlogging.so`.
+
+In directory `lib/gofastlogging` run:
 
 ```bash
 cbindgen . -o ../gofastlogging.h
 ```
+
+to create `gofastlogging.h`.
 
 ```bash
 go mod init examples
