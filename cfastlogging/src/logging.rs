@@ -112,12 +112,14 @@ pub unsafe extern "C" fn logging_new(
 /// Shutdown logging.
 #[no_mangle]
 pub unsafe extern "C" fn logging_shutdown(logging: &mut Logging, now: u8) -> isize {
-    if let Err(err) = logging.shutdown(now != 0) {
+    let result = if let Err(err) = logging.shutdown(now != 0) {
         eprintln!("logging_shutdown failed: {err:?}");
         err.raw_os_error().unwrap_or(nix::Error::EFAULT as i32) as isize
     } else {
         0
-    }
+    };
+    drop(Box::from_raw(logging));
+    result
 }
 
 /// # Safety
@@ -174,6 +176,46 @@ pub unsafe extern "C" fn logging_set_level2sym(logging: &mut Logging, level2sym:
     } else {
         LevelSyms::Str
     });
+}
+
+/// # Safety
+///
+/// Set extended configuration.
+#[no_mangle]
+pub unsafe extern "C" fn logging_set_ext_config(logging: &mut Logging, ext_config: &ExtConfig) {
+    logging.set_ext_config(ext_config);
+}
+
+/// # Safety
+///
+/// Add writer.
+#[no_mangle]
+pub unsafe extern "C" fn logging_add_writer(
+    logging: &mut Logging,
+    writer: &WriterConfigEnum,
+) -> isize {
+    if let Err(err) = logging.add_writer(writer) {
+        eprintln!("logging_add_writer failed: {err:?}");
+        err.raw_os_error().unwrap_or(nix::Error::EFAULT as i32) as isize
+    } else {
+        0
+    }
+}
+
+/// # Safety
+///
+/// Remove writer.
+#[no_mangle]
+pub unsafe extern "C" fn logging_remove_writer(
+    logging: &mut Logging,
+    writer: &WriterTypeEnum,
+) -> isize {
+    if let Err(err) = logging.remove_writer(writer) {
+        eprintln!("logging_remove_writer failed: {err:?}");
+        err.raw_os_error().unwrap_or(nix::Error::EFAULT as i32) as isize
+    } else {
+        0
+    }
 }
 
 /// # Safety

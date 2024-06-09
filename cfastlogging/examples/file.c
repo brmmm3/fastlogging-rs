@@ -3,17 +3,25 @@
 #include "cfastlogging.h"
 #include <string.h>
 
-// File: console.c
+// File: file.c
 //
 // Sample library usage.
 int main(void)
 {
-    ConsoleWriterConfig console = console_writer_config_new(DEBUG, 1);
+    CompressionMethodEnum compression = Store;
+    FileWriterConfig file = file_writer_config_new(DEBUG,
+                                                   "/tmp/cfastlogging.log",
+                                                   1024,
+                                                   3,
+                                                   -1,
+                                                   -1,
+                                                   compression);
+
     Logging logging = logging_new(DEBUG,
                                   NULL,
                                   NULL,
-                                  console,
                                   NULL,
+                                  file,
                                   NULL,
                                   NULL,
                                   -1,

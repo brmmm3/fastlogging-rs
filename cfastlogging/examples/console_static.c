@@ -3,21 +3,12 @@
 #include "cfastlogging.h"
 #include <string.h>
 
-// File: console.c
+// File: console_static.c
 //
 // Sample library usage.
 int main(void)
 {
-    ConsoleWriterConfig console = console_writer_config_new(DEBUG, 1);
-    Logging logging = logging_new(DEBUG,
-                                  NULL,
-                                  NULL,
-                                  console,
-                                  NULL,
-                                  NULL,
-                                  NULL,
-                                  -1,
-                                  NULL);
+    Logging logging = logging_init();
     logging_trace(logging, "Trace Message");
     logging_debug(logging, "Debug Message");
     logging_info(logging, "Info Message");

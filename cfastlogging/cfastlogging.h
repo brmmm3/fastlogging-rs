@@ -6,6 +6,20 @@
 // Lets use some types which we can easily pair with rust types.
 #include <stdint.h>
 
+// Log-Levels
+#define NOLOG 70
+#define EXCEPTION 60
+#define CRITICAL 50
+#define FATAL CRITICAL
+#define ERROR 40
+#define WARNING 30
+#define WARN WARNING
+#define SUCCESS 25
+#define INFO 20
+#define DEBUG 10
+#define TRACE 5
+#define NOTSET 0
+
 typedef enum
 {
     Sym = 0,
