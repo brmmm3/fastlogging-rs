@@ -182,6 +182,18 @@ impl From<fastlogging::RootConfig> for RootConfig {
     }
 }
 
+impl From<&RootConfig> for fastlogging::RootConfig {
+    fn from(val: &RootConfig) -> Self {
+        val.0.clone()
+    }
+}
+
+impl From<&fastlogging::RootConfig> for RootConfig {
+    fn from(val: &fastlogging::RootConfig) -> RootConfig {
+        RootConfig(val.clone())
+    }
+}
+
 #[pyclass]
 #[derive(Debug, Clone)]
 pub struct ConsoleWriterConfig(pub fastlogging::ConsoleWriterConfig);
@@ -203,6 +215,18 @@ impl From<ConsoleWriterConfig> for fastlogging::ConsoleWriterConfig {
 impl From<fastlogging::ConsoleWriterConfig> for ConsoleWriterConfig {
     fn from(val: fastlogging::ConsoleWriterConfig) -> ConsoleWriterConfig {
         ConsoleWriterConfig(val)
+    }
+}
+
+impl From<&ConsoleWriterConfig> for fastlogging::ConsoleWriterConfig {
+    fn from(val: &ConsoleWriterConfig) -> Self {
+        val.0.clone()
+    }
+}
+
+impl From<&fastlogging::ConsoleWriterConfig> for ConsoleWriterConfig {
+    fn from(val: &fastlogging::ConsoleWriterConfig) -> ConsoleWriterConfig {
+        ConsoleWriterConfig(val.clone())
     }
 }
 
@@ -246,6 +270,18 @@ impl From<fastlogging::FileWriterConfig> for FileWriterConfig {
     }
 }
 
+impl From<&FileWriterConfig> for fastlogging::FileWriterConfig {
+    fn from(val: &FileWriterConfig) -> Self {
+        val.0.clone()
+    }
+}
+
+impl From<&fastlogging::FileWriterConfig> for FileWriterConfig {
+    fn from(val: &fastlogging::FileWriterConfig) -> FileWriterConfig {
+        FileWriterConfig(val.clone())
+    }
+}
+
 #[pyclass]
 #[derive(Debug, Clone)]
 pub struct ServerConfig(pub fastlogging::ServerConfig);
@@ -267,6 +303,18 @@ impl From<ServerConfig> for fastlogging::ServerConfig {
 impl From<fastlogging::ServerConfig> for ServerConfig {
     fn from(val: fastlogging::ServerConfig) -> ServerConfig {
         ServerConfig(val)
+    }
+}
+
+impl From<&ServerConfig> for fastlogging::ServerConfig {
+    fn from(val: &ServerConfig) -> Self {
+        val.0.clone()
+    }
+}
+
+impl From<&fastlogging::ServerConfig> for ServerConfig {
+    fn from(val: &fastlogging::ServerConfig) -> ServerConfig {
+        ServerConfig(val.clone())
     }
 }
 
@@ -295,6 +343,18 @@ impl From<ClientWriterConfig> for fastlogging::ClientWriterConfig {
 impl From<fastlogging::ClientWriterConfig> for ClientWriterConfig {
     fn from(val: fastlogging::ClientWriterConfig) -> ClientWriterConfig {
         ClientWriterConfig(val)
+    }
+}
+
+impl From<&ClientWriterConfig> for fastlogging::ClientWriterConfig {
+    fn from(val: &ClientWriterConfig) -> Self {
+        val.0.clone()
+    }
+}
+
+impl From<&fastlogging::ClientWriterConfig> for ClientWriterConfig {
+    fn from(val: &fastlogging::ClientWriterConfig) -> ClientWriterConfig {
+        ClientWriterConfig(val.clone())
     }
 }
 
@@ -332,6 +392,18 @@ impl From<fastlogging::SyslogWriterConfig> for SyslogWriterConfig {
     }
 }
 
+impl From<&SyslogWriterConfig> for fastlogging::SyslogWriterConfig {
+    fn from(val: &SyslogWriterConfig) -> Self {
+        val.0.clone()
+    }
+}
+
+impl From<&fastlogging::SyslogWriterConfig> for SyslogWriterConfig {
+    fn from(val: &fastlogging::SyslogWriterConfig) -> SyslogWriterConfig {
+        SyslogWriterConfig(val.clone())
+    }
+}
+
 #[pyclass]
 #[derive(Debug, Clone)]
 pub enum WriterConfigEnum {
@@ -359,6 +431,46 @@ impl From<WriterConfigEnum> for fastlogging::WriterConfigEnum {
 
 impl From<fastlogging::WriterConfigEnum> for WriterConfigEnum {
     fn from(val: fastlogging::WriterConfigEnum) -> WriterConfigEnum {
+        use fastlogging::WriterConfigEnum::*;
+        match val {
+            Root(config) => WriterConfigEnum::Root {
+                config: config.into(),
+            },
+            Console(config) => WriterConfigEnum::Console {
+                config: config.into(),
+            },
+            File(config) => WriterConfigEnum::File {
+                config: config.into(),
+            },
+            Client(config) => WriterConfigEnum::Client {
+                config: config.into(),
+            },
+            Server(config) => WriterConfigEnum::Server {
+                config: config.into(),
+            },
+            Syslog(config) => WriterConfigEnum::Syslog {
+                config: config.into(),
+            },
+        }
+    }
+}
+
+impl From<&WriterConfigEnum> for fastlogging::WriterConfigEnum {
+    fn from(val: &WriterConfigEnum) -> Self {
+        use WriterConfigEnum::*;
+        match val {
+            Root { config } => fastlogging::WriterConfigEnum::Root(config.into()),
+            Console { config } => fastlogging::WriterConfigEnum::Console(config.into()),
+            File { config } => fastlogging::WriterConfigEnum::File(config.into()),
+            Client { config } => fastlogging::WriterConfigEnum::Client(config.into()),
+            Server { config } => fastlogging::WriterConfigEnum::Server(config.into()),
+            Syslog { config } => fastlogging::WriterConfigEnum::Syslog(config.into()),
+        }
+    }
+}
+
+impl<'a> From<&'a fastlogging::WriterConfigEnum> for WriterConfigEnum {
+    fn from(val: &'a fastlogging::WriterConfigEnum) -> WriterConfigEnum {
         use fastlogging::WriterConfigEnum::*;
         match val {
             Root(config) => WriterConfigEnum::Root {

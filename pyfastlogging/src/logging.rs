@@ -96,8 +96,8 @@ impl Logging {
                 config,
             )?,
             indent,
-            getframe: getframe.into(),
-            format_exc: format_exc.into(),
+            getframe,
+            format_exc,
         })
     }
 
@@ -132,18 +132,18 @@ impl Logging {
     }
 
     pub fn set_ext_config(&mut self, ext_config: &Bound<'_, ExtConfig>) {
-        self.instance.set_ext_config(ext_config.borrow().0.clone())
+        self.instance.set_ext_config(&ext_config.borrow().0)
     }
 
     pub fn add_writer(&mut self, writer: WriterConfigEnum) -> PyResult<()> {
         self.instance
-            .add_writer(writer.into())
+            .add_writer(&(writer.into()))
             .map_err(PyException::new_err)
     }
 
     pub fn remove_writer(&mut self, writer: WriterTypeEnum) -> PyResult<()> {
         self.instance
-            .remove_writer(writer.into())
+            .remove_writer(&(writer.into()))
             .map_err(PyException::new_err)
     }
 
@@ -200,7 +200,7 @@ impl Logging {
     }
 
     pub fn get_server_config(&self) -> Option<ServerConfig> {
-        self.instance.get_server_config().map(|x| ServerConfig(x))
+        self.instance.get_server_config().map(ServerConfig)
     }
 
     pub fn get_server_auth_key(&self) -> Vec<u8> {

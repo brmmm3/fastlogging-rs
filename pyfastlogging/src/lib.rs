@@ -107,7 +107,7 @@ fn rotate(path: Option<PathBuf>) -> PyResult<()> {
 
 #[pyfunction]
 fn set_encryption(writer: WriterTypeEnum, key: EncryptionMethod) -> PyResult<()> {
-    LOGGING.lock().unwrap().set_encryption(writer, key.into())
+    LOGGING.lock().unwrap().set_encryption(writer, key)
 }
 
 // Config

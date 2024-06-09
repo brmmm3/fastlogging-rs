@@ -77,8 +77,8 @@ impl Logger {
                 tid.unwrap_or_default(),
             ),
             indent,
-            getframe: getframe.into(),
-            format_exc: format_exc.into(),
+            getframe,
+            format_exc,
         })
     }
 
