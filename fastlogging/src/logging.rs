@@ -2,9 +2,10 @@ use std::io::{Error, ErrorKind};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
 use std::thread::{self, JoinHandle};
+use std::time::Duration;
 
 use chrono::Local;
-use flume::{Receiver, Sender};
+use flume::{bounded, Receiver, Sender};
 
 use crate::config::{ConfigFile, ExtConfig, LoggingConfig};
 use crate::console::{ConsoleWriter, ConsoleWriterConfig};
@@ -173,6 +174,7 @@ fn build_xml_message(
 
 fn logging_thread_worker(
     rx: Receiver<LoggingTypeEnum>,
+    sync_tx: Sender<u8>,
     config: Arc<Mutex<LoggingConfig>>,
     stop: Arc<Mutex<bool>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -197,17 +199,29 @@ fn logging_thread_worker(
                 }
                 continue;
             }
-            LoggingTypeEnum::Sync(timeout) => {
+            LoggingTypeEnum::Sync((console, file, client, syslog, timeout)) => {
                 let mut config = config.lock().unwrap();
-                if let Some(ref mut console) = config.console {
-                    console.sync(timeout)?;
+                if console {
+                    if let Some(ref mut console) = config.console {
+                        console.sync(timeout)?;
+                    }
                 }
-                for file in config.files.values() {
-                    file.sync(timeout)?;
+                if file {
+                    for file in config.files.values() {
+                        file.sync(timeout)?;
+                    }
                 }
-                for client in config.clients.values() {
-                    client.sync(timeout)?;
+                if client {
+                    for client in config.clients.values() {
+                        client.sync(timeout)?;
+                    }
                 }
+                if syslog {
+                    if let Some(ref mut syslog) = config.syslog {
+                        syslog.sync(timeout)?;
+                    }
+                }
+                sync_tx.send(1)?;
                 continue;
             }
             LoggingTypeEnum::Stop => {
@@ -252,11 +266,12 @@ fn logging_thread_worker(
 
 fn logging_thread(
     rx: Receiver<LoggingTypeEnum>,
+    sync_tx: Sender<u8>,
     config: Arc<Mutex<LoggingConfig>>,
     stop: Arc<Mutex<bool>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut some_err = None;
-    if let Err(err) = logging_thread_worker(rx, config.clone(), stop) {
+    if let Err(err) = logging_thread_worker(rx, sync_tx, config.clone(), stop) {
         eprintln!("Logging broker thread crashed with error: {err:?}");
         some_err = Some(err);
     }
@@ -329,6 +344,7 @@ pub struct Logging {
     tname: bool,
     tid: bool,
     pub tx: Sender<LoggingTypeEnum>,
+    sync_rx: Receiver<u8>,
     stop: Arc<Mutex<bool>>,
     thr: Option<JoinHandle<()>>,
 }
@@ -354,6 +370,7 @@ impl Logging {
         let level = config.level;
         let tname = config.tname;
         let tid = config.tid;
+        let (sync_tx, sync_rx) = bounded(1);
         let config = Arc::new(Mutex::new(config));
         Ok(Self {
             level,
@@ -362,17 +379,33 @@ impl Logging {
             tname,
             tid,
             tx,
+            sync_rx,
             stop: stop.clone(),
             thr: Some(
                 thread::Builder::new()
-                    .name("FileLogging".to_string())
+                    .name("LoggingThread".to_string())
                     .spawn(move || {
-                        if let Err(err) = logging_thread(rx, config, stop) {
+                        if let Err(err) = logging_thread(rx, sync_tx, config, stop) {
                             eprintln!("logging_thread returned with error: {err:?}");
                         }
                     })?,
             ),
         })
+    }
+
+    pub fn init() -> Result<Self, Error> {
+        let console_writer = ConsoleWriterConfig::new(DEBUG, false);
+        Logging::new(
+            None,
+            None,
+            None,
+            Some(console_writer),
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
     }
 
     pub fn shutdown(&mut self, now: bool) -> Result<(), Error> {
@@ -478,15 +511,15 @@ impl Logging {
         }
     }
 
-    pub fn set_ext_config(&mut self, ext_config: ExtConfig) {
+    pub fn set_ext_config(&mut self, ext_config: &ExtConfig) {
         if let Ok(mut config) = self.config.lock() {
-            config.set_ext_config(ext_config);
+            config.set_ext_config(ext_config.to_owned());
             self.tname = config.tname;
             self.tid = config.tid;
         }
     }
 
-    pub fn add_writer(&mut self, writer: WriterConfigEnum) -> Result<(), Error> {
+    pub fn add_writer(&mut self, writer: &WriterConfigEnum) -> Result<(), Error> {
         let mut config = self.config.lock().unwrap();
         match writer {
             WriterConfigEnum::Root(_) => {
@@ -496,29 +529,34 @@ impl Logging {
                 ));
             }
             WriterConfigEnum::Console(cfg) => {
-                config.console = Some(ConsoleWriter::new(cfg, self.stop.clone())?);
+                config.console = Some(ConsoleWriter::new(cfg.to_owned(), self.stop.clone())?);
             }
             WriterConfigEnum::File(cfg) => {
-                config
-                    .files
-                    .insert(cfg.path.clone(), FileWriter::new(cfg, self.stop.clone())?);
+                config.files.insert(
+                    cfg.path.clone(),
+                    FileWriter::new(cfg.to_owned(), self.stop.clone())?,
+                );
             }
             WriterConfigEnum::Client(cfg) => {
                 let address: String = cfg.address.clone();
-                let client: ClientWriter = ClientWriter::new(cfg, self.stop.clone())?;
+                let client: ClientWriter = ClientWriter::new(cfg.to_owned(), self.stop.clone())?;
                 config.clients.insert(address, client);
             }
             WriterConfigEnum::Server(cfg) => {
-                config.server = Some(LoggingServer::new(cfg, self.tx.clone(), self.stop.clone())?);
+                config.server = Some(LoggingServer::new(
+                    cfg.to_owned(),
+                    self.tx.clone(),
+                    self.stop.clone(),
+                )?);
             }
             WriterConfigEnum::Syslog(cfg) => {
-                config.syslog = Some(SyslogWriter::new(cfg, self.stop.clone())?);
+                config.syslog = Some(SyslogWriter::new(cfg.to_owned(), self.stop.clone())?);
             }
         }
         Ok(())
     }
 
-    pub fn remove_writer(&mut self, writer: WriterTypeEnum) -> Result<(), Error> {
+    pub fn remove_writer(&mut self, writer: &WriterTypeEnum) -> Result<(), Error> {
         let mut config = self.config.lock().unwrap();
         match writer {
             WriterTypeEnum::Root => {
@@ -538,7 +576,7 @@ impl Logging {
                 }
             }
             WriterTypeEnum::File(path) => {
-                if let Some(mut writer) = config.files.remove(&path) {
+                if let Some(mut writer) = config.files.remove(path) {
                     writer.shutdown()?;
                 } else {
                     return Err(Error::new(
@@ -548,7 +586,7 @@ impl Logging {
                 }
             }
             WriterTypeEnum::Client(address) => {
-                if let Some(mut writer) = config.clients.remove(&address) {
+                if let Some(mut writer) = config.clients.remove(address) {
                     writer.shutdown()?;
                 } else {
                     return Err(Error::new(
@@ -589,27 +627,14 @@ impl Logging {
         syslog: bool,
         timeout: f64,
     ) -> Result<(), Error> {
-        let config: MutexGuard<LoggingConfig> = self.config.lock().unwrap();
-        if console {
-            if let Some(ref writer) = config.console {
-                writer.sync(timeout)?;
-            }
-        }
-        if file {
-            for writer in config.files.values() {
-                writer.sync(timeout)?;
-            }
-        }
-        if client {
-            for writer in config.clients.values() {
-                writer.sync(timeout)?;
-            }
-        }
-        if syslog {
-            if let Some(ref writer) = config.syslog {
-                writer.sync(timeout)?;
-            }
-        }
+        self.tx
+            .send(LoggingTypeEnum::Sync((
+                console, file, client, syslog, timeout,
+            )))
+            .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+        self.sync_rx
+            .recv_timeout(Duration::from_secs_f64(timeout))
+            .map_err(|e| Error::new(ErrorKind::BrokenPipe, e.to_string()))?;
         Ok(())
     }
 
@@ -910,5 +935,11 @@ impl Logging {
 impl Default for Logging {
     fn default() -> Self {
         Self::new(None, None, None, None, None, None, None, None, None).unwrap()
+    }
+}
+
+impl Drop for Logging {
+    fn drop(&mut self) {
+        self.shutdown(false).unwrap();
     }
 }

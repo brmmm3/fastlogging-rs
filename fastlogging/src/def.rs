@@ -135,7 +135,7 @@ pub enum LoggingTypeEnum {
     Message((u8, String)),                 // level, message
     MessageRemote((u8, String)),           // level, message
     MessageExt((u8, String, u32, String)), // level, tname, tid, message
-    Sync(f64),                             // timeout
+    Sync((bool, bool, bool, bool, f64)),   // console, file, client, syslog, timeout
     Rotate,
     Stop,
 }
