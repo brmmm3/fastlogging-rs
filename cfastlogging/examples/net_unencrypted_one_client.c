@@ -8,8 +8,10 @@
 // Sample library usage.
 int main(void)
 {
-    ServerConfig server = server_config_new(DEBUG, "127.0.0.1", NONE);
+    ServerConfig server = server_config_new(DEBUG, "127.0.0.1", String, NONE);
+    printf("server_config=%p\n", server);
     ConsoleWriterConfig console = console_writer_config_new(DEBUG, 1);
+    printf("console=%p\n", console);
     Logging logging_server = logging_new(DEBUG,
                                          "LOGSRV",
                                          NULL,
@@ -20,10 +22,10 @@ int main(void)
                                          -1,
                                          NULL);
     logging_sync_all(logging_server, 5.0);
-    ServerConfig server_config = logging_get_server_config(logging_server);
-    char address[20];
-    sprintf(address, "127.0.0.1:%d", server_config.port);
+    const char *address = logging_get_server_address(logging_server);
+    printf("address=%s\n", address);
     const char *key = logging_get_server_auth_key(logging_server);
+    printf("key=%s\n", key);
     ClientWriterConfig client_writer = client_writer_config_new(DEBUG, address, String, key);
     Logging logging_client = logging_new(DEBUG,
                                          "LOGCLIENT",

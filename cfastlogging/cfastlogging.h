@@ -107,6 +107,14 @@ ClientWriterConfig client_writer_config_new(uint8_t level,
 
 // Server
 
+typedef struct
+{
+    uint8_t level;
+    const char *address;
+    uint16_t port;
+    EncryptionMethod key;
+} CServerConfig;
+
 typedef void *ServerConfig;
 
 ServerConfig server_config_new(uint8_t level,
@@ -205,7 +213,9 @@ int logging_set_encryption(Logging logging, WriterTypeEnum writer, EncryptionMet
 
 WriterConfigEnum logging_get_config(Logging logging, WriterTypeEnum writer);
 
-ServerConfig logging_get_server_config(Logging logging);
+CServerConfig *logging_get_server_config(Logging logging);
+
+const char *logging_get_server_address(Logging logging);
 
 const char *logging_get_server_auth_key(Logging logging);
 

@@ -1,13 +1,22 @@
-use std::ffi::{c_char, c_double, c_uchar, CStr};
+use std::ffi::{c_char, c_double, c_uchar, CStr, CString};
 use std::path::{Path, PathBuf};
 use std::ptr::null;
 
 use fastlogging::{
     ClientWriterConfig, ConsoleWriterConfig, EncryptionMethod, ExtConfig, FileWriterConfig,
     LevelSyms, Logger, Logging, MessageStructEnum, ServerConfig, WriterConfigEnum, WriterTypeEnum,
+    LOGGING,
 };
 
 use crate::util::{char2string, option_char2string};
+
+#[repr(C)]
+pub struct CServerConfig {
+    level: u8,
+    address: *const c_char,
+    port: u16,
+    key: EncryptionMethod,
+}
 
 /// # Safety
 ///
@@ -62,7 +71,7 @@ pub unsafe extern "C" fn logging_new(
     connect: *mut ClientWriterConfig,
     syslog: c_char,        // Syslog log level
     config: *const c_char, // Optional path to config file
-) -> Box<Logging> {
+) -> *mut Logging {
     let level = if level < 0 { None } else { Some(level as u8) };
     let domain = option_char2string(domain);
     let ext_config = if ext_config.is_null() {
@@ -91,7 +100,7 @@ pub unsafe extern "C" fn logging_new(
         Some(*Box::from_raw(connect))
     };
     let syslog = if syslog < 0 { None } else { Some(syslog as u8) };
-    Box::new(
+    Box::into_raw(Box::new(
         Logging::new(
             level,
             domain,
@@ -104,7 +113,7 @@ pub unsafe extern "C" fn logging_new(
             option_char2string(config).map(PathBuf::from),
         )
         .unwrap(),
-    )
+    ))
 }
 
 /// # Safety
@@ -118,7 +127,9 @@ pub unsafe extern "C" fn logging_shutdown(logging: &mut Logging, now: u8) -> isi
     } else {
         0
     };
-    drop(Box::from_raw(logging));
+    if logging.drop {
+        drop(Box::from_raw(logging));
+    }
     result
 }
 
@@ -329,9 +340,30 @@ pub unsafe extern "C" fn logging_get_config(
 ///
 /// Get server configuration.
 #[no_mangle]
-pub unsafe extern "C" fn logging_get_server_config(logging: &Logging) -> *const ServerConfig {
+pub unsafe extern "C" fn logging_get_server_config(logging: &Logging) -> *mut CServerConfig {
     if let Some(config) = logging.get_server_config() {
-        &config
+        Box::into_raw(Box::new(CServerConfig {
+            level: config.level,
+            address: CString::new(config.address)
+                .expect("Error: CString::new()")
+                .into_raw(),
+            port: config.port,
+            key: config.key,
+        }))
+    } else {
+        null::<CServerConfig>() as *mut _
+    }
+}
+
+/// # Safety
+///
+/// Get server configuration.
+#[no_mangle]
+pub unsafe extern "C" fn logging_get_server_address(logging: &Logging) -> *const char {
+    if let Some(config) = logging.get_server_config() {
+        CString::new(format!("{}:{}", config.address, config.port))
+            .expect("Error: CString::new()")
+            .into_raw() as *const char
     } else {
         null()
     }
