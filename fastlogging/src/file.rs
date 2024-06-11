@@ -45,7 +45,7 @@ impl From<CompressionMethodEnum> for zip::CompressionMethod {
 #[repr(C)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileWriterConfig {
-    level: u8,                          // Log level
+    pub(crate) level: u8,               // Log level
     pub(crate) path: PathBuf,           // Log file path
     size: usize,                        // Maximum size of log file. 0 means no size limit.
     backlog: usize,                     // Maximum number of backup files.

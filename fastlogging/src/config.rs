@@ -120,6 +120,7 @@ pub struct LoggingConfig {
     pub(crate) server: Option<LoggingServer>,
     pub(crate) clients: HashMap<String, ClientWriter>,
     pub(crate) syslog: Option<SyslogWriter>,
+    pub(crate) debug: u8,
 }
 
 impl LoggingConfig {
@@ -337,6 +338,7 @@ impl ConfigFile {
             clients,
             syslog: None,
             level2sym: LevelSyms::Sym,
+            debug: 0,
         };
         if let Some(ext_config) = ext_config {
             config.set_ext_config(ext_config);

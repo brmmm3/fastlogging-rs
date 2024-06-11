@@ -21,6 +21,7 @@ pub struct NetConfig {
     pub key: EncryptionMethod,
     pub sk: Option<SealingKey<NonceGenerator>>,
     pub seal: String,
+    pub debug: u8,
 }
 
 impl NetConfig {
@@ -37,6 +38,7 @@ impl NetConfig {
             key: key.clone(),
             sk: None,
             seal: "FastLoggingRs".to_string(),
+            debug: 0,
         };
         config.set_encryption(key)?;
         Ok(config)

@@ -194,30 +194,60 @@ fn logging_thread_worker(
                 (level, Some(tname), tid, message)
             }
             LoggingTypeEnum::Rotate => {
+                let debug = config.lock().unwrap().debug;
                 for file in config.lock().unwrap().files.values() {
+                    if debug > 0 {
+                        println!(
+                            "logging_thread_worker: ROTATE {:?}",
+                            file.config.lock().unwrap().path
+                        );
+                    }
                     file.rotate()?;
                 }
                 continue;
             }
             LoggingTypeEnum::Sync((console, file, client, syslog, timeout)) => {
                 let mut config = config.lock().unwrap();
+                let debug = config.debug;
+                if debug > 0 {
+                    println!("logging_thread_worker: SYNC");
+                }
                 if console {
                     if let Some(ref mut console) = config.console {
+                        if debug > 0 {
+                            println!("logging_thread_worker: SYNC->CONSOLE");
+                        }
                         console.sync(timeout)?;
                     }
                 }
                 if file {
                     for file in config.files.values() {
+                        if debug > 0 {
+                            println!(
+                                "logging_thread_worker: SYNC->FILE {:?}",
+                                file.config.lock().unwrap().path
+                            );
+                        }
                         file.sync(timeout)?;
                     }
                 }
                 if client {
                     for client in config.clients.values() {
+                        if debug > 0 {
+                            let client_config = client.config.lock().unwrap();
+                            println!(
+                                "logging_thread_worker: SYNC->CLIENT {}:{}",
+                                client_config.address, client_config.port
+                            );
+                        }
                         client.sync(timeout)?;
                     }
                 }
                 if syslog {
                     if let Some(ref mut syslog) = config.syslog {
+                        if debug > 0 {
+                            println!("logging_thread_worker: SYNC->SYSLOG");
+                        }
                         syslog.sync(timeout)?;
                     }
                 }
@@ -225,12 +255,15 @@ fn logging_thread_worker(
                 continue;
             }
             LoggingTypeEnum::Stop => {
+                if config.lock().unwrap().debug > 0 {
+                    println!("logging_thread_worker: STOP");
+                }
                 break;
             }
         };
         // Build message
         // {date} {hostname} {pname}[{pid}]>{tname}[{tid}] {domain}: {level} {message}
-        let mut config = config.lock().unwrap();
+        let config = config.lock().unwrap();
         buffer.clear();
         if remote {
             buffer.push_str(&message);
@@ -248,17 +281,28 @@ fn logging_thread_worker(
             }
         }
         // Send message to writers
-        if let Some(ref mut console) = config.console {
-            console.send(level, buffer.clone())?;
+        if config.debug > 2 {
+            println!("logging_thread_worker: MESSAGE {buffer:?}");
         }
-        for file in config.files.values() {
-            file.send(level, buffer.clone())?;
+        if let Some(ref writer) = config.console {
+            if writer.config.lock().unwrap().level <= level {
+                writer.send(level, buffer.clone())?;
+            }
         }
-        for client in config.clients.values() {
-            client.send(level, buffer.clone())?;
+        for writer in config.files.values() {
+            if writer.config.lock().unwrap().level <= level {
+                writer.send(level, buffer.clone())?;
+            }
         }
-        if let Some(ref mut syslog) = config.syslog {
-            syslog.send(level, buffer.clone())?;
+        for writer in config.clients.values() {
+            if writer.config.lock().unwrap().level <= level {
+                writer.send(level, buffer.clone())?;
+            }
+        }
+        if let Some(ref writer) = config.syslog {
+            if writer.config.lock().unwrap().level <= level {
+                writer.send(level, buffer.clone())?;
+            }
         }
     }
     Ok(())
@@ -694,6 +738,14 @@ impl Logging {
     }
 
     // Config
+
+    pub fn set_debug(&mut self, debug: u8) {
+        let mut config = self.config.lock().unwrap();
+        config.debug = debug;
+        if let Some(ref server) = config.server {
+            server.config.lock().unwrap().debug = debug;
+        }
+    }
 
     pub fn get_config(&self, writer: &WriterTypeEnum) -> Result<WriterConfigEnum, Error> {
         let mut config = self.config.lock().unwrap();

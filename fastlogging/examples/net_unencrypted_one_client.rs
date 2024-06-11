@@ -25,6 +25,7 @@ fn main() -> Result<(), Error> {
         None,
     )
     .unwrap();
+    logging_server.set_debug(3);
     logging_server.sync_all(5.0).unwrap();
     //let console_writer2 = ConsoleWriterConfig::new(DEBUG, false);
     let client_writer = ClientWriterConfig::new(
@@ -47,6 +48,7 @@ fn main() -> Result<(), Error> {
         None,
     )
     .unwrap();
+    logging_client.set_debug(3);
     println!("Send logs");
     logging_client.trace("Trace Message".to_string()).unwrap();
     logging_client.debug("Debug Message".to_string()).unwrap();

@@ -18,7 +18,6 @@ use crate::def::LoggingTypeEnum;
 
 use super::{def::NetConfig, EncryptionMethod, NonceGenerator};
 
-#[repr(C)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ServerConfig {
     pub level: u8,
@@ -66,9 +65,18 @@ fn handle_client(
     let mut buffer = [0u8; 4352];
     let mut authenticated = false;
     stream.set_read_timeout(Some(Duration::from_secs(5)))?;
+    let mut config_level = config.lock().unwrap().level;
+    let mut debug = config.lock().unwrap().debug;
     loop {
         if *stop.lock().unwrap() || stop_server.load(Ordering::Relaxed) {
             break;
+        }
+        if let Ok(ref config) = config.lock() {
+            config_level = config.level;
+            debug = config.debug;
+        }
+        if debug > 1 {
+            println!("handle_client: WAIT");
         }
         if let Err(err) = stream.read_exact(&mut buffer[..3]) {
             if err.kind() == ErrorKind::WouldBlock {
@@ -92,19 +100,23 @@ fn handle_client(
             if key.len() != size || !key.starts_with(&buffer[..size]) {
                 Err("Invalid auth key".to_string())?;
             }
+            if debug > 1 {
+                println!("handle_client: AUTHENTICATED");
+            }
             authenticated = true;
             continue;
         }
-        let level = buffer[2];
+        let msg_level = buffer[2];
         stream.read_exact(&mut buffer[..size])?;
-        if let Ok(ref mut config) = config.lock() {
-            if level >= config.level {
-                let message = format!(
-                    "{perr_addr}: {}",
-                    std::str::from_utf8(&buffer[..size]).unwrap()
-                );
-                tx.send(LoggingTypeEnum::MessageRemote((level, message)))?;
+        if msg_level >= config_level {
+            let message = format!(
+                "{perr_addr}: {}",
+                std::str::from_utf8(&buffer[..size]).unwrap()
+            );
+            if debug > 2 {
+                println!("handle_client: MESSAGE {message:?}");
             }
+            tx.send(LoggingTypeEnum::MessageRemote((msg_level, message)))?;
         }
     }
     Ok(false)
@@ -129,24 +141,36 @@ fn handle_encrypted_client(
         NonceGenerator::new(),
     );
     let seal = aead::Aad::from(config.lock().unwrap().seal.clone());
+    let mut config_level = config.lock().unwrap().level;
+    let mut debug = config.lock().unwrap().debug;
     loop {
         if *stop.lock().unwrap() || stop_server.load(Ordering::Relaxed) {
             break;
         }
-        if let Err(err) = stream.read_exact(&mut buffer[0..2]) {
-            if err.kind() == ErrorKind::TimedOut {
+        if let Ok(ref config) = config.lock() {
+            config_level = config.level;
+            debug = config.debug;
+        }
+        if debug > 1 {
+            println!("handle_encrypted_client: WAIT");
+        }
+        if let Err(err) = stream.read_exact(&mut buffer[..3]) {
+            if err.kind() == ErrorKind::WouldBlock {
                 continue;
             }
         }
         let size = (buffer[0] as usize) | ((buffer[1] as usize) << 8);
         if size > buffer.len() {
-            //
+            // Exit if received data is too big
+            if size < 0xffff {
+                Err(format!("Receive size {size} is too big"))?;
+            }
             return Ok(true);
         }
         let msg_level = buffer[2];
         let data = &mut buffer[..size];
         stream.read_exact(data)?;
-        if msg_level >= config.lock().unwrap().level {
+        if msg_level >= config_level {
             let _ = key
                 .open_in_place(seal.clone(), data)
                 .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
@@ -154,6 +178,9 @@ fn handle_encrypted_client(
                 "{perr_addr}: {}",
                 std::str::from_utf8(&buffer[..size]).unwrap()
             );
+            if debug > 2 {
+                println!("handle_encrypted_client: MESSAGE {message:?}");
+            }
             tx.send(LoggingTypeEnum::MessageRemote((msg_level, message)))?;
         }
     }
@@ -202,6 +229,9 @@ fn server_thread(
                 continue;
             }
         };
+        if config.lock().unwrap().debug > 0 {
+            println!("server_thread: CLIENT CONNECTED {addr:?}");
+        }
         // Clients have are allowed to produce 3 errors. In case of more errors they will be ignored.
         if *buggy_clients.lock().unwrap().get(&addr).unwrap_or(&0) > 3 {
             continue;
@@ -240,6 +270,9 @@ fn server_thread(
         });
     }
     pool.join();
+    if config.lock().unwrap().debug > 0 {
+        println!("server_thread: FINISHED");
+    }
     Ok(())
 }
 
