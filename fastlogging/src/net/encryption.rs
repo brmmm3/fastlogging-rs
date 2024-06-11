@@ -37,6 +37,7 @@ impl EncryptionMethod {
     }
 }
 
+#[derive(Debug)]
 pub struct NonceGenerator {
     last_nonce: u64,
 }

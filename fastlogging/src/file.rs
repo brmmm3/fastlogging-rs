@@ -23,7 +23,7 @@ pub enum FileTypeEnum {
     Stop,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Copy, Serialize, Deserialize)]
 pub enum CompressionMethodEnum {
     Store,
     Deflate,

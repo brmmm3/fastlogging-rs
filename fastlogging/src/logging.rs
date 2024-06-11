@@ -358,22 +358,20 @@ pub fn logging_init() -> &'static Logging {
         Some(l) => l,
         None => {
             let console_writer = ConsoleWriterConfig::new(DEBUG, false);
-            LOGGING
-                .set(
-                    Logging::new(
-                        None,
-                        None,
-                        None,
-                        Some(console_writer),
-                        None,
-                        None,
-                        None,
-                        None,
-                        None,
-                    )
-                    .unwrap(),
-                )
-                .unwrap();
+            let mut logging = Logging::new(
+                None,
+                None,
+                None,
+                Some(console_writer),
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
+            .unwrap();
+            logging.drop = false;
+            LOGGING.set(logging).unwrap();
             LOGGING.get().unwrap()
         }
     }
@@ -391,6 +389,7 @@ pub struct Logging {
     sync_rx: Receiver<u8>,
     stop: Arc<Mutex<bool>>,
     thr: Option<JoinHandle<()>>,
+    pub drop: bool,
 }
 
 impl Logging {
@@ -434,6 +433,7 @@ impl Logging {
                         }
                     })?,
             ),
+            drop: true,
         })
     }
 

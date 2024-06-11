@@ -103,7 +103,6 @@ impl Default for FileConfig {
     }
 }
 
-#[repr(C)]
 #[derive(Debug)]
 pub struct LoggingConfig {
     pub(crate) level: u8,
