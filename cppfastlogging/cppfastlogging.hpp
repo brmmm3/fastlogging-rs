@@ -28,9 +28,56 @@ enum class LevelSyms : uint8_t
     Str,
 };
 
-namespace logging::rust
+enum class FileTypeEnum : uint8_t
+{
+    Message,
+    Sync,
+    Rotate,
+    Stop
+};
+
+enum class CompressionMethodEnum : uint8_t
+{
+    Store,
+    Deflate,
+    Zstd,
+    Lzma
+};
+
+enum class WriterTypeEnum : uint8_t
+{
+    Root,
+    Console,
+    File,
+    Client,
+    Server,
+    Syslog
+};
+
+enum class MessageStructEnum : uint8_t
+{
+    String,
+    Json,
+    Xml
+};
+
+enum class EncryptionMethod : uint8_t
+{
+    NONE,
+    AuthKey,
+    AES
+};
+
+namespace rust
 {
     /// Forward-declaration of opaque type to use as pointer to the Rust object.
+    struct ExtConfig;
+    struct WriterConfigEnum;
+    struct ConsoleWriterConfig;
+    struct FileWriterConfig;
+    struct ServerConfig;
+    struct ClientWriterConfig;
+    struct SyslogWriterConfig;
     struct Logging;
     struct Logger;
 } // namespace logging::rust
@@ -44,8 +91,10 @@ extern "C"
     static const int ERROR = 40;
     static const int WARNING = 30;
     static const int WARN = WARNING;
+    static const int SUCCESS = 25;
     static const int INFO = 20;
     static const int DEBUG = 10;
+    static const int TRACE = 5;
     static const int NOTSET = 0;
 
     /// We take ownership as we are passing by value, so when function
@@ -59,123 +108,273 @@ extern "C"
 
     intptr_t error_code(const Error *e);
 
-    logging::rust::Logging *logging_init();
+    rust::ExtConfig *ext_config_new(MessageStructEnum structured,
+                                    int8_t hostname,
+                                    int8_t pname,
+                                    int8_t pid,
+                                    int8_t tname,
+                                    int8_t tid);
+
+    // Console writer
+
+    rust::ConsoleWriterConfig *console_writer_config_new(uint8_t level, int8_t colors);
+
+    // File writer
+
+    rust::FileWriterConfig *file_writer_config_new(uint8_t level,
+                                                   const char *path,
+                                                   uint32_t size,
+                                                   uint32_t backlog,
+                                                   int32_t timeout,
+                                                   int64_t time,
+                                                   CompressionMethodEnum compression);
+
+    // Client writer
+
+    rust::ClientWriterConfig *client_writer_config_new(uint8_t level,
+                                                       const char *address,
+                                                       EncryptionMethod encryption,
+                                                       const char *key);
+
+    // Server
+
+    rust::ServerConfig *server_config_new(uint8_t level,
+                                          const char *address,
+                                          EncryptionMethod encryption,
+                                          const char *key);
+
+    // Syslog writer
+
+    rust::SyslogWriterConfig *syslog_writer_config_new(uint8_t level,
+                                                       const char *hostname,
+                                                       const char *pname,
+                                                       uint32_t pid);
+
+    rust::Logging *logging_init();
 
     /// For further reading ...
     /// #[no_mangle] - // https://internals.rust-lang.org/t/precise-semantics-of-no-mangle/4098
-    logging::rust::Logging *logging_new(uint8_t level,
-                                        const char *domain,
-                                        int console,
-                                        const char *file,
-                                        const char *server,
-                                        const char *connect,
-                                        int max_size,
-                                        int backlog);
+    rust::Logging *logging_new(uint8_t level,
+                               const char *domain,
+                               rust::ExtConfig *ext_config,
+                               rust::ConsoleWriterConfig *console,
+                               rust::FileWriterConfig *file,
+                               rust::ServerConfig *server,
+                               rust::ClientWriterConfig *connect,
+                               int8_t syslog,
+                               const char *config);
 
-    intptr_t logging_shutdown(logging::rust::Logging *logging, uint8_t now);
+    int logging_shutdown(rust::Logging *logging, uint8_t now);
 
-    void logging_add_logger(logging::rust::Logging *logging, logging::rust::Logger *logger);
+    int logging_set_level(rust::Logging *logging, uint8_t level);
 
-    void logging_remove_logger(logging::rust::Logging *logging, logging::rust::Logger *logger);
+    void logging_set_domain(rust::Logging *logging, const char *domain);
 
-    void logging_set_level(logging::rust::Logging *logging, uint8_t level);
+    void logging_set_level2sym(rust::Logging *logging, uint8_t level2sym);
 
-    void logging_set_domain(logging::rust::Logging *logging, const char *domain);
+    void logging_set_ext_config(rust::Logging *logging, rust::ExtConfig *ext_config);
 
-    void logging_set_level2sym(logging::rust::Logging *logging, uint8_t level2sym);
+    void logging_add_logger(rust::Logging *logging, rust::Logger *logger);
 
-    intptr_t logging_set_console_writer(logging::rust::Logging *logging, int8_t level);
+    void logging_remove_logger(rust::Logging *logging, rust::Logger *logger);
 
-    void logging_set_console_colors(logging::rust::Logging *logging, uint8_t colors);
+    intptr_t logging_add_writer(rust::Logging *logging, rust::WriterConfigEnum *writer);
 
-    intptr_t logging_set_file_writer(logging::rust::Logging *logging,
-                                     int8_t level,
-                                     const char *path,
-                                     int max_size,
-                                     int backlog);
+    void logging_remove_writer(rust::Logging *logging, WriterTypeEnum writer);
 
-    intptr_t logging_rotate(const logging::rust::Logging *logging);
+    intptr_t logging_sync(const rust::Logging *logging, int console, int file, int client, int syslog, double timeout);
 
-    intptr_t logging_sync(const logging::rust::Logging *logging, double timeout);
+    intptr_t logging_sync_all(const rust::Logging *logging, double timeout);
 
-    intptr_t logging_connect(logging::rust::Logging *logging,
-                             const char *address,
-                             uint8_t level,
-                             const char *key);
+    // File writer
 
-    intptr_t logging_disconnect(logging::rust::Logging *logging, const char *address);
+    intptr_t logging_rotate(const rust::Logging *logging);
 
-    intptr_t logging_set_client_level(logging::rust::Logging *logging, const char *address, uint8_t level);
+    // Network
 
-    intptr_t logging_set_client_encryption(logging::rust::Logging *logging, const char *address, const char *key);
+    intptr_t logging_set_encryption(rust::Logging *logging, WriterTypeEnum writer, EncryptionMethod encryption, char *key);
 
-    intptr_t logging_server_start(logging::rust::Logging *logging,
-                                  const char *address,
-                                  uint8_t level,
-                                  const char *key);
+    // Config
 
-    intptr_t logging_server_shutdown(logging::rust::Logging *logging);
+    rust::WriterConfigEnum *logging_get_config(rust::Logging *logging, WriterTypeEnum writer);
 
-    intptr_t logging_set_server_level(logging::rust::Logging *logging, uint8_t level);
+    rust::ServerConfig *logging_get_server_config(rust::Logging *logging);
 
-    intptr_t logging_set_server_encryption(logging::rust::Logging *logging, const char *key);
+    const char *logging_get_server_address(rust::Logging *logging);
 
-    intptr_t logging_debug(const logging::rust::Logging *logging, const char *message);
+    const char *logging_get_server_auth_key(rust::Logging *logging);
 
-    intptr_t logging_info(const logging::rust::Logging *logging, const char *message);
+    const char *logging_get_config_string(rust::Logging *logging);
 
-    intptr_t logging_warning(const logging::rust::Logging *logging, const char *message);
+    int logging_save_config(rust::Logging *logging, const char *path);
 
-    intptr_t logging_error(const logging::rust::Logging *logging, const char *message);
+    // Logging calls
 
-    intptr_t logging_critical(const logging::rust::Logging *logging, const char *message);
+    intptr_t logging_trace(const rust::Logging *logging, const char *message);
 
-    intptr_t logging_fatal(const logging::rust::Logging *logging, const char *message);
+    intptr_t logging_debug(const rust::Logging *logging, const char *message);
 
-    intptr_t logging_exception(const logging::rust::Logging *logging, const char *message);
+    intptr_t logging_info(const rust::Logging *logging, const char *message);
 
-    logging::rust::Logger *logger_new(uint8_t level, const char *domain);
+    intptr_t logging_success(const rust::Logging *logging, const char *message);
 
-    void logger_set_level(logging::rust::Logger *logger, uint8_t level);
+    intptr_t logging_warning(const rust::Logging *logging, const char *message);
 
-    void logger_set_domain(logging::rust::Logger *logger, const char *domain);
+    intptr_t logging_error(const rust::Logging *logging, const char *message);
 
-    intptr_t logger_debug(const logging::rust::Logger *logger, const char *message);
+    intptr_t logging_critical(const rust::Logging *logging, const char *message);
 
-    intptr_t logger_info(const logging::rust::Logger *logger, const char *message);
+    intptr_t logging_fatal(const rust::Logging *logging, const char *message);
 
-    intptr_t logger_warning(const logging::rust::Logger *logger, const char *message);
+    intptr_t logging_exception(const rust::Logging *logging, const char *message);
 
-    intptr_t logger_error(const logging::rust::Logger *logger, const char *message);
+    // Logger
 
-    intptr_t logger_critical(const logging::rust::Logger *logger, const char *message);
+    rust::Logger *logger_new(uint8_t level, const char *domain);
 
-    intptr_t logger_fatal(const logging::rust::Logger *logger, const char *message);
+    rust::Logger *logger_new_ext(uint8_t level, const char *domain, int8_t tname, int8_t tid);
 
-    intptr_t logger_exception(const logging::rust::Logger *logger, const char *message);
+    void logger_set_level(rust::Logger *logger, uint8_t level);
+
+    void logger_set_domain(rust::Logger *logger, const char *domain);
+
+    intptr_t logger_trace(const rust::Logger *logger, const char *message);
+
+    intptr_t logger_debug(const rust::Logger *logger, const char *message);
+
+    intptr_t logger_info(const rust::Logger *logger, const char *message);
+
+    intptr_t logger_success(const rust::Logger *logger, const char *message);
+
+    intptr_t logger_warning(const rust::Logger *logger, const char *message);
+
+    intptr_t logger_error(const rust::Logger *logger, const char *message);
+
+    intptr_t logger_critical(const rust::Logger *logger, const char *message);
+
+    intptr_t logger_fatal(const rust::Logger *logger, const char *message);
+
+    intptr_t logger_exception(const rust::Logger *logger, const char *message);
 
 } // extern "C"
 
 namespace logging
 {
+    class ExtConfig
+    {
+    public:
+        rust::ExtConfig *config = NULL;
+
+        ExtConfig(MessageStructEnum structured,
+                  int8_t hostname,
+                  int8_t pname,
+                  int8_t pid,
+                  int8_t tname,
+                  int8_t tid)
+        {
+            config = ext_config_new(structured, hostname, pname, pid, tname, tid);
+        }
+
+        ~ExtConfig()
+        {
+            config = NULL;
+        }
+    };
+
+    class ConsoleWriterConfig
+    {
+    public:
+        rust::ConsoleWriterConfig *writer = NULL;
+
+        ConsoleWriterConfig(uint8_t level, bool colors)
+        {
+            writer = console_writer_config_new(level, (int8_t)colors);
+        }
+
+        ~ConsoleWriterConfig()
+        {
+            writer = NULL;
+        }
+    };
+
+    class FileWriterConfig
+    {
+    public:
+        rust::FileWriterConfig *writer = NULL;
+
+        FileWriterConfig(uint8_t level,
+                         const char *path,
+                         uint32_t size,
+                         uint32_t backlog,
+                         int32_t timeout,
+                         int64_t time,
+                         CompressionMethodEnum compression)
+        {
+            writer = file_writer_config_new(level, path, size, backlog, timeout, time, compression);
+        }
+
+        ~FileWriterConfig()
+        {
+            writer = NULL;
+        }
+    };
+
+    class ClientWriterConfig
+    {
+    public:
+        rust::ClientWriterConfig *writer = NULL;
+
+        ClientWriterConfig(uint8_t level,
+                           const char *address,
+                           EncryptionMethod encryption,
+                           const char *key)
+        {
+            writer = client_writer_config_new(level, address, encryption, key);
+        }
+
+        ~ClientWriterConfig()
+        {
+            writer = NULL;
+        }
+    };
+
+    class ServerConfig
+    {
+    public:
+        rust::ServerConfig *writer = NULL;
+
+        ServerConfig(uint8_t level,
+                     const char *address,
+                     EncryptionMethod encryption,
+                     const char *key)
+        {
+            writer = server_config_new(level, address, encryption, key);
+        }
+
+        ~ServerConfig()
+        {
+            writer = NULL;
+        }
+    };
+
     class Logger
     {
+    public:
         rust::Logger *logger = NULL;
 
-    public:
-        Logger(uint8_t level, char *domain)
+        Logger(uint8_t level, const char *domain)
         {
             logger = logger_new(level, domain);
+        }
+
+        Logger(uint8_t level, const char *domain, int8_t tname, int8_t tid)
+        {
+            logger = logger_new_ext(level, domain, tname, tid);
         }
 
         ~Logger()
         {
             logger = NULL;
-        }
-
-        rust::Logger *ptr()
-        {
-            return logger;
         }
 
         void set_level(uint8_t level)
@@ -188,6 +387,13 @@ namespace logging
             logger_set_domain(logger, domain);
         }
 
+        // Logging calls
+
+        int trace(std::string message)
+        {
+            return logger_trace(logger, message.c_str());
+        }
+
         int debug(std::string message)
         {
             return logger_debug(logger, message.c_str());
@@ -196,6 +402,11 @@ namespace logging
         int info(std::string message)
         {
             return logger_info(logger, message.c_str());
+        }
+
+        int success(std::string message)
+        {
+            return logger_success(logger, message.c_str());
         }
 
         int warn(std::string message)
@@ -236,12 +447,28 @@ namespace logging
     public:
         Logging()
         {
-            logging = logging_new(NOTSET, NULL, 1, NULL, NULL, NULL, 0, 0);
+            logging = logging_init();
         }
 
-        Logging(uint8_t level, char *domain, int console, char *file, char *server, char *connect, uint32_t max_size, uint32_t backlog)
+        Logging(uint8_t level,
+                const char *domain,
+                ExtConfig *ext_config,
+                ConsoleWriterConfig *console,
+                FileWriterConfig *file,
+                ServerConfig *server,
+                ClientWriterConfig *connect,
+                int8_t syslog,
+                const char *config)
         {
-            logging = logging_new(level, domain, console, file, server, connect, max_size, backlog);
+            logging = logging_new(level,
+                                  domain,
+                                  ext_config ? ext_config->config : NULL,
+                                  console ? console->writer : NULL,
+                                  file ? file->writer : NULL,
+                                  server ? server->writer : NULL,
+                                  connect ? connect->writer : NULL,
+                                  syslog,
+                                  config);
         }
 
         ~Logging()
@@ -253,16 +480,6 @@ namespace logging
         int shutdown(bool now)
         {
             return logging_shutdown(logging, (uint8_t)now);
-        }
-
-        void add_logger(Logger &logger)
-        {
-            logging_add_logger(logging, logger.ptr());
-        }
-
-        void remove_logger(Logger &logger)
-        {
-            logging_remove_logger(logging, logger.ptr());
         }
 
         void set_level(uint8_t level)
@@ -280,71 +497,92 @@ namespace logging
             logging_set_level2sym(logging, level2sym);
         }
 
-        int set_console_writer(int8_t level)
+        void set_ext_config(rust::ExtConfig *ext_config)
         {
-            return logging_set_console_writer(logging, level);
+            logging_set_ext_config(logging, ext_config);
         }
 
-        void set_console_colors(bool colors)
+        void add_logger(Logger *logger)
         {
-            logging_set_console_colors(logging, (uint8_t)colors);
+            logging_add_logger(logging, logger->logger);
         }
 
-        int set_file_writer(int8_t level, const char *path, int max_size, int backlog)
+        void remove_logger(Logger *logger)
         {
-            return logging_set_file_writer(logging, level, path, max_size, backlog);
+            logging_remove_logger(logging, logger->logger);
         }
+
+        int add_writer(rust::WriterConfigEnum *writer)
+        {
+            return logging_add_writer(logging, writer);
+        }
+
+        void remove_writer(WriterTypeEnum writer)
+        {
+            logging_remove_writer(logging, writer);
+        }
+
+        int sync(int console, int file, int client, int syslog, double timeout)
+        {
+            return logging_sync(logging, console, file, client, syslog, timeout);
+        }
+
+        int sync_all(double timeout)
+        {
+            return logging_sync_all(logging, timeout);
+        }
+
+        // File writer
 
         int rotate()
         {
             return logging_rotate(logging);
         }
 
-        int sync(double timeout)
+        // Network
+
+        int set_encryption(WriterTypeEnum writer, EncryptionMethod encryption, char *key)
         {
-            return logging_sync(logging, timeout);
+            return logging_set_encryption(logging, writer, encryption, key);
         }
 
-        int connect(const char *address, uint8_t level, const char *key)
+        // Config
+
+        rust::WriterConfigEnum *get_config(WriterTypeEnum writer)
         {
-            return logging_connect(logging, address, level, key);
+            return logging_get_config(logging, writer);
         }
 
-        int disconnect(const char *address)
+        rust::ServerConfig *get_server_config()
         {
-            return logging_disconnect(logging, address);
+            return logging_get_server_config(logging);
         }
 
-        void set_client_level(const char *address, uint8_t level)
+        const char *get_server_address()
         {
-            logging_set_client_level(logging, address, level);
+            return logging_get_server_address(logging);
         }
 
-        void set_client_encryption(const char *address, const char *key)
+        const char *get_server_auth_key()
         {
-            logging_set_client_encryption(logging, address, key);
+            return logging_get_server_auth_key(logging);
         }
 
-        int server_start(const char *address,
-                         uint8_t level,
-                         const char *key)
+        const char *get_config_string()
         {
-            return logging_server_start(logging, address, level, key);
+            return logging_get_config_string(logging);
         }
 
-        int server_shutdown()
+        int save_config(const char *path)
         {
-            return logging_server_shutdown(logging);
+            return logging_save_config(logging, path);
         }
 
-        void set_server_level(uint8_t level)
-        {
-            logging_set_server_level(logging, level);
-        }
+        // Logging calls
 
-        void set_server_encryption(const char *key)
+        int trace(std::string message)
         {
-            logging_set_server_encryption(logging, key);
+            return logging_trace(logging, message.c_str());
         }
 
         int debug(std::string message)
@@ -355,6 +593,11 @@ namespace logging
         int info(std::string message)
         {
             return logging_info(logging, message.c_str());
+        }
+
+        int success(std::string message)
+        {
+            return logging_success(logging, message.c_str());
         }
 
         int warn(std::string message)

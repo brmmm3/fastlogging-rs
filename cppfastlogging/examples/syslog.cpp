@@ -2,20 +2,19 @@
 
 using namespace logging;
 
-// File: console.cpp
+// File: syslog.cpp
 //
 // Sample library usage.
 int main(void)
 {
-    ConsoleWriterConfig *console = new ConsoleWriterConfig(DEBUG, 1);
     Logging *logging = new Logging(DEBUG,
                                    NULL,
                                    NULL,
-                                   console,
                                    NULL,
                                    NULL,
                                    NULL,
-                                   -1,
+                                   NULL,
+                                   0,
                                    NULL);
     logging->trace("Trace Message");
     logging->debug("Debug Message");

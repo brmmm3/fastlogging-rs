@@ -2,17 +2,24 @@
 
 using namespace logging;
 
-// File: console.cpp
+// File: file.cpp
 //
 // Sample library usage.
 int main(void)
 {
-    ConsoleWriterConfig *console = new ConsoleWriterConfig(DEBUG, 1);
+    FileWriterConfig *file = new FileWriterConfig(DEBUG,
+                                                  "/tmp/cfastlogging.log",
+                                                  1024,
+                                                  3,
+                                                  -1,
+                                                  -1,
+                                                  CompressionMethodEnum::Store);
+
     Logging *logging = new Logging(DEBUG,
                                    NULL,
                                    NULL,
-                                   console,
                                    NULL,
+                                   file,
                                    NULL,
                                    NULL,
                                    -1,
