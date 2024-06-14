@@ -181,10 +181,6 @@ Logging logging_new(uint8_t level,
 
 int logging_shutdown(Logging logging, int8_t now);
 
-void logging_add_logger(Logging logging, Logger logger);
-
-void logging_remove_logger(Logging logging, Logger logger);
-
 int logging_set_level(Logging logging, WriterTypeEnum writer, uint8_t level);
 
 void logging_set_domain(Logging logging, const char *domain);
@@ -192,6 +188,10 @@ void logging_set_domain(Logging logging, const char *domain);
 void logging_set_level2sym(Logging logging, uint8_t level2sym);
 
 void logging_set_ext_config(Logging logging, ExtConfig ext_config);
+
+void logging_add_logger(Logging logging, Logger logger);
+
+void logging_remove_logger(Logging logging, Logger logger);
 
 int logging_add_writer(Logging logging, WriterConfigEnum writer);
 

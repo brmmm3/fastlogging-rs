@@ -5,7 +5,6 @@ use std::ptr::null;
 use fastlogging::{
     ClientWriterConfig, ConsoleWriterConfig, EncryptionMethod, ExtConfig, FileWriterConfig,
     LevelSyms, Logger, Logging, MessageStructEnum, ServerConfig, WriterConfigEnum, WriterTypeEnum,
-    LOGGING,
 };
 
 use crate::util::{char2string, option_char2string};
@@ -135,22 +134,6 @@ pub unsafe extern "C" fn logging_shutdown(logging: &mut Logging, now: u8) -> isi
 
 /// # Safety
 ///
-/// Add logger.
-#[no_mangle]
-pub unsafe extern "C" fn logging_add_logger(logging: &mut Logging, logger: &mut Logger) {
-    logging.add_logger(logger);
-}
-
-/// # Safety
-///
-/// Remove logger.
-#[no_mangle]
-pub unsafe extern "C" fn logging_remove_logger(logging: &mut Logging, logger: &mut Logger) {
-    logging.remove_logger(logger);
-}
-
-/// # Safety
-///
 /// Set logging level.
 #[no_mangle]
 pub unsafe extern "C" fn logging_set_level(
@@ -195,6 +178,22 @@ pub unsafe extern "C" fn logging_set_level2sym(logging: &mut Logging, level2sym:
 #[no_mangle]
 pub unsafe extern "C" fn logging_set_ext_config(logging: &mut Logging, ext_config: &ExtConfig) {
     logging.set_ext_config(ext_config);
+}
+
+/// # Safety
+///
+/// Add logger.
+#[no_mangle]
+pub unsafe extern "C" fn logging_add_logger(logging: &mut Logging, logger: &mut Logger) {
+    logging.add_logger(logger);
+}
+
+/// # Safety
+///
+/// Remove logger.
+#[no_mangle]
+pub unsafe extern "C" fn logging_remove_logger(logging: &mut Logging, logger: &mut Logger) {
+    logging.remove_logger(logger);
 }
 
 /// # Safety

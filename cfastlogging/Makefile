@@ -4,15 +4,11 @@ CARGO_BIN ?= $(shell which cargo)
 run: build-debug
 
 clean:
-	$(CARGO_BIN) clean
-	rm -f ./bin/console_static
-	rm -f ./bin/console
-	rm -f ./bin/file
-	rm -f ./bin/threads
+	rm -rf bin
 
 build:
 	$(CARGO_BIN) build --release
-	$(GCC_BIN) -o ./bin/init ./examples/init.c -I. -L. -l:../target/release/libcfastlogging.so
+	mkdir -p bin
 	$(GCC_BIN) -o ./bin/console_static ./examples/console_static.c -I. -L. -l:../target/release/libcfastlogging.so
 	$(GCC_BIN) -o ./bin/console ./examples/console.c -I. -L. -l:../target/release/libcfastlogging.so
 	$(GCC_BIN) -o ./bin/file ./examples/file.c -I. -L. -l:../target/release/libcfastlogging.so
@@ -22,7 +18,7 @@ build:
 
 build-debug:
 	$(CARGO_BIN) build
-	$(GCC_BIN) -o ./bin/init ./examples/init.c -I. -L. -l:../target/debug/libcfastlogging.so
+	mkdir -p bin
 	$(GCC_BIN) -o ./bin/console_static ./examples/console_static.c -I. -L. -l:../target/debug/libcfastlogging.so
 	$(GCC_BIN) -o ./bin/console ./examples/console.c -I. -L. -l:../target/debug/libcfastlogging.so
 	$(GCC_BIN) -o ./bin/file ./examples/file.c -I. -L. -l:../target/debug/libcfastlogging.so
