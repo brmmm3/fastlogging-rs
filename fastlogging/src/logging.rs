@@ -474,14 +474,6 @@ impl Logging {
         }
     }
 
-    pub fn add_logger(&mut self, logger: &'_ mut Logger) {
-        logger.set_tx(Some(self.tx.clone()));
-    }
-
-    pub fn remove_logger(&mut self, logger: &'_ mut Logger) {
-        logger.set_tx(None);
-    }
-
     pub fn set_level(&mut self, writer: WriterTypeEnum, level: u8) -> Result<(), Error> {
         let mut config = self.config.lock().unwrap();
         match writer {
@@ -561,6 +553,14 @@ impl Logging {
             self.tname = config.tname;
             self.tid = config.tid;
         }
+    }
+
+    pub fn add_logger(&mut self, logger: &'_ mut Logger) {
+        logger.set_tx(Some(self.tx.clone()));
+    }
+
+    pub fn remove_logger(&mut self, logger: &'_ mut Logger) {
+        logger.set_tx(None);
     }
 
     pub fn add_writer(&mut self, writer: &WriterConfigEnum) -> Result<(), Error> {

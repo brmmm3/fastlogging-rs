@@ -18,6 +18,7 @@ use crate::def::LoggingTypeEnum;
 
 use super::{def::NetConfig, EncryptionMethod, NonceGenerator};
 
+#[repr(C)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ServerConfig {
     pub level: u8,
