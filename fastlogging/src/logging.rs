@@ -832,6 +832,14 @@ impl Logging {
         }
     }
 
+    pub fn get_server_address(&self) -> Option<String> {
+        if let Ok(WriterConfigEnum::Server(config)) = self.get_config(&WriterTypeEnum::Server) {
+            Some(format!("{}:{}", config.address, config.port))
+        } else {
+            None
+        }
+    }
+
     pub fn get_server_auth_key(&self) -> Vec<u8> {
         AUTH_KEY.to_vec()
     }
