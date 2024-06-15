@@ -8,10 +8,14 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+
 import java.io.File;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.logging.FastLogging;
+import org.logging.FastLogging.ConsoleWriterConfig;
+import org.logging.FastLogging.FileWriterConfig;
+import org.logging.FastLogging.CompressionMethodEnum;
 import org.logging.FastLogging.Logging;
 
 class Benchmarks {
@@ -22,23 +26,31 @@ class Benchmarks {
             logging.fatal(String.format("Fatal %d %s", i, message));
             logging.error(String.format("Error %d %s", i, message));
             logging.warning(String.format("Warning %d %s", i, message));
+            logging.success(String.format("Success %d %s", i, message));
             logging.info(String.format("Info %d %s", i, message));
             logging.debug(String.format("Debug %d %s", i, message));
+            logging.trace(String.format("Trace %d %s", i, message));
             logging.fatal(String.format("Fatal %d %s", i, message));
             logging.error(String.format("Error %d %s", i, message));
             logging.warning(String.format("Warning %d %s", i, message));
+            logging.success(String.format("Success %d %s", i, message));
             logging.info(String.format("Info %d %s", i, message));
             logging.debug(String.format("Debug %d %s", i, message));
+            logging.trace(String.format("Trace %d %s", i, message));
             logging.fatal(String.format("Fatal %d %s", i, message));
             logging.error(String.format("Error %d %s", i, message));
             logging.warning(String.format("Warning %d %s", i, message));
+            logging.success(String.format("Success %d %s", i, message));
             logging.info(String.format("Info %d %s", i, message));
             logging.debug(String.format("Debug %d %s", i, message));
+            logging.trace(String.format("Trace %d %s", i, message));
             logging.fatal(String.format("Fatal %d %s", i, message));
             logging.error(String.format("Error %d %s", i, message));
             logging.warning(String.format("Warning %d %s", i, message));
+            logging.success(String.format("Success %d %s", i, message));
             logging.info(String.format("Info %d %s", i, message));
             logging.debug(String.format("Debug %d %s", i, message));
+            logging.trace(String.format("Trace %d %s", i, message));
             if (bWithException) {
                 try {
                     @SuppressWarnings("unused")
@@ -87,21 +99,24 @@ class Benchmarks {
             boolean bWithException, String message) throws IOException {
         int maxSize = 0;
         int backlog = 0;
+        int timeout = 0;
+        int time = 0;
+        CompressionMethodEnum compression = CompressionMethodEnum.Store;
         if (bRotate) {
             maxSize = 1024 * 1024;
             backlog = 10;
         }
         // Initialize Logger jfastlogging
-        Logging logging = new Logging();
-        logging.setLevel(level);
-        logging.setConsoleLogger(FastLogging.NOLOG);
+        ConsoleWriterConfig console = new ConsoleWriterConfig(level, true);
+        FileWriterConfig file = null;
         if (pathName != null) {
             Path path = Paths.get(pathName);
             if (Files.exists(path)) {
                 Files.delete(path);
             }
-            logging.setFileLogger(level, pathName, maxSize, backlog);
+            file = new FileWriterConfig(level, pathName, maxSize, backlog, timeout, time, compression);
         }
+        Logging logging = new Logging(level, "root", console, file);
         Instant start = Instant.now();
         long dt0 = LoggingWork(logging, cnt, bWithException, message);
         logging.shutdown();

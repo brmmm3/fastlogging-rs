@@ -14,8 +14,10 @@ public class FastLogging {
     public static final int ERROR = 40;
     public static final int WARNING = 30;
     public static final int WARN = WARNING;
+    public static final int SUCCESS = 25;
     public static final int INFO = 20;
     public static final int DEBUG = 10;
+    public static final int TRACE = 5;
     public static final int NOTSET = 0;
 
     enum LevelSyms {
@@ -36,63 +38,190 @@ public class FastLogging {
                 return "ERROR";
             case WARNING:
                 return "WARNING";
+            case SUCCESS:
+                return "SUCCESS";
             case INFO:
                 return "INFO";
             case DEBUG:
                 return "DEBUG";
+            case TRACE:
+                return "TRACE";
             case NOTSET:
                 return "NOTSET";
         }
         return "?";
     }
 
+    public enum MessageStructEnum {
+        String,
+        Json,
+        Xml,
+    }
+
+    public enum WriterTypeEnum {
+        Root,
+        Console,
+        File,
+        Client,
+        Server,
+        Syslog,
+    }
+
+    public enum CompressionMethodEnum {
+        Store,
+        Deflate,
+        Zstd,
+        Lzma,
+    }
+
+    public enum EncryptionMethod {
+        NONE,
+        AuthKey,
+        AES,
+    }
+
+    static public class ExtConfig {
+        MessageStructEnum structured;
+        boolean hostname;
+        boolean pname;
+        boolean pid;
+        boolean tname;
+        boolean tid;
+
+        public ExtConfig(MessageStructEnum structured, boolean hostname, boolean pname, boolean pid, boolean tname,
+                boolean tid) {
+            this.structured = structured;
+            this.hostname = hostname;
+            this.pname = pname;
+            this.pid = pid;
+            this.tname = tname;
+            this.tid = tid;
+        }
+    }
+
+    static public class ConsoleWriterConfig {
+        int level;
+        boolean colors;
+
+        public ConsoleWriterConfig(int level, boolean colors) {
+            this.level = level;
+            this.colors = colors;
+        }
+    }
+
+    static public class FileWriterConfig {
+        int level;
+        String path;
+        int size;
+        int backlog;
+        int timeout;
+        int time;
+        CompressionMethodEnum compression;
+
+        public FileWriterConfig(int level, String path, int size, int backlog, int timeout, int time,
+                CompressionMethodEnum compression) {
+            this.level = level;
+            this.path = path;
+            this.size = size;
+            this.backlog = backlog;
+            this.timeout = timeout;
+            this.time = time;
+            this.compression = compression;
+        }
+    }
+
+    static public class ServerConfig {
+        int level;
+        String address;
+        int port;
+        EncryptionMethod method;
+        String key;
+
+        public ServerConfig(int level, String address, int port, EncryptionMethod method, String key) {
+            this.level = level;
+            this.address = address;
+            this.port = port;
+            this.method = method;
+            this.key = key;
+        }
+    }
+
+    static public class ClientWriterConfig {
+        int level;
+        String address;
+        int port;
+        EncryptionMethod method;
+        String key;
+
+        public ClientWriterConfig(int level, String address, int port, EncryptionMethod method, String key) {
+            this.level = level;
+            this.address = address;
+            this.port = port;
+            this.method = method;
+            this.key = key;
+        }
+    }
+
     // Logging class
 
-    public static native long loggingNew(int level, String domain, boolean console, String file, String server,
-            String connect, int max_size, int backlog);
+    public static native long loggingNew(int level, String domain, ExtConfig extConfig, ConsoleWriterConfig console,
+            FileWriterConfig file, ServerConfig server, ClientWriterConfig client, int syslog, String config);
 
     private static native void loggingShutdown(long instance_ptr, boolean now);
-
-    private static native void loggingAddLogger(long instance_ptr, long logger_ptr);
-
-    private static native void loggingRemoveLogger(long instance_ptr, long logger_ptr);
 
     public static native void loggingSetLevel(long instance_ptr, int level);
 
     public static native void loggingSetDomain(long instance_ptr, String domain);
 
-    // TODO
-    public static native void loggingSetLevel2Sym(long instance_ptr, String domain);
+    public static native void loggingSetLevel2Sym(long instance_ptr, LevelSyms level2sym);
 
-    public static native void loggingSetConsoleWriter(long instance_ptr, int level);
+    public static native void loggingSetExtConfig(long instance_ptr, ExtConfig extConfig);
 
-    public static native void loggingSetConsoleColors(long instance_ptr, boolean colors);
+    private static native void loggingAddLogger(long instance_ptr, long logger_ptr);
 
-    public static native void loggingSetFileWriter(long instance_ptr, int level, String path, int maxSize, int backlog);
+    private static native void loggingRemoveLogger(long instance_ptr, long logger_ptr);
 
-    public static native void loggingRotate(long instance_ptr);
+    private static native void loggingAddWriter(long instance_ptr, long logger_ptr);
 
-    public static native void loggingSync(long instance_ptr, double timeout);
+    private static native void loggingRemoveWriter(long instance_ptr, long logger_ptr);
 
-    public static native void loggingConnect(long instance_ptr, String address, int level, String key);
+    public static native void loggingSync(long instance_ptr, boolean console, boolean file, boolean client,
+            boolean syslog, double timeout);
 
-    public static native void loggingDisconnect(long instance_ptr, String address);
+    public static native void loggingSyncAll(long instance_ptr, double timeout);
 
-    public static native void loggingSetClientLevel(long instance_ptr, String address, int level);
+    // File logger
 
-    public static native void loggingSetClientEncryption(long instance_ptr, String address, String key);
+    public static native void loggingRotate(long instance_ptr, String path);
 
-    public static native void loggingServerStart(long instance_ptr, String address, int level, String key);
+    // Network
 
-    public static native void loggingServerShutdown(long instance_ptr);
+    public static native void loggingSetEncryption(long instance_ptr, String address, EncryptionMethod method,
+            String key);
 
-    public static native void loggingSetServerLevel(long instance_ptr, int level);
+    // Config
 
-    public static native void loggingSetServerEncryption(long instance_ptr, String key);
+    private static native String loggingGetConfig(long instance_ptr, WriterTypeEnum writer);
+
+    private static native ServerConfig loggingGetServerConfig(long instance_ptr);
+
+    private static native String loggingGetServerAddress(long instance_ptr);
+
+    private static native String loggingGetServerAuthKey(long instance_ptr);
+
+    private static native String loggingGetConfigString(long instance_ptr);
+
+    private static native void loggingSaveConfig(long instance_ptr, String path);
+
+    // Logging methods
+
+    private static native void loggingTrace(long instance_ptr, String message);
 
     private static native void loggingDebug(long instance_ptr, String message);
 
     private static native void loggingInfo(long instance_ptr, String message);
+
+    private static native void loggingSuccess(long instance_ptr, String message);
 
     private static native void loggingWarning(long instance_ptr, String message);
 
@@ -110,7 +239,71 @@ public class FastLogging {
         int level = NOTSET;
 
         public Logging() {
-            instance_ptr = loggingNew(0, "root", true, null, null, null, 0, 0);
+            instance_ptr = loggingNew(0, "root", null, null, null, null, null, -1, null);
+        }
+
+        public Logging(int level) {
+            instance_ptr = loggingNew(level, "root", null, null, null, null, null, -1, null);
+        }
+
+        public Logging(int level, String domain) {
+            instance_ptr = loggingNew(level, domain, null, null, null, null, null, -1, null);
+        }
+
+        public Logging(int level, String domain, ExtConfig extConfig) {
+            instance_ptr = loggingNew(level, domain, extConfig, null, null, null, null, -1, null);
+        }
+
+        public Logging(int level, String domain, ConsoleWriterConfig console) {
+            instance_ptr = loggingNew(level, domain, null, console, null, null, null, -1, null);
+        }
+
+        public Logging(int level, String domain, FileWriterConfig file) {
+            instance_ptr = loggingNew(level, domain, null, null, file, null, null, -1, null);
+        }
+
+        public Logging(int level, String domain, ConsoleWriterConfig console, FileWriterConfig file) {
+            instance_ptr = loggingNew(level, domain, null, console, file, null, null, -1, null);
+        }
+
+        public Logging(int level, String domain, FileWriterConfig file, ServerConfig server) {
+            instance_ptr = loggingNew(level, domain, null, null, file, server, null, -1, null);
+        }
+
+        public Logging(int level, String domain, FileWriterConfig file, ClientWriterConfig client) {
+            instance_ptr = loggingNew(level, domain, null, null, file, null, client, -1, null);
+        }
+
+        public Logging(int level, String domain, ConsoleWriterConfig console, ClientWriterConfig client) {
+            instance_ptr = loggingNew(level, domain, null, console, null, null, client, -1, null);
+        }
+
+        public Logging(int level, String domain, ConsoleWriterConfig console, FileWriterConfig file,
+                ClientWriterConfig client) {
+            instance_ptr = loggingNew(level, domain, null, console, file, null, client, -1, null);
+        }
+
+        public Logging(int level, String domain, ConsoleWriterConfig console, FileWriterConfig file,
+                ServerConfig server) {
+            instance_ptr = loggingNew(level, domain, null, console, file, server, null, -1, null);
+        }
+
+        public Logging(int level, String domain, ClientWriterConfig client) {
+            instance_ptr = loggingNew(level, domain, null, null, null, null, client, -1, null);
+        }
+
+        public Logging(int level, String domain, int syslog) {
+            instance_ptr = loggingNew(level, domain, null, null, null, null, null, syslog, null);
+        }
+
+        public Logging(int level, String domain, ExtConfig extConfig, ConsoleWriterConfig console,
+                FileWriterConfig file,
+                ClientWriterConfig client, int syslog) {
+            instance_ptr = loggingNew(level, domain, extConfig, console, file, null, client, syslog, null);
+        }
+
+        public Logging(String path) {
+            instance_ptr = loggingNew(level, null, null, null, null, null, null, -1, path);
         }
 
         public void shutdown() {
@@ -123,14 +316,6 @@ public class FastLogging {
             instance_ptr = 0L;
         }
 
-        public void addLogger(long logger_ptr) {
-            loggingAddLogger(instance_ptr, logger_ptr);
-        }
-
-        public void removeLogger(long logger_ptr) {
-            loggingRemoveLogger(instance_ptr, logger_ptr);
-        }
-
         public void setLevel(int level) {
             loggingSetLevel(instance_ptr, level);
             this.level = level;
@@ -140,56 +325,83 @@ public class FastLogging {
             loggingSetDomain(instance_ptr, domain);
         }
 
-        public void setConsoleLogger(int level) {
-            loggingSetConsoleWriter(instance_ptr, level);
+        public void setLevel2Sym(LevelSyms level2sym) {
+            loggingSetLevel2Sym(instance_ptr, level2sym);
         }
 
-        public void setConsoleColors(boolean colors) {
-            loggingSetConsoleColors(instance_ptr, colors);
+        public void setExtConfig(ExtConfig extConfig) {
+            loggingSetExtConfig(instance_ptr, extConfig);
         }
 
-        public void setFileLogger(int level, String path, int maxSize, int backlog) {
-            loggingSetFileWriter(instance_ptr, level, path, maxSize, backlog);
+        public void addLogger(long logger_ptr) {
+            loggingAddLogger(instance_ptr, logger_ptr);
         }
 
-        public void rotate() {
-            loggingRotate(instance_ptr);
+        public void removeLogger(long logger_ptr) {
+            loggingRemoveLogger(instance_ptr, logger_ptr);
         }
 
-        public void sync(double timeout) {
-            loggingSync(instance_ptr, timeout);
+        public void addWriter(long logger_ptr) {
+            loggingAddWriter(instance_ptr, logger_ptr);
         }
 
-        public void connect(String address, int level, String key) {
-            loggingConnect(instance_ptr, address, level, key);
+        public void removeWriter(long logger_ptr) {
+            loggingRemoveWriter(instance_ptr, logger_ptr);
         }
 
-        public void disconnect(String address) {
-            loggingDisconnect(instance_ptr, address);
+        public void sync(boolean console, boolean file, boolean client,
+                boolean syslog, double timeout) {
+            loggingSync(instance_ptr, console, file, client, syslog, timeout);
         }
 
-        public void setClientLevel(String address, int level) {
-            loggingSetClientLevel(instance_ptr, address, level);
+        public void syncAll(double timeout) {
+            loggingSyncAll(instance_ptr, timeout);
         }
 
-        public void setClientEncryption(String address, String key) {
-            loggingSetClientEncryption(instance_ptr, address, key);
+        // File logger
+
+        public void rotate(String path) {
+            loggingRotate(instance_ptr, path);
         }
 
-        public void setServerStart(String address, int level, String key) {
-            loggingServerStart(instance_ptr, address, level, key);
+        // Network
+
+        public void setEncryption(String address, EncryptionMethod method, String key) {
+            loggingSetEncryption(instance_ptr, address, method, key);
         }
 
-        public void setServerShutdown() {
-            loggingServerShutdown(instance_ptr);
+        // Config
+
+        public String getConfig(WriterTypeEnum writer) {
+            return loggingGetConfig(instance_ptr, writer);
         }
 
-        public void setServerLevel(int level) {
-            loggingSetServerLevel(instance_ptr, level);
+        public ServerConfig getServerConfig() {
+            return loggingGetServerConfig(instance_ptr);
         }
 
-        public void setServerEncryption(String key) {
-            loggingSetServerEncryption(instance_ptr, key);
+        public String getServerAddress() {
+            return loggingGetServerAddress(instance_ptr);
+        }
+
+        public String getServerAuthKey() {
+            return loggingGetServerAuthKey(instance_ptr);
+        }
+
+        public String getConfigString() {
+            return loggingGetConfigString(instance_ptr);
+        }
+
+        public void getSaveConfig(String path) {
+            loggingSaveConfig(instance_ptr, path);
+        }
+
+        // Logging methods
+
+        public void trace(String message) {
+            if (level <= TRACE) {
+                loggingTrace(instance_ptr, message);
+            }
         }
 
         public void debug(String message) {
@@ -201,6 +413,12 @@ public class FastLogging {
         public void info(String message) {
             if (level <= INFO) {
                 loggingInfo(instance_ptr, message);
+            }
+        }
+
+        public void success(String message) {
+            if (level <= SUCCESS) {
+                loggingSuccess(instance_ptr, message);
             }
         }
 
@@ -239,13 +457,19 @@ public class FastLogging {
 
     private static native long loggerNew(int level, String domain);
 
+    private static native long loggerNewExt(int level, String domain, boolean tname, boolean tid);
+
     public static native void loggerSetLevel(long instance_ptr, int level);
 
     public static native void loggerSetDomain(long instance_ptr, String domain);
 
+    private static native void loggerTrace(long instance_ptr, String message);
+
     private static native void loggerDebug(long instance_ptr, String message);
 
     private static native void loggerInfo(long instance_ptr, String message);
+
+    private static native void loggerSuccess(long instance_ptr, String message);
 
     private static native void loggerWarning(long instance_ptr, String message);
 
@@ -278,6 +502,10 @@ public class FastLogging {
             instance_ptr = loggerNew(level, domain);
         }
 
+        public Logger(int level, String domain, boolean tname, boolean tid) {
+            instance_ptr = loggerNewExt(level, domain, tname, tid);
+        }
+
         public void setLevel(int level) {
             loggerSetLevel(instance_ptr, level);
             this.level = level;
@@ -285,6 +513,12 @@ public class FastLogging {
 
         public void setDomain(String domain) {
             loggerSetDomain(instance_ptr, domain);
+        }
+
+        public void trace(String message) {
+            if (level <= TRACE) {
+                loggerTrace(instance_ptr, message);
+            }
         }
 
         public void debug(String message) {
@@ -296,6 +530,12 @@ public class FastLogging {
         public void info(String message) {
             if (level <= INFO) {
                 loggerInfo(instance_ptr, message);
+            }
+        }
+
+        public void success(String message) {
+            if (level <= SUCCESS) {
+                loggerSuccess(instance_ptr, message);
             }
         }
 
