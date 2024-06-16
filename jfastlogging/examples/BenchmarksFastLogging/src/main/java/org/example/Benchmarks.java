@@ -1,5 +1,6 @@
 package org.example;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -9,17 +10,15 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 
-import java.io.File;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.logging.FastLogging;
+import org.logging.FastLogging.CompressionMethodEnum;
 import org.logging.FastLogging.ConsoleWriterConfig;
 import org.logging.FastLogging.FileWriterConfig;
-import org.logging.FastLogging.CompressionMethodEnum;
 import org.logging.FastLogging.Logging;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 class Benchmarks {
-    @SuppressWarnings("DuplicatedCode")
     private static long LoggingWork(Logging logging, int cnt, boolean bWithException, String message) {
         Instant start = Instant.now();
         for (int i = 0; i < cnt; i++) {
@@ -193,7 +192,6 @@ class Benchmarks {
                 }
             }
         });
-        @SuppressWarnings("rawtypes")
         Map<String, Map> dtAllOs = new HashMap<>();
         dtAllOs.put(osName, dtAllJson);
         ObjectMapper objectMapper = new ObjectMapper();
