@@ -474,7 +474,7 @@ impl Logging {
         }
     }
 
-    pub fn set_level(&mut self, writer: WriterTypeEnum, level: u8) -> Result<(), Error> {
+    pub fn set_level(&mut self, writer: &WriterTypeEnum, level: u8) -> Result<(), Error> {
         let mut config = self.config.lock().unwrap();
         match writer {
             WriterTypeEnum::Root => {
@@ -492,7 +492,7 @@ impl Logging {
                 }
             }
             WriterTypeEnum::File(path) => {
-                if let Some(writer) = config.files.get_mut(&path) {
+                if let Some(writer) = config.files.get_mut(path) {
                     writer.set_level(level);
                 } else {
                     return Err(Error::new(
@@ -502,7 +502,7 @@ impl Logging {
                 }
             }
             WriterTypeEnum::Client(address) => {
-                if let Some(writer) = config.clients.get_mut(&address) {
+                if let Some(writer) = config.clients.get_mut(address) {
                     writer.set_level(level);
                 } else {
                     return Err(Error::new(
@@ -840,8 +840,8 @@ impl Logging {
         }
     }
 
-    pub fn get_server_auth_key(&self) -> Vec<u8> {
-        AUTH_KEY.to_vec()
+    pub fn get_server_auth_key(&self) -> EncryptionMethod {
+        EncryptionMethod::AuthKey(AUTH_KEY.to_vec())
     }
 
     pub fn get_config_string(&self) -> String {
