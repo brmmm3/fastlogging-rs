@@ -45,7 +45,7 @@ mod tests {
                 "127.0.0.1:{}",
                 logging_server.get_server_config().unwrap().port
             ),
-            EncryptionMethod::AuthKey(logging_server.get_server_auth_key()),
+            logging_server.get_server_auth_key(),
         );
         let mut logging_client = Logging::new(
             None,
