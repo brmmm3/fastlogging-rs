@@ -34,7 +34,7 @@ fn main() -> Result<(), Error> {
             "127.0.0.1:{}",
             logging_server.get_server_config().unwrap().port
         ),
-        EncryptionMethod::AuthKey(logging_server.get_server_auth_key()),
+        logging_server.get_server_auth_key(),
     );
     let mut logging_client = Logging::new(
         None,
@@ -61,6 +61,19 @@ fn main() -> Result<(), Error> {
         .unwrap();
     logging_client.error("Error Message".to_string()).unwrap();
     logging_client.fatal("Fatal Message".to_string()).unwrap();
+
+    logging_server.trace("Trace Message".to_string()).unwrap();
+    logging_server.debug("Debug Message".to_string()).unwrap();
+    logging_server.info("Info Message".to_string()).unwrap();
+    logging_server
+        .success("Success Message".to_string())
+        .unwrap();
+    logging_server
+        .warning("Warning Message".to_string())
+        .unwrap();
+    logging_server.error("Error Message".to_string()).unwrap();
+    logging_server.fatal("Fatal Message".to_string()).unwrap();
+
     logging_client.sync_all(1.0)?;
     logging_server.sync_all(1.0)?;
     // Give client some time to send the log messages
