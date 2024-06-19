@@ -3,12 +3,12 @@ use std::io::Error;
 use std::path::PathBuf;
 
 use fastlogging::{CRITICAL, DEBUG, ERROR, EXCEPTION, FATAL, INFO, SUCCESS, TRACE, WARNING};
-use pyo3::exceptions::PyException;
+use pyo3::exceptions::{PyException, PyTypeError};
 use pyo3::prelude::*;
 
 use crate::def::{
     ClientWriterConfig, ConsoleWriterConfig, EncryptionMethod, ExtConfig, FileWriterConfig,
-    LevelSyms, ServerConfig, WriterConfigEnum, WriterTypeEnum,
+    LevelSyms, RootConfig, ServerConfig, SyslogWriterConfig, WriterConfigEnum, WriterTypeEnum,
 };
 use crate::logger::Logger;
 
@@ -107,19 +107,10 @@ impl Logging {
             .map_err(PyException::new_err)
     }
 
-    pub fn add_logger(&mut self, logger: Py<Logger>, py: Python) {
-        self.instance
-            .add_logger(&mut logger.borrow_mut(py).instance)
-    }
-
-    pub fn remove_logger(&mut self, logger: Py<Logger>, py: Python) {
-        self.instance
-            .remove_logger(&mut logger.borrow_mut(py).instance)
-    }
-
     pub fn set_level(&mut self, writer: WriterTypeEnum, level: u8) -> PyResult<()> {
+        let writer: fastlogging::WriterTypeEnum = writer.into();
         self.instance
-            .set_level(writer.into(), level)
+            .set_level(&writer, level)
             .map_err(PyException::new_err)
     }
 
@@ -135,9 +126,24 @@ impl Logging {
         self.instance.set_ext_config(&ext_config.borrow().0)
     }
 
-    pub fn add_writer(&mut self, writer: WriterConfigEnum) -> PyResult<()> {
+    pub fn add_writer(&mut self, writer: PyObject, py: Python) -> PyResult<()> {
+        let writer = if let Ok(writer) = writer.extract::<RootConfig>(py) {
+            fastlogging::WriterConfigEnum::Root(writer.0)
+        } else if let Ok(writer) = writer.extract::<ConsoleWriterConfig>(py) {
+            fastlogging::WriterConfigEnum::Console(writer.0)
+        } else if let Ok(writer) = writer.extract::<FileWriterConfig>(py) {
+            fastlogging::WriterConfigEnum::File(writer.0)
+        } else if let Ok(writer) = writer.extract::<ClientWriterConfig>(py) {
+            fastlogging::WriterConfigEnum::Client(writer.0)
+        } else if let Ok(writer) = writer.extract::<ServerConfig>(py) {
+            fastlogging::WriterConfigEnum::Server(writer.0)
+        } else if let Ok(writer) = writer.extract::<SyslogWriterConfig>(py) {
+            fastlogging::WriterConfigEnum::Syslog(writer.0)
+        } else {
+            return Err(PyTypeError::new_err("writer has invalid argument type"));
+        };
         self.instance
-            .add_writer(&(writer.into()))
+            .add_writer(&writer)
             .map_err(PyException::new_err)
     }
 
@@ -145,6 +151,16 @@ impl Logging {
         self.instance
             .remove_writer(&(writer.into()))
             .map_err(PyException::new_err)
+    }
+
+    pub fn add_logger(&mut self, logger: Py<Logger>, py: Python) {
+        self.instance
+            .add_logger(&mut logger.borrow_mut(py).instance)
+    }
+
+    pub fn remove_logger(&mut self, logger: Py<Logger>, py: Python) {
+        self.instance
+            .remove_logger(&mut logger.borrow_mut(py).instance)
     }
 
     pub fn sync(
@@ -203,8 +219,14 @@ impl Logging {
         self.instance.get_server_config().map(ServerConfig)
     }
 
-    pub fn get_server_auth_key(&self) -> Vec<u8> {
-        self.instance.get_server_auth_key()
+    pub fn get_server_address(&self) -> Option<String> {
+        self.instance.get_server_address()
+    }
+
+    pub fn get_server_auth_key(&self) -> EncryptionMethod {
+        EncryptionMethod::AuthKey {
+            key: self.instance.get_server_auth_key().key().unwrap().to_vec(),
+        }
     }
 
     pub fn get_config_string(&self) -> String {

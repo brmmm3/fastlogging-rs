@@ -1,14 +1,13 @@
 from fastlogging_rs import (
     TRACE,
     Logging,
-    ConsoleWriterConfig,
 )
 
 if __name__ == "__main__":
     logger = Logging(
         TRACE,
         "main",
-        console=ConsoleWriterConfig(TRACE, True),
+        syslog=TRACE,
     )
     logger.trace("Trace Message")
     logger.debug("Debug Message")

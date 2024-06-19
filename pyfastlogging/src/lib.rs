@@ -70,8 +70,8 @@ fn set_ext_config(ext_config: &Bound<'_, def::ExtConfig>) {
 }
 
 #[pyfunction]
-fn add_writer(writer: WriterConfigEnum) -> PyResult<()> {
-    LOGGING.lock().unwrap().add_writer(writer)
+fn add_writer(writer: PyObject, py: Python) -> PyResult<()> {
+    LOGGING.lock().unwrap().add_writer(writer, py)
 }
 
 #[pyfunction]
@@ -123,7 +123,7 @@ fn get_server_config() -> Option<ServerConfig> {
 }
 
 #[pyfunction]
-fn get_server_auth_key() -> Vec<u8> {
+fn get_server_auth_key() -> EncryptionMethod {
     LOGGING.lock().unwrap().get_server_auth_key()
 }
 
@@ -206,8 +206,10 @@ fn init(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add("TRACE", fastlogging::TRACE)?;
     m.add("NOTSET", fastlogging::NOTSET)?;
     m.add_class::<def::Level2Sym>()?;
+    m.add_class::<def::MessageStructEnum>()?;
     m.add_class::<def::CompressionMethodEnum>()?;
     m.add_class::<def::EncryptionMethod>()?;
+    m.add_class::<def::WriterTypeEnum>()?;
     m.add_class::<def::ExtConfig>()?;
     m.add_class::<def::ConsoleWriterConfig>()?;
     m.add_class::<def::FileWriterConfig>()?;
@@ -216,12 +218,12 @@ fn init(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<logging::Logging>()?;
     m.add_class::<logger::Logger>()?;
     m.add_function(wrap_pyfunction!(shutdown, m)?)?;
-    m.add_function(wrap_pyfunction!(add_logger, m)?)?;
-    m.add_function(wrap_pyfunction!(remove_logger, m)?)?;
     m.add_function(wrap_pyfunction!(set_level, m)?)?;
     m.add_function(wrap_pyfunction!(set_domain, m)?)?;
     m.add_function(wrap_pyfunction!(set_level2sym, m)?)?;
     m.add_function(wrap_pyfunction!(set_ext_config, m)?)?;
+    m.add_function(wrap_pyfunction!(add_logger, m)?)?;
+    m.add_function(wrap_pyfunction!(remove_logger, m)?)?;
     m.add_function(wrap_pyfunction!(add_writer, m)?)?;
     m.add_function(wrap_pyfunction!(remove_writer, m)?)?;
     m.add_function(wrap_pyfunction!(sync, m)?)?;

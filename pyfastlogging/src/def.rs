@@ -62,6 +62,7 @@ impl Level2Sym {
 }
 
 #[pyclass]
+#[derive(Debug, Clone)]
 pub struct LevelSyms(pub fastlogging::LevelSyms);
 
 #[pymethods]
@@ -79,6 +80,14 @@ impl LevelSyms {
     #[getter]
     pub fn name(&self) -> String {
         self.0.to_string()
+    }
+
+    fn __repr__(&self) -> String {
+        format!("{self:?}")
+    }
+
+    fn __str__(&self) -> String {
+        format!("{self:?}")
     }
 }
 
@@ -98,6 +107,17 @@ impl From<MessageStructEnum> for fastlogging::MessageStructEnum {
             Json => fastlogging::MessageStructEnum::Json,
             Xml => fastlogging::MessageStructEnum::Xml,
         }
+    }
+}
+
+#[pymethods]
+impl MessageStructEnum {
+    fn __repr__(&self) -> String {
+        format!("{self:?}")
+    }
+
+    fn __str__(&self) -> String {
+        format!("{self:?}")
     }
 }
 
@@ -122,6 +142,17 @@ impl From<CompressionMethodEnum> for fastlogging::CompressionMethodEnum {
     }
 }
 
+#[pymethods]
+impl CompressionMethodEnum {
+    fn __repr__(&self) -> String {
+        format!("{self:?}")
+    }
+
+    fn __str__(&self) -> String {
+        format!("{self:?}")
+    }
+}
+
 #[pyclass]
 #[derive(Debug, Clone)]
 pub enum EncryptionMethod {
@@ -141,7 +172,19 @@ impl From<EncryptionMethod> for fastlogging::EncryptionMethod {
     }
 }
 
+#[pymethods]
+impl EncryptionMethod {
+    fn __repr__(&self) -> String {
+        format!("{self:?}")
+    }
+
+    fn __str__(&self) -> String {
+        format!("{self:?}")
+    }
+}
+
 #[pyclass]
+#[derive(Debug, Clone)]
 pub struct ExtConfig(pub fastlogging::ExtConfig);
 
 #[pymethods]
@@ -163,6 +206,14 @@ impl ExtConfig {
             tname,
             tid,
         ))
+    }
+
+    fn __repr__(&self) -> String {
+        format!("{self:?}")
+    }
+
+    fn __str__(&self) -> String {
+        format!("{self:?}")
     }
 }
 
@@ -194,6 +245,17 @@ impl From<&fastlogging::RootConfig> for RootConfig {
     }
 }
 
+#[pymethods]
+impl RootConfig {
+    fn __repr__(&self) -> String {
+        format!("{self:?}")
+    }
+
+    fn __str__(&self) -> String {
+        format!("{self:?}")
+    }
+}
+
 #[pyclass]
 #[derive(Debug, Clone)]
 pub struct ConsoleWriterConfig(pub fastlogging::ConsoleWriterConfig);
@@ -203,6 +265,14 @@ impl ConsoleWriterConfig {
     #[new]
     pub fn new(level: u8, colors: bool) -> Self {
         Self(fastlogging::ConsoleWriterConfig::new(level, colors))
+    }
+
+    fn __repr__(&self) -> String {
+        format!("{self:?}")
+    }
+
+    fn __str__(&self) -> String {
+        format!("{self:?}")
     }
 }
 
@@ -240,8 +310,8 @@ impl FileWriterConfig {
     pub fn new(
         level: u8,
         path: PathBuf,
-        size: usize,
-        backlog: usize,
+        size: Option<usize>,
+        backlog: Option<usize>,
         timeout: Option<Duration>,
         time: Option<SystemTime>,
         compression: Option<CompressionMethodEnum>,
@@ -249,8 +319,8 @@ impl FileWriterConfig {
         Ok(Self(fastlogging::FileWriterConfig::new(
             level,
             path,
-            size,
-            backlog,
+            size.unwrap_or_default(),
+            backlog.unwrap_or_default(),
             timeout,
             time,
             compression.map(|x| x.into()),
@@ -289,8 +359,17 @@ pub struct ServerConfig(pub fastlogging::ServerConfig);
 #[pymethods]
 impl ServerConfig {
     #[new]
-    pub fn new(level: u8, address: String, key: EncryptionMethod) -> Self {
+    pub fn new(level: u8, address: String, key: Option<EncryptionMethod>) -> Self {
+        let key = key.unwrap_or(EncryptionMethod::NONE {});
         Self(fastlogging::ServerConfig::new(level, address, key.into()))
+    }
+
+    fn __repr__(&self) -> String {
+        format!("{self:?}")
+    }
+
+    fn __str__(&self) -> String {
+        format!("{self:?}")
     }
 }
 
@@ -325,12 +404,21 @@ pub struct ClientWriterConfig(pub fastlogging::ClientWriterConfig);
 #[pymethods]
 impl ClientWriterConfig {
     #[new]
-    pub fn new(level: u8, address: String, key: EncryptionMethod) -> Self {
+    pub fn new(level: u8, address: String, key: Option<EncryptionMethod>) -> Self {
+        let key = key.unwrap_or(EncryptionMethod::NONE {});
         Self(fastlogging::ClientWriterConfig::new(
             level,
             address,
             key.into(),
         ))
+    }
+
+    fn __repr__(&self) -> String {
+        format!("{self:?}")
+    }
+
+    fn __str__(&self) -> String {
+        format!("{self:?}")
     }
 }
 
@@ -377,6 +465,14 @@ impl SyslogWriterConfig {
             pname.unwrap_or_default(),
             pid.unwrap_or_default(),
         ))
+    }
+
+    fn __repr__(&self) -> String {
+        format!("{self:?}")
+    }
+
+    fn __str__(&self) -> String {
+        format!("{self:?}")
     }
 }
 
@@ -495,6 +591,17 @@ impl<'a> From<&'a fastlogging::WriterConfigEnum> for WriterConfigEnum {
     }
 }
 
+#[pymethods]
+impl WriterConfigEnum {
+    fn __repr__(&self) -> String {
+        format!("{self:?}")
+    }
+
+    fn __str__(&self) -> String {
+        format!("{self:?}")
+    }
+}
+
 #[pyclass]
 #[derive(Debug, Clone)]
 pub enum WriterTypeEnum {
@@ -517,5 +624,16 @@ impl From<WriterTypeEnum> for fastlogging::WriterTypeEnum {
             Server {} => fastlogging::WriterTypeEnum::Server,
             Syslog {} => fastlogging::WriterTypeEnum::Syslog,
         }
+    }
+}
+
+#[pymethods]
+impl WriterTypeEnum {
+    fn __repr__(&self) -> String {
+        format!("{self:?}")
+    }
+
+    fn __str__(&self) -> String {
+        format!("{self:?}")
     }
 }
