@@ -51,6 +51,7 @@ impl Logging {
 #[pymethods]
 impl Logging {
     #[new]
+    #[pyo3(signature=(level, domain, indent=None, ext_config=None, console=None, file=None, server=None, connect=None, syslog=None, config=None))]
     pub fn new(
         level: Option<u8>, // Global log level
         domain: Option<String>,
@@ -101,6 +102,7 @@ impl Logging {
         })
     }
 
+    #[pyo3(signature=(now=None,))]
     pub fn shutdown(&mut self, now: Option<bool>) -> PyResult<()> {
         self.instance
             .shutdown(now.unwrap_or_default())
@@ -163,6 +165,7 @@ impl Logging {
             .remove_logger(&mut logger.borrow_mut(py).instance)
     }
 
+    #[pyo3(signature=(console=None, file=None, client=None, syslog=None, timeout=None))]
     pub fn sync(
         &self,
         console: Option<bool>,
@@ -182,6 +185,7 @@ impl Logging {
             .map_err(PyException::new_err)
     }
 
+    #[pyo3(signature=(timeout=None))]
     pub fn sync_all(&self, timeout: Option<f64>) -> PyResult<()> {
         self.instance
             .sync(true, true, true, true, timeout.unwrap_or(1.0))
@@ -190,6 +194,7 @@ impl Logging {
 
     // File logger
 
+    #[pyo3(signature=(path=None))]
     pub fn rotate(&self, path: Option<PathBuf>) -> PyResult<()> {
         self.instance.rotate(path).map_err(PyException::new_err)
     }

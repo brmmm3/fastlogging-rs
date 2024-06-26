@@ -3,7 +3,8 @@ use std::time::{Duration, SystemTime};
 
 use pyo3::{exceptions::PyValueError, prelude::*};
 
-#[pyclass]
+#[pyclass(eq, eq_int)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Level2Sym {
     NotSet = 0,
     Debug = 10,
@@ -91,8 +92,8 @@ impl LevelSyms {
     }
 }
 
-#[pyclass]
-#[derive(Debug, Clone)]
+#[pyclass(eq, eq_int)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MessageStructEnum {
     String,
     Json,
@@ -121,8 +122,8 @@ impl MessageStructEnum {
     }
 }
 
-#[pyclass]
-#[derive(Debug, Clone)]
+#[pyclass(eq, eq_int)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CompressionMethodEnum {
     Store,
     Deflate,
@@ -153,8 +154,8 @@ impl CompressionMethodEnum {
     }
 }
 
-#[pyclass]
-#[derive(Debug, Clone)]
+#[pyclass(eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum EncryptionMethod {
     NONE {},
     AuthKey { key: Vec<u8> },
@@ -307,6 +308,7 @@ pub struct FileWriterConfig(pub fastlogging::FileWriterConfig);
 #[pymethods]
 impl FileWriterConfig {
     #[new]
+    #[pyo3(signature=(level, path, size=None, backlog=None, timeout=None, time=None, compression=None))]
     pub fn new(
         level: u8,
         path: PathBuf,
@@ -359,6 +361,7 @@ pub struct ServerConfig(pub fastlogging::ServerConfig);
 #[pymethods]
 impl ServerConfig {
     #[new]
+    #[pyo3(signature=(level, address, key=None))]
     pub fn new(level: u8, address: String, key: Option<EncryptionMethod>) -> Self {
         let key = key.unwrap_or(EncryptionMethod::NONE {});
         Self(fastlogging::ServerConfig::new(level, address, key.into()))
@@ -404,6 +407,7 @@ pub struct ClientWriterConfig(pub fastlogging::ClientWriterConfig);
 #[pymethods]
 impl ClientWriterConfig {
     #[new]
+    #[pyo3(signature=(level, address, key=None))]
     pub fn new(level: u8, address: String, key: Option<EncryptionMethod>) -> Self {
         let key = key.unwrap_or(EncryptionMethod::NONE {});
         Self(fastlogging::ClientWriterConfig::new(
@@ -453,6 +457,7 @@ pub struct SyslogWriterConfig(pub fastlogging::SyslogWriterConfig);
 #[pymethods]
 impl SyslogWriterConfig {
     #[new]
+    #[pyo3(signature=(level, hostname=None, pname=None, pid=None))]
     pub fn new(
         level: u8,
         hostname: Option<String>,

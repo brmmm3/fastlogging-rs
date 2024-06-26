@@ -30,8 +30,5 @@ zip = { version = "2.1", default-features = false, features = [
     "zstd",
     "lzma",
 ] }
+pyo3 = { version = "0.22", features = ["extension-module"] }
 fastlogging = { path = "../fastlogging", version = "0.1.0" }
-
-[dependencies.pyo3]
-version = "0.21"
-features = ["extension-module"]

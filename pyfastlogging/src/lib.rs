@@ -35,6 +35,7 @@ static LOGGING: Lazy<Mutex<logging::Logging>> = Lazy::new(|| {
 });
 
 #[pyfunction]
+#[pyo3(signature=(now=None,))]
 fn shutdown(now: Option<bool>) -> PyResult<()> {
     LOGGING.lock().unwrap().shutdown(now)
 }
@@ -80,6 +81,7 @@ fn remove_writer(writer: WriterTypeEnum) -> PyResult<()> {
 }
 
 #[pyfunction]
+#[pyo3(signature=(console=None, file=None, client=None, syslog=None, timeout=None))]
 fn sync(
     console: Option<bool>,
     file: Option<bool>,
@@ -94,11 +96,13 @@ fn sync(
 }
 
 #[pyfunction]
+#[pyo3(signature=(timeout=None))]
 fn sync_all(timeout: Option<f64>) -> PyResult<()> {
     LOGGING.lock().unwrap().sync_all(timeout)
 }
 
 #[pyfunction]
+#[pyo3(signature=(path=None))]
 fn rotate(path: Option<PathBuf>) -> PyResult<()> {
     LOGGING.lock().unwrap().rotate(path)
 }

@@ -42,6 +42,7 @@ impl Logger {
 #[pymethods]
 impl Logger {
     #[new]
+    #[pyo3(signature=(level, domain, indent=None, tname=None, tid=None))]
     pub fn new(
         level: u8,
         domain: String,
