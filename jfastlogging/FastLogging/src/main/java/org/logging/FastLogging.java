@@ -21,19 +21,9 @@ public class FastLogging {
     public static final int NOTSET = 0;
 
     enum LevelSyms {
-        Sym(0),
-        Short(1),
-        Str(2);
-
-        private final int value;
-
-        private LevelSyms(int value) {
-            this.value = value;
-        }
-
-        public int getValue() {
-            return value;
-        }
+        Sym,
+        Short,
+        Str,
     }
 
     static public String Level2Sym(int level) {
@@ -63,19 +53,9 @@ public class FastLogging {
     }
 
     public enum MessageStructEnum {
-        String(0),
-        Json(1),
-        Xml(2);
-
-        private final int value;
-
-        private MessageStructEnum(int value) {
-            this.value = value;
-        }
-
-        public int getValue() {
-            return value;
-        }
+        String,
+        Json,
+        Xml,
     }
 
     public enum WriterTypeEnum {
@@ -98,36 +78,16 @@ public class FastLogging {
     }
 
     public enum CompressionMethodEnum {
-        Store(0),
-        Deflate(1),
-        Zstd(2),
-        Lzma(3);
-
-        private final int value;
-
-        private CompressionMethodEnum(int value) {
-            this.value = value;
-        }
-
-        public int getValue() {
-            return value;
-        }
+        Store,
+        Deflate,
+        Zstd,
+        Lzma,
     }
 
     public enum EncryptionMethod {
-        NONE(0),
-        AuthKey(1),
-        AES(2);
-
-        private final int value;
-
-        private EncryptionMethod(int value) {
-            this.value = value;
-        }
-
-        public int getValue() {
-            return value;
-        }
+        NONE,
+        AuthKey,
+        AES,
     }
 
     static public class ExtConfig {
@@ -220,22 +180,21 @@ public class FastLogging {
 
     private static native void loggingShutdown(long instance_ptr, boolean now);
 
-    public static native void loggingSetLevel(long instance_ptr, int writer, String key, int level);
+    public static native void loggingSetLevel(long instance_ptr, int writer, int level);
 
     public static native void loggingSetDomain(long instance_ptr, String domain);
 
-    public static native void loggingSetLevel2Sym(long instance_ptr, int level2sym);
+    public static native void loggingSetLevel2Sym(long instance_ptr, LevelSyms level2sym);
 
-    public static native void loggingSetExtConfig(long instance_ptr, int structured, boolean hostname, boolean pname,
-            boolean pid, boolean tname, boolean tid);
+    public static native void loggingSetExtConfig(long instance_ptr, ExtConfig extConfig);
 
     private static native void loggingAddLogger(long instance_ptr, long logger_ptr);
 
     private static native void loggingRemoveLogger(long instance_ptr, long logger_ptr);
 
-    private static native void loggingAddWriter(long instance_ptr, long writer_ptr);
+    private static native void loggingAddWriter(long instance_ptr, long logger_ptr);
 
-    private static native void loggingRemoveWriter(long instance_ptr, int writer, String key);
+    private static native void loggingRemoveWriter(long instance_ptr, long logger_ptr);
 
     public static native void loggingSync(long instance_ptr, boolean console, boolean file, boolean client,
             boolean syslog, double timeout);
@@ -248,11 +207,12 @@ public class FastLogging {
 
     // Network
 
-    public static native void loggingSetEncryption(long instance_ptr, String address, int method, String key);
+    public static native void loggingSetEncryption(long instance_ptr, String address, EncryptionMethod method,
+            String key);
 
     // Config
 
-    private static native String loggingGetConfig(long instance_ptr, int writer, String key);
+    private static native String loggingGetConfig(long instance_ptr, WriterTypeEnum writer);
 
     private static native ServerConfig loggingGetServerConfig(long instance_ptr);
 
@@ -383,12 +343,7 @@ public class FastLogging {
         }
 
         public void setLevel(WriterTypeEnum writer, int level) {
-            loggingSetLevel(instance_ptr, writer.getValue(), "", level);
-            instance_level = level;
-        }
-
-        public void setLevel(WriterTypeEnum writer, String key, int level) {
-            loggingSetLevel(instance_ptr, writer.getValue(), key, level);
+            loggingSetLevel(instance_ptr, writer.getValue(), level);
             instance_level = level;
         }
 
@@ -397,12 +352,11 @@ public class FastLogging {
         }
 
         public void setLevel2Sym(LevelSyms level2sym) {
-            loggingSetLevel2Sym(instance_ptr, level2sym.getValue());
+            loggingSetLevel2Sym(instance_ptr, level2sym);
         }
 
         public void setExtConfig(ExtConfig extConfig) {
-            loggingSetExtConfig(instance_ptr, extConfig.structured.getValue(), extConfig.hostname, extConfig.pname,
-                    extConfig.pid, extConfig.tname, extConfig.tid);
+            loggingSetExtConfig(instance_ptr, extConfig);
         }
 
         public void addLogger(long logger_ptr) {
@@ -413,16 +367,12 @@ public class FastLogging {
             loggingRemoveLogger(instance_ptr, logger_ptr);
         }
 
-        public void addWriter(long writer_ptr) {
-            loggingAddWriter(instance_ptr, writer_ptr);
+        public void addWriter(long logger_ptr) {
+            loggingAddWriter(instance_ptr, logger_ptr);
         }
 
-        public void removeWriter(WriterTypeEnum writer) {
-            loggingRemoveWriter(instance_ptr, writer.getValue(), "");
-        }
-
-        public void removeWriter(WriterTypeEnum writer, String key) {
-            loggingRemoveWriter(instance_ptr, writer.getValue(), key);
+        public void removeWriter(long logger_ptr) {
+            loggingRemoveWriter(instance_ptr, logger_ptr);
         }
 
         public void sync(boolean console, boolean file, boolean client,
@@ -442,18 +392,14 @@ public class FastLogging {
 
         // Network
 
-        public void setEncryption(EncryptionMethod method, String key) {
-            loggingSetEncryption(instance_ptr, null, method.getValue(), key);
-        }
-
         public void setEncryption(String address, EncryptionMethod method, String key) {
-            loggingSetEncryption(instance_ptr, address, method.getValue(), key);
+            loggingSetEncryption(instance_ptr, address, method, key);
         }
 
         // Config
 
-        public String getConfig(WriterTypeEnum writer, String key) {
-            return loggingGetConfig(instance_ptr, writer.getValue(), key);
+        public String getConfig(WriterTypeEnum writer) {
+            return loggingGetConfig(instance_ptr, writer);
         }
 
         public ServerConfig getServerConfig() {

@@ -72,16 +72,24 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingNew(
     config: JString, // Optional configuration file path
 ) -> jlong {
     let domain: Option<String> = env.get_string(&domain).ok().map(|s| s.into());
+    println!("Java_org_logging_FastLogging_loggingNew domain={domain:?}");
     let ext_config = if ext_config.is_null() {
         None
     } else {
         Some(*Box::from_raw(ext_config))
     };
+    //let console = &mut *(console as *mut ConsoleWriterConfig);
+    println!("Java_org_logging_FastLogging_loggingNew console={console:?}");
     let console = if console.is_null() {
         None
     } else {
-        Some(*Box::from_raw(console))
+        Some(std::mem::replace(
+            &mut *console,
+            ConsoleWriterConfig::default(),
+        ))
+        //Some(unsafe { console.to_owned() })
     };
+    println!("##");
     let file = if file.is_null() {
         None
     } else {
@@ -108,6 +116,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingNew(
         )),
         true => None,
     };
+    println!("new");
     let instance = Logging::new(
         Some(level as u8),
         domain,
@@ -119,8 +128,13 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingNew(
         syslog,
         config,
     );
-
-    Box::into_raw(Box::new(instance)) as jlong
+    println!(
+        "Java_org_logging_FastLogging_loggingNew instance={:p}",
+        &instance
+    );
+    let ptr = Box::into_raw(Box::new(instance.unwrap())) as jlong;
+    println!("Java_org_logging_FastLogging_loggingNew instance_ptr={ptr:x}");
+    ptr
 }
 
 /// # Safety
@@ -147,11 +161,35 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingSetLevel(
     mut env: JNIEnv,
     _class: JClass,
     logging: &mut Logging,
-    writer: *mut WriterTypeEnum,
+    writer: jint,
+    key: JString,
     level: jint,
 ) -> jlong {
-    let writer = *Box::from_raw(writer);
-    match logging.set_level(writer, level as u8) {
+    println!(
+        "Java_org_logging_FastLogging_loggingSetLevel logging={:p}",
+        logging
+    );
+    println!("Java_org_logging_FastLogging_loggingSetLevel writer={writer}");
+    let writer = match writer as i8 {
+        0 => WriterTypeEnum::Root,
+        1 => WriterTypeEnum::Console,
+        2 => {
+            let key = get_string(&mut env, key);
+            WriterTypeEnum::File(PathBuf::from(key))
+        }
+        3 => {
+            let key = get_string(&mut env, key);
+            WriterTypeEnum::Client(key)
+        }
+        4 => WriterTypeEnum::Server,
+        _ => {
+            throw_exception(&mut env, format!("Invalid value {writer} for writer."));
+            return -1;
+        }
+    };
+    //let writer = Box::from_raw(writer);
+    println!("setLevel {writer:?}");
+    match logging.set_level(&writer, level as u8) {
         Ok(_) => 0,
         Err(err) => {
             throw_exception(&mut env, err.to_string());
@@ -191,12 +229,37 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingSetLevel2Sym(
 /// Set extended configuration.
 #[no_mangle]
 pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingSetExtConfig(
-    mut _env: JNIEnv,
+    mut env: JNIEnv,
     _class: JClass,
     logging: &mut Logging,
-    ext_config: &mut ExtConfig,
-) {
-    logging.set_ext_config(ext_config);
+    structured: jint,
+    hostname: jboolean,
+    pname: jboolean,
+    pid: jboolean,
+    tname: jboolean,
+    tid: jboolean,
+) -> jint {
+    let structured = match structured {
+        0 => MessageStructEnum::String,
+        1 => MessageStructEnum::Json,
+        2 => MessageStructEnum::Xml,
+        _ => {
+            throw_exception(
+                &mut env,
+                format!("Invalid value {structured} for MessageStructEnum."),
+            );
+            return -1;
+        }
+    };
+    logging.set_ext_config(&ExtConfig::new(
+        structured,
+        hostname != 0,
+        pname != 0,
+        pid != 0,
+        tname != 0,
+        tid != 0,
+    ));
+    0
 }
 
 /// # Safety
@@ -248,11 +311,31 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingRemoveWriter(
     mut env: JNIEnv,
     _class: JClass,
     logging: &mut Logging,
-    writer: &mut WriterTypeEnum,
-) {
-    if let Err(err) = logging.remove_writer(writer) {
+    writer: jint,
+    key: JString,
+) -> jint {
+    let writer = match writer as i8 {
+        0 => WriterTypeEnum::Root,
+        1 => WriterTypeEnum::Console,
+        2 => {
+            let key = get_string(&mut env, key);
+            WriterTypeEnum::File(PathBuf::from(key))
+        }
+        3 => {
+            let key = get_string(&mut env, key);
+            WriterTypeEnum::Client(key)
+        }
+        4 => WriterTypeEnum::Server,
+        _ => {
+            throw_exception(&mut env, format!("Invalid value {writer} for writer."));
+            return -1;
+        }
+    };
+    if let Err(err) = logging.remove_writer(&writer) {
         throw_exception(&mut env, err.to_string());
+        return -1;
     }
+    0
 }
 
 /// # Safety
@@ -268,10 +351,12 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingSync(
     client: jboolean,
     syslog: jboolean,
     timeout: jdouble,
-) {
+) -> jint {
     if let Err(err) = logging.sync(console != 0, file != 0, client != 0, syslog != 0, timeout) {
         throw_exception(&mut env, err.to_string());
+        return -1;
     }
+    0
 }
 
 /// # Safety
@@ -283,10 +368,12 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingSyncAll(
     _class: JClass,
     logging: &mut Logging,
     timeout: jdouble,
-) {
+) -> jint {
     if let Err(err) = logging.sync_all(timeout) {
         throw_exception(&mut env, err.to_string());
+        return -1;
     }
+    0
 }
 
 /// # Safety
@@ -317,14 +404,29 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingSetEncryption(
     mut env: JNIEnv,
     _class: JClass,
     logging: &mut Logging,
-    writer: *mut WriterTypeEnum,
-    key: *mut EncryptionMethod,
-) {
-    let writer = *Box::from_raw(writer);
-    let key = *Box::from_raw(key);
-    if let Err(err) = logging.set_encryption(writer, key) {
+    address: JString,
+    method: jint,
+    key: JString,
+) -> jint {
+    let writer = if address.is_null() {
+        WriterTypeEnum::Server
+    } else {
+        WriterTypeEnum::Client(get_string(&mut env, address))
+    };
+    let method = match method as i8 {
+        0 => EncryptionMethod::NONE,
+        1 => EncryptionMethod::AuthKey(get_string(&mut env, key).as_bytes().to_vec()),
+        2 => EncryptionMethod::AES(get_string(&mut env, key).as_bytes().to_vec()),
+        _ => {
+            throw_exception(&mut env, format!("Invalid value {method} for method."));
+            return -1;
+        }
+    };
+    if let Err(err) = logging.set_encryption(writer, method) {
         throw_exception(&mut env, err.to_string());
+        return -1;
     }
+    0
 }
 
 /// # Safety

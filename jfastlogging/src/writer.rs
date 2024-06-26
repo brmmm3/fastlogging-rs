@@ -14,17 +14,24 @@ use fastlogging::{
 };
 
 #[no_mangle]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingConsoleWriterConfigNew(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_consoleWriterConfigNew(
     _env: JNIEnv,
     _class: JClass,
     level: jint,
     colors: jboolean,
-) -> Box<ConsoleWriterConfig> {
-    Box::new(ConsoleWriterConfig::new(level as u8, colors != 0))
+) -> jlong {
+    let console = ConsoleWriterConfig::new(level as u8, colors != 0);
+    println!(
+        "Java_org_logging_FastLogging_consoleWriterConfigNew console={:p}",
+        &console
+    );
+    let ptr = Box::into_raw(Box::new(console)) as jlong;
+    println!("Java_org_logging_FastLogging_consoleWriterConfigNew ptr={ptr:x}");
+    ptr
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingFileWriterConfigNew(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_fileWriterConfigNew(
     mut env: JNIEnv,
     _class: JClass,
     level: jint,
@@ -66,7 +73,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingFileWriterConfigNew
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingClientWriterConfigNew(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_clientWriterConfigNew(
     mut env: JNIEnv,
     _class: JClass,
     level: jint,
@@ -89,7 +96,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingClientWriterConfigN
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingServerConfigNew(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_serverConfigNew(
     mut env: JNIEnv,
     _class: JClass,
     level: jint,
@@ -112,7 +119,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingServerConfigNew(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingSyslogWriterConfigNew(
+pub unsafe extern "C" fn Java_org_logging_FastLogging_syslogWriterConfigNew(
     mut env: JNIEnv,
     _class: JClass,
     level: jint,
