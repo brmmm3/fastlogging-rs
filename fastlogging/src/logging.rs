@@ -707,18 +707,18 @@ impl Logging {
     ) -> Result<(), Error> {
         let mut config = self.config.lock().unwrap();
         match writer {
-            WriterTypeEnum::File(path) => {
-                if let Some(mut writer) = config.files.remove(&path) {
-                    writer.shutdown()?;
+            WriterTypeEnum::Server => {
+                if let Some(ref mut writer) = config.server {
+                    writer.set_encryption(key)?;
                 } else {
                     return Err(Error::new(
                         ErrorKind::NotFound,
-                        "File writer not configured".to_string(),
+                        "Server not configured".to_string(),
                     ));
                 }
             }
             WriterTypeEnum::Client(address) => {
-                if let Some(mut writer) = config.clients.remove(&address) {
+                if let Some(writer) = config.clients.get_mut(&address) {
                     writer.set_encryption(key)?;
                 } else {
                     return Err(Error::new(
