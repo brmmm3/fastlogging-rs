@@ -110,7 +110,7 @@ pub enum WriterConfigEnum {
 
 impl fmt::Display for WriterConfigEnum {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
+        write!(f, "{self:?}")
     }
 }
 
@@ -126,7 +126,7 @@ pub enum WriterTypeEnum {
 
 impl fmt::Display for WriterTypeEnum {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
+        write!(f, "{self:?}")
     }
 }
 
@@ -142,7 +142,7 @@ pub enum LoggingTypeEnum {
 
 impl fmt::Display for LoggingTypeEnum {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
+        write!(f, "{self:?}")
     }
 }
 
@@ -155,6 +155,6 @@ pub enum MessageStructEnum {
 
 impl fmt::Display for MessageStructEnum {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
+        write!(f, "{self:?}")
     }
 }

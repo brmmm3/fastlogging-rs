@@ -9,7 +9,7 @@ use std::{
 use flume::{bounded, Receiver, SendError, Sender};
 use termcolor::{BufferWriter, Color, ColorChoice, ColorSpec, WriteColor};
 
-use crate::{CRITICAL, DEBUG, ERROR, EXCEPTION, INFO, SUCCESS, TRACE, WARNING};
+use crate::{CRITICAL, DEBUG, ERROR, EXCEPTION, INFO, NOTSET, SUCCESS, TRACE, WARNING};
 
 #[derive(Debug)]
 pub enum ConsoleTypeEnum {
@@ -31,9 +31,18 @@ impl ConsoleWriterConfig {
     }
 }
 
+impl Default for ConsoleWriterConfig {
+    fn default() -> Self {
+        Self {
+            level: NOTSET,
+            colors: false,
+        }
+    }
+}
+
 impl fmt::Display for ConsoleWriterConfig {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
+        write!(f, "{self:?}")
     }
 }
 
