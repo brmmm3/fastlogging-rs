@@ -124,10 +124,10 @@ class BenchmarksLog4j {
         return title;
     }
 
-    private static String getLogPathName(String tmpDirName, String fileName, String title) throws IOException {
+    private static String getLogPathName(String tmpDirName, String loggerName, String fileName, String title) throws IOException {
         String pathName = null;
         if (fileName != null) {
-            String dirName = tmpDirName + "/LOG4J_" + title;
+            String dirName = tmpDirName + "/" + loggerName + "/" + title;
             File file = new File(dirName);
             if (!file.exists()) {
                 file.mkdirs();
@@ -215,7 +215,7 @@ class BenchmarksLog4j {
                         try {
                             String fileName = tnfr[2];
                             String title = getTitle(msg, fileName, bRotate, bWithException, level);
-                            String pathName = getLogPathName(tmpDirName, fileName, title);
+                            String pathName = getLogPathName(tmpDirName, "log4j", fileName, title);
                             System.out.println("log4j: " + title);
                             int dtCnt = 0;
                             while (dtCnt++ < 10) {
