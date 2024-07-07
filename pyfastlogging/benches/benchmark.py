@@ -1,6 +1,5 @@
 import os
 import time
-import logging.handlers
 
 import json
 import shutil
@@ -15,6 +14,8 @@ from fastlogging_rs import (
     Logging,
     Logger,
     Level2Sym,
+    FileWriterConfig,
+    CompressionMethodEnum,
 )
 
 MB = 1024 * 1024
@@ -26,22 +27,22 @@ tmpDirName = "C:\\temp\\pyfastlogging" if os.name == "nt" else "/tmp/pyfastloggi
 def LoggingWork(logger, cnt: int, bWithException: bool, message: str) -> float:
     t1 = time.time()
     for i in range(cnt):
-        logger.fatal(f"Fatal {i} {message}")
+        logger.critical(f"Critical {i} {message}")
         logger.error(f"Error {i} {message}")
         logger.warning(f"Warning {message} {i}")
         logger.info(f"Info {message} {i}")
         logger.debug(f"Debug {message} {i}")
-        logger.fatal(f"Fatal {i} {message}")
+        logger.critical(f"Critical {i} {message}")
         logger.error(f"Error {i} {message}")
         logger.warning(f"Warning {message} {i}")
         logger.info(f"Info {message} {i}")
         logger.debug(f"Debug {message} {i}")
-        logger.fatal(f"Fatal {i} {message}")
+        logger.critical(f"Critical {i} {message}")
         logger.error(f"Error {i} {message}")
         logger.warning(f"Warning {message} {i}")
         logger.info(f"Info {message} {i}")
         logger.debug(f"Debug {message} {i}")
-        logger.fatal(f"Fatal {i} {message}")
+        logger.critical(f"Critical {i} {message}")
         logger.error(f"Error {i} {message}")
         logger.warning(f"Warning {message} {i}")
         logger.info(f"Info {message} {i}")
@@ -92,6 +93,8 @@ def DoLogging(
     bWithException: bool,
     message: str,
 ) -> float:
+    import logging.handlers
+
     if pathName:
         if bRotate:
             logHandler = logging.handlers.RotatingFileHandler(
@@ -112,6 +115,84 @@ def DoLogging(
     t1 = time.time()
     dt0 = LoggingWork(logger, cnt, bWithException, message)
     logHandler.close()
+    dt = time.time() - t1
+    print(f"  total: {dt0: .3f} {dt: .3f}")
+    return dt
+
+
+# noinspection PyShadowingNames
+def DoLoggingOptimized(
+    cnt: int,
+    level: int,
+    pathName: str | None,
+    bRotate: bool,
+    bWithException: bool,
+    message: str,
+) -> float:
+    import logging.handlers
+
+    # Optimizations
+    logging._srcfile = None
+    logging.logThreads = False
+    logging.logProcesses = False
+    logging.logMultiprocessing = False
+    logging.logAsyncioTasks = False
+    if pathName:
+        if bRotate:
+            logHandler = logging.handlers.RotatingFileHandler(
+                pathName, mode="a", maxBytes=MB, backupCount=8
+            )
+        else:
+            logHandler = logging.FileHandler(pathName)
+    else:
+        logHandler = logging.NullHandler()
+    logFormatter = logging.Formatter(
+        "%(asctime)-15s %(name)s %(levelname)-8.8s %(message)s", "%Y.%m.%d %H:%M:%S"
+    )
+    logHandler.setFormatter(logFormatter)
+    logHandler.setLevel(level)
+    logger = logging.getLogger("root")
+    logger.addHandler(logHandler)
+    logger.setLevel(level)
+    t1 = time.time()
+    dt0 = LoggingWork(logger, cnt, bWithException, message)
+    logHandler.close()
+    dt = time.time() - t1
+    print(f"  total: {dt0: .3f} {dt: .3f}")
+    return dt
+
+
+# noinspection PyShadowingNames
+def DoLoguru(
+    cnt: int,
+    level: int,
+    pathName: str | None,
+    bRotate: bool,
+    bWithException: bool,
+    message: str,
+) -> float:
+    from loguru import logger
+
+    def retention(files):
+        for file in files[8:]:
+            os.remove(file)
+
+    # Optimizations
+    logger.remove(0)
+    if pathName:
+        if bRotate:
+            logger.add(
+                pathName,
+                level=level,
+                format="{time} {name} {level} {message}",
+                rotation="1 MB",
+                retention=retention,
+            )
+        else:
+            logger.add(pathName, level=level, format="{time} {name} {level} {message}")
+    t1 = time.time()
+    dt0 = LoggingWork(logger, cnt, bWithException, message)
+    logger.complete()
     dt = time.time() - t1
     print(f"  total: {dt0: .3f} {dt: .3f}")
     return dt
@@ -162,15 +243,18 @@ def DoFastLoggingRsDefault(
 ) -> float:
     if bRotate:
         size = MB
-        count = 8
+        backlog = 8
     else:
         size = 0
-        count = 0
-    fl.set_console_writer()
-    fl.set_file_writer(level, pathName, size, count)
+        backlog = 0
+    fl.set_console_writer()  # Disable console writer
+    fw = FileWriterConfig(
+        level, pathName, size, backlog, compression=CompressionMethodEnum.Deflate
+    )
+    fl.set_file_writer(fw)
     t1 = time.time()
     dt0 = LoggingWork(fl, cnt, bWithException, message)
-    fl.sync(1.0)
+    fl.sync_all()
     dt = time.time() - t1
     print(f"  total: {dt0: .3f} {dt: .3f}")
     return dt
@@ -193,9 +277,7 @@ def DoFastLoggingRs(
         count = 0
     logger = Logging(
         level,
-        file=pathName,
-        max_size=size,
-        backlog=count,
+        file=FileWriterConfig(level, pathName, size, count),
     )
     t1 = time.time()
     dt0 = LoggingWork(logger, cnt, bWithException, message)
@@ -226,6 +308,7 @@ def Measure(
         dt += cbFunc(cnt, level, pathName, bRotate, bWithException, message, *args)
         if dt > 2.0:
             break
+    # noinspection PyUnboundLocalVariable
     dt /= i + 1
     return dt
 
@@ -257,6 +340,7 @@ if __name__ == "__main__":
                 dtAll = {"TITLE": title}
                 for level in (DEBUG, INFO, WARNING, ERROR, CRITICAL):
                     for _ in range(10):
+                        break
                         Measure(
                             num,
                             "FastLoggingRsDefault",
@@ -274,6 +358,30 @@ if __name__ == "__main__":
                             num,
                             "Logging",
                             DoLogging,
+                            cnt,
+                            level,
+                            fileName,
+                            bRotate,
+                            bWithException,
+                            msg,
+                            message,
+                        ),
+                        Measure(
+                            num,
+                            "LoggingOptimized",
+                            DoLoggingOptimized,
+                            cnt,
+                            level,
+                            fileName,
+                            bRotate,
+                            bWithException,
+                            msg,
+                            message,
+                        ),
+                        Measure(
+                            num,
+                            "Loguru",
+                            DoLoguru,
                             cnt,
                             level,
                             fileName,
@@ -343,10 +451,28 @@ if __name__ == "__main__":
                     dtAll[Level2Sym(level).name] = ", ".join(
                         [f"{dt: .4f}" for dt in dts]
                     )
+                    # Cleanup
+                    for prefix in (
+                        "Logging",
+                        "LoggingOptimized",
+                        "Loguru",
+                        "FastLogging",
+                        "FastLoggingThread",
+                        "FastLoggingRs",
+                        "FastLoggingRsDefault",
+                    ):
+                        title = GetTitle(
+                            prefix, msg, fileName, bRotate, bWithException, level
+                        )
+                        dirName = os.path.dirname(
+                            GetPathName(tmpDirName, fileName, title)
+                        )
+                        print(f"REMOVE {dirName}")
+                        shutil.rmtree(dirName)
                     num += 1
                 if bWithException:
                     name += "_exc"
                 with open(f"doc/benchmarks/{name}_{msg}.html", "w") as F:
                     F.write(htmlTemplate % dtAll)
-    with open(f"doc/benchmarks/pybenchmarks.json", "w") as F:
+    with open(f"doc/benchmarks/{os.name}_pybenchmarks.json", "w") as F:
         F.write(json.dumps(dtAllJson, indent=4))
