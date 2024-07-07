@@ -42,6 +42,18 @@ impl From<CompressionMethodEnum> for zip::CompressionMethod {
     }
 }
 
+impl From<i32> for CompressionMethodEnum {
+    fn from(val: i32) -> Self {
+        match val {
+            0 => CompressionMethodEnum::Store,
+            1 => CompressionMethodEnum::Deflate,
+            2 => CompressionMethodEnum::Zstd,
+            3 => CompressionMethodEnum::Lzma,
+            _ => CompressionMethodEnum::Store,
+        }
+    }
+}
+
 #[repr(C)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileWriterConfig {
