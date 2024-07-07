@@ -142,7 +142,7 @@ pub unsafe extern "C" fn logging_set_level(
     level: u8,
 ) -> isize {
     let writer = *Box::from_raw(writer);
-    if let Err(err) = logging.set_level(writer, level) {
+    if let Err(err) = logging.set_level(&writer, level) {
         eprintln!("logging_set_level failed: {err:?}");
         err.raw_os_error().unwrap_or(nix::Error::EFAULT as i32) as isize
     } else {
@@ -373,7 +373,7 @@ pub unsafe extern "C" fn logging_get_server_address(logging: &Logging) -> *const
 /// Get server authentification key.
 #[no_mangle]
 pub unsafe extern "C" fn logging_get_server_auth_key(logging: &Logging) -> *const c_char {
-    logging.get_server_auth_key().as_ptr() as *const c_char
+    logging.get_server_auth_key().key_cloned().unwrap().as_ptr() as *const c_char
 }
 
 /// # Safety
