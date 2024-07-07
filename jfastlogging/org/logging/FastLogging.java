@@ -21,9 +21,7 @@ public class FastLogging {
     public static final int NOTSET = 0;
 
     enum LevelSyms {
-        Sym(0),
-        Short(1),
-        Str(2);
+        Sym(0), Short(1), Str(2);
 
         private final int value;
 
@@ -63,9 +61,7 @@ public class FastLogging {
     }
 
     public enum MessageStructEnum {
-        String(0),
-        Json(1),
-        Xml(2);
+        String(0), Json(1), Xml(2);
 
         private final int value;
 
@@ -79,12 +75,7 @@ public class FastLogging {
     }
 
     public enum WriterTypeEnum {
-        Root(0),
-        Console(1),
-        File(2),
-        Client(3),
-        Server(4),
-        Syslog(5);
+        Root(0), Console(1), File(2), Client(3), Server(4), Syslog(5);
 
         private final int value;
 
@@ -98,10 +89,7 @@ public class FastLogging {
     }
 
     public enum CompressionMethodEnum {
-        Store(0),
-        Deflate(1),
-        Zstd(2),
-        Lzma(3);
+        Store(0), Deflate(1), Zstd(2), Lzma(3);
 
         private final int value;
 
@@ -115,9 +103,7 @@ public class FastLogging {
     }
 
     public enum EncryptionMethod {
-        NONE(0),
-        AuthKey(1),
-        AES(2);
+        NONE(0), AuthKey(1), AES(2);
 
         private final int value;
 
@@ -130,22 +116,15 @@ public class FastLogging {
         }
     }
 
+    public static native long extConfigNew(int structured, boolean hostname, boolean pname, boolean pid, boolean tname,
+            boolean tid);
+
     static public class ExtConfig {
-        MessageStructEnum structured;
-        boolean hostname;
-        boolean pname;
-        boolean pid;
-        boolean tname;
-        boolean tid;
+        long instance_ptr = 0;
 
         public ExtConfig(MessageStructEnum structured, boolean hostname, boolean pname, boolean pid, boolean tname,
                 boolean tid) {
-            this.structured = structured;
-            this.hostname = hostname;
-            this.pname = pname;
-            this.pid = pid;
-            this.tname = tname;
-            this.tid = tid;
+            instance_ptr = extConfigNew(structured.getValue(), hostname, pname, pid, tname, tid);
         }
     }
 
@@ -154,69 +133,63 @@ public class FastLogging {
     static public class ConsoleWriterConfig {
         long instance_ptr = 0;
 
+        public ConsoleWriterConfig(int level) {
+            instance_ptr = consoleWriterConfigNew(level, false);
+        }
+
         public ConsoleWriterConfig(int level, boolean colors) {
             instance_ptr = consoleWriterConfigNew(level, colors);
-            System.out.println(String.format("ConsoleWriterConfig.instance_ptr=0x%08X", instance_ptr));
         }
     }
+
+    public static native long fileWriterConfigNew(int level, String path, int size, int backlog, long timeout,
+            long time, int compression);
 
     static public class FileWriterConfig {
-        int level;
-        String path;
-        int size;
-        int backlog;
-        int timeout;
-        int time;
-        CompressionMethodEnum compression;
+        long instance_ptr = 0;
 
-        public FileWriterConfig(int level, String path, int size, int backlog, int timeout, int time,
+        public FileWriterConfig(int level, String path) {
+            instance_ptr = fileWriterConfigNew(level, path, 0, 0, 0, 0, 0);
+        }
+
+        public FileWriterConfig(int level, String path, int size, int backlog, long timeout, long time,
                 CompressionMethodEnum compression) {
-            this.level = level;
-            this.path = path;
-            this.size = size;
-            this.backlog = backlog;
-            this.timeout = timeout;
-            this.time = time;
-            this.compression = compression;
+            instance_ptr = fileWriterConfigNew(level, path, size, backlog, timeout, time, compression.getValue());
         }
     }
 
-    static public class ServerConfig {
-        int level;
-        String address;
-        int port;
-        EncryptionMethod method;
-        String key;
-
-        public ServerConfig(int level, String address, int port, EncryptionMethod method, String key) {
-            this.level = level;
-            this.address = address;
-            this.port = port;
-            this.method = method;
-            this.key = key;
-        }
-    }
+    public static native long clientWriterConfigNew(int level, String address, int port, int method, String key);
 
     static public class ClientWriterConfig {
-        int level;
-        String address;
-        int port;
-        EncryptionMethod method;
-        String key;
+        long instance_ptr = 0;
+
+        public ClientWriterConfig(int level, String address, int port) {
+            instance_ptr = clientWriterConfigNew(level, address, port, 0, null);
+        }
 
         public ClientWriterConfig(int level, String address, int port, EncryptionMethod method, String key) {
-            this.level = level;
-            this.address = address;
-            this.port = port;
-            this.method = method;
-            this.key = key;
+            instance_ptr = clientWriterConfigNew(level, address, port, method.getValue(), key);
+        }
+    }
+
+    public static native long serverConfigNew(int level, String address, int port, int method, String key);
+
+    static public class ServerConfig {
+        long instance_ptr = 0;
+
+        public ServerConfig(int level, String address, int port) {
+            instance_ptr = serverConfigNew(level, address, port, 0, null);
+        }
+
+        public ServerConfig(int level, String address, int port, EncryptionMethod method, String key) {
+            instance_ptr = serverConfigNew(level, address, port, method.getValue(), key);
         }
     }
 
     // Logging class
 
-    public static native long loggingNew(int level, String domain, ExtConfig extConfig, long console,
-            FileWriterConfig file, ServerConfig server, ClientWriterConfig client, int syslog, String config);
+    public static native long loggingNew(int level, String domain, long extConfig, long console, long file, long server,
+            long client, int syslog, String config);
 
     private static native void loggingShutdown(long instance_ptr, boolean now);
 
@@ -226,8 +199,7 @@ public class FastLogging {
 
     public static native void loggingSetLevel2Sym(long instance_ptr, int level2sym);
 
-    public static native void loggingSetExtConfig(long instance_ptr, int structured, boolean hostname, boolean pname,
-            boolean pid, boolean tname, boolean tid);
+    public static native void loggingSetExtConfig(long instance_ptr, long extConfig);
 
     private static native void loggingAddLogger(long instance_ptr, long logger_ptr);
 
@@ -290,86 +262,172 @@ public class FastLogging {
         int instance_level = NOTSET;
 
         public Logging() {
-            instance_ptr = loggingNew(NOTSET, "root", null, 0, null, null, null, -1, null);
+            instance_ptr = loggingNew(NOTSET, "root", 0, 0, 0, 0, 0, -1, null);
             instance_level = NOTSET;
         }
 
         public Logging(int level) {
-            instance_ptr = loggingNew(level, "root", null, 0, null, null, null, -1, null);
+            instance_ptr = loggingNew(level, "root", 0, 0, 0, 0, 0, -1, null);
             instance_level = level;
         }
 
         public Logging(int level, String domain) {
-            instance_ptr = loggingNew(level, domain, null, 0, null, null, null, -1, null);
+            instance_ptr = loggingNew(level, domain, 0, 0, 0, 0, 0, -1, null);
             instance_level = level;
         }
 
         public Logging(int level, String domain, ExtConfig extConfig) {
-            instance_ptr = loggingNew(level, domain, extConfig, 0, null, null, null, -1, null);
+            long extConfig_ptr = 0;
+            if (extConfig != null) {
+                extConfig_ptr = extConfig.instance_ptr;
+            }
+            instance_ptr = loggingNew(level, domain, extConfig_ptr, 0, 0, 0, 0, -1, null);
             instance_level = level;
         }
 
         public Logging(int level, String domain, ConsoleWriterConfig console) {
-            System.out.println(String.format("LoggingNEW: console.instance_ptr=0x%08X", console.instance_ptr));
-            instance_ptr = loggingNew(level, domain, null, console.instance_ptr, null, null, null, -1, null);
+            long console_ptr = 0;
+            if (console != null) {
+                console_ptr = console.instance_ptr;
+            }
+            instance_ptr = loggingNew(level, domain, 0, console_ptr, 0, 0, 0, -1, null);
             instance_level = level;
         }
 
         public Logging(int level, String domain, FileWriterConfig file) {
-            instance_ptr = loggingNew(level, domain, null, 0, file, null, null, -1, null);
+            long file_ptr = 0;
+            if (file != null) {
+                file_ptr = file.instance_ptr;
+            }
+            instance_ptr = loggingNew(level, domain, 0, 0, file_ptr, 0, 0, -1, null);
             instance_level = level;
         }
 
         public Logging(int level, String domain, ConsoleWriterConfig console, FileWriterConfig file) {
-            instance_ptr = loggingNew(level, domain, null, console.instance_ptr, file, null, null, -1, null);
+            long console_ptr = 0;
+            if (console != null) {
+                console_ptr = console.instance_ptr;
+            }
+            long file_ptr = 0;
+            if (file != null) {
+                file_ptr = file.instance_ptr;
+            }
+            instance_ptr = loggingNew(level, domain, 0, console_ptr, file_ptr, 0, 0, -1, null);
             instance_level = level;
         }
 
         public Logging(int level, String domain, FileWriterConfig file, ServerConfig server) {
-            instance_ptr = loggingNew(level, domain, null, 0, file, server, null, -1, null);
+            long file_ptr = 0;
+            if (file != null) {
+                file_ptr = file.instance_ptr;
+            }
+            long server_ptr = 0;
+            if (server != null) {
+                server_ptr = server.instance_ptr;
+            }
+            instance_ptr = loggingNew(level, domain, 0, 0, file_ptr, server_ptr, 0, -1, null);
             instance_level = level;
         }
 
         public Logging(int level, String domain, FileWriterConfig file, ClientWriterConfig client) {
-            instance_ptr = loggingNew(level, domain, null, 0, file, null, client, -1, null);
+            long file_ptr = 0;
+            if (file != null) {
+                file_ptr = file.instance_ptr;
+            }
+            long client_ptr = 0;
+            if (client != null) {
+                client_ptr = client.instance_ptr;
+            }
+            instance_ptr = loggingNew(level, domain, 0, 0, file_ptr, 0, client_ptr, -1, null);
             instance_level = level;
         }
 
         public Logging(int level, String domain, ConsoleWriterConfig console, ClientWriterConfig client) {
-            instance_ptr = loggingNew(level, domain, null, console.instance_ptr, null, null, client, -1, null);
+            long console_ptr = 0;
+            if (console != null) {
+                console_ptr = console.instance_ptr;
+            }
+            long client_ptr = 0;
+            if (client != null) {
+                client_ptr = client.instance_ptr;
+            }
+            instance_ptr = loggingNew(level, domain, 0, console_ptr, 0, 0, client_ptr, -1, null);
         }
 
         public Logging(int level, String domain, ConsoleWriterConfig console, FileWriterConfig file,
                 ClientWriterConfig client) {
-            instance_ptr = loggingNew(level, domain, null, console.instance_ptr, file, null, client, -1, null);
+            long console_ptr = 0;
+            if (console != null) {
+                console_ptr = console.instance_ptr;
+            }
+            long file_ptr = 0;
+            if (file != null) {
+                file_ptr = file.instance_ptr;
+            }
+            long client_ptr = 0;
+            if (client != null) {
+                client_ptr = client.instance_ptr;
+            }
+            instance_ptr = loggingNew(level, domain, 0, console_ptr, file_ptr, 0, client_ptr, -1, null);
             instance_level = level;
         }
 
         public Logging(int level, String domain, ConsoleWriterConfig console, FileWriterConfig file,
                 ServerConfig server) {
-            instance_ptr = loggingNew(level, domain, null, console.instance_ptr, file, server, null, -1, null);
+            long console_ptr = 0;
+            if (console != null) {
+                console_ptr = console.instance_ptr;
+            }
+            long file_ptr = 0;
+            if (file != null) {
+                file_ptr = file.instance_ptr;
+            }
+            long server_ptr = 0;
+            if (server != null) {
+                server_ptr = server.instance_ptr;
+            }
+            instance_ptr = loggingNew(level, domain, 0, console_ptr, file_ptr, server_ptr, 0, -1, null);
             instance_level = level;
         }
 
         public Logging(int level, String domain, ClientWriterConfig client) {
-            instance_ptr = loggingNew(level, domain, null, 0, null, null, client, -1, null);
+            long client_ptr = 0;
+            if (client != null) {
+                client_ptr = client.instance_ptr;
+            }
+            instance_ptr = loggingNew(level, domain, 0, 0, 0, 0, client_ptr, -1, null);
             instance_level = level;
         }
 
         public Logging(int level, String domain, int syslog) {
-            instance_ptr = loggingNew(level, domain, null, 0, null, null, null, syslog, null);
+            instance_ptr = loggingNew(level, domain, 0, 0, 0, 0, 0, syslog, null);
             instance_level = level;
         }
 
         public Logging(int level, String domain, ExtConfig extConfig, ConsoleWriterConfig console,
-                FileWriterConfig file,
-                ClientWriterConfig client, int syslog) {
-            instance_ptr = loggingNew(level, domain, extConfig, console.instance_ptr, file, null, client, syslog, null);
+                FileWriterConfig file, ClientWriterConfig client, int syslog) {
+            long extConfig_ptr = 0;
+            if (extConfig != null) {
+                extConfig_ptr = extConfig.instance_ptr;
+            }
+            long console_ptr = 0;
+            if (console != null) {
+                console_ptr = console.instance_ptr;
+            }
+            long file_ptr = 0;
+            if (file != null) {
+                file_ptr = file.instance_ptr;
+            }
+            long client_ptr = 0;
+            if (client != null) {
+                client_ptr = client.instance_ptr;
+            }
+            instance_ptr = loggingNew(level, domain, extConfig_ptr, console_ptr, file_ptr, 0, client_ptr, syslog, null);
             instance_level = level;
         }
 
         public Logging(String path) {
-            instance_ptr = loggingNew(NOTSET, null, null, 0, null, null, null, -1, path);
+            instance_ptr = loggingNew(NOTSET, null, 0, 0, 0, 0, 0, -1, path);
         }
 
         public void shutdown() {
@@ -401,8 +459,7 @@ public class FastLogging {
         }
 
         public void setExtConfig(ExtConfig extConfig) {
-            loggingSetExtConfig(instance_ptr, extConfig.structured.getValue(), extConfig.hostname, extConfig.pname,
-                    extConfig.pid, extConfig.tname, extConfig.tid);
+            loggingSetExtConfig(instance_ptr, extConfig.instance_ptr);
         }
 
         public void addLogger(long logger_ptr) {
@@ -425,8 +482,7 @@ public class FastLogging {
             loggingRemoveWriter(instance_ptr, writer.getValue(), key);
         }
 
-        public void sync(boolean console, boolean file, boolean client,
-                boolean syslog, double timeout) {
+        public void sync(boolean console, boolean file, boolean client, boolean syslog, double timeout) {
             loggingSync(instance_ptr, console, file, client, syslog, timeout);
         }
 

@@ -13,6 +13,8 @@ use fastlogging::{
     FileWriterConfig, ServerConfig, SyslogWriterConfig,
 };
 
+use crate::get_string;
+
 #[no_mangle]
 pub unsafe extern "C" fn Java_org_logging_FastLogging_consoleWriterConfigNew(
     _env: JNIEnv,
@@ -21,13 +23,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_consoleWriterConfigNew(
     colors: jboolean,
 ) -> jlong {
     let console = ConsoleWriterConfig::new(level as u8, colors != 0);
-    println!(
-        "Java_org_logging_FastLogging_consoleWriterConfigNew console={:p}",
-        &console
-    );
-    let ptr = Box::into_raw(Box::new(console)) as jlong;
-    println!("Java_org_logging_FastLogging_consoleWriterConfigNew ptr={ptr:x}");
-    ptr
+    Box::into_raw(Box::new(console)) as jlong
 }
 
 #[no_mangle]
@@ -40,36 +36,46 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_fileWriterConfigNew(
     backlog: jint,
     timeout: jint,
     time: jlong,
-    compression: *mut CompressionMethodEnum,
-) -> Box<FileWriterConfig> {
-    let path: String = env.get_string(&path).unwrap().into();
-    let timeout = if timeout < 0 {
-        None
-    } else {
+    compression: jint,
+) -> jlong {
+    let path: String = get_string!(env, path, 0);
+    let timeout = if timeout > 0 {
         Some(Duration::from_secs(timeout as u64))
-    };
-    let time = if time < 0 {
-        None
     } else {
+        None
+    };
+    let time = if time > 0 {
         Some(SystemTime::now().add(Duration::from_secs(time as u64)))
-    };
-    let compression = if compression.is_null() {
-        None
     } else {
-        Some(*Box::from_raw(compression))
+        None
     };
-    Box::new(
-        FileWriterConfig::new(
-            level as u8,
-            PathBuf::from(path),
-            size as usize,
-            backlog as usize,
-            timeout,
-            time,
-            compression,
-        )
-        .unwrap(),
-    )
+    let compression = Some(match compression as i8 {
+        0 => CompressionMethodEnum::Store,
+        1 => CompressionMethodEnum::Deflate,
+        2 => CompressionMethodEnum::Zstd,
+        3 => CompressionMethodEnum::Lzma,
+        _ => {
+            env.throw(format!("Invalid value {compression} for compression."))
+                .unwrap();
+            return 0;
+        }
+    });
+    let writer = match FileWriterConfig::new(
+        level as u8,
+        PathBuf::from(path),
+        size as usize,
+        backlog as usize,
+        timeout,
+        time,
+        compression,
+    ) {
+        Ok(w) => w,
+        Err(err) => {
+            env.throw(err.to_string()).unwrap();
+            return 0;
+        }
+    };
+    Box::into_raw(Box::new(writer)) as jlong
 }
 
 #[no_mangle]
@@ -80,19 +86,19 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_clientWriterConfigNew(
     address: JString,
     encryption: jint,
     key: JString,
-) -> Box<ClientWriterConfig> {
-    let address: String = env.get_string(&address).unwrap().into();
+) -> jlong {
+    let address = get_string!(env, address, 0);
     let key = if encryption == 0 || key.is_null() {
         EncryptionMethod::NONE
     } else {
-        let key: String = env.get_string(&key).unwrap().into();
+        let key = get_string!(env, key);
         if encryption == 1 {
             EncryptionMethod::AuthKey(key.into_bytes())
         } else {
             EncryptionMethod::AES(key.into_bytes())
         }
     };
-    Box::new(ClientWriterConfig::new(level as u8, address, key))
+    Box::into_raw(Box::new(ClientWriterConfig::new(level as u8, address, key))) as jlong
 }
 
 #[no_mangle]
@@ -103,19 +109,19 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_serverConfigNew(
     address: JString,
     encryption: jint,
     key: JString,
-) -> Box<ServerConfig> {
-    let address: String = env.get_string(&address).unwrap().into();
+) -> jlong {
+    let address = get_string!(env, address);
     let key = if encryption == 0 || key.is_null() {
         EncryptionMethod::NONE
     } else {
-        let key: String = env.get_string(&key).unwrap().into();
+        let key = get_string!(env, key);
         if encryption == 1 {
             EncryptionMethod::AuthKey(key.into_bytes())
         } else {
             EncryptionMethod::AES(key.into_bytes())
         }
     };
-    Box::new(ServerConfig::new(level as u8, address, key))
+    Box::into_raw(Box::new(ServerConfig::new(level as u8, address, key))) as jlong
 }
 
 #[no_mangle]

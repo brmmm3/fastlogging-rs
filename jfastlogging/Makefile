@@ -1,4 +1,4 @@
-java_build: lib-debug
+java_build: lib
 	javac org/logging/FastLogging.java
 
 .PHONY: lib

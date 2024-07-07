@@ -17,7 +17,7 @@ import org.logging.FastLogging.Logging;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-class Benchmarks {
+class BenchmarksFastLoggingRs {
     private static long LoggingWork(Logging logging, int cnt, boolean bWithException, String message) {
         Instant start = Instant.now();
         for (int i = 0; i < cnt; i++) {
@@ -80,10 +80,10 @@ class Benchmarks {
         return title;
     }
 
-    private static String getLogPathName(String tmpDirName, String fileName, String title) throws IOException {
+    private static String getLogPathName(String tmpDirName, String loggerName, String fileName, String title) throws IOException {
         String pathName = null;
         if (fileName != null) {
-            String dirName = tmpDirName + "/LOG4J_" + title;
+            String dirName = tmpDirName + "/" + loggerName + "/" + title;
             File file = new File(dirName);
             if (!file.exists()) {
                 file.mkdirs();
@@ -105,7 +105,7 @@ class Benchmarks {
             backlog = 10;
         }
         // Initialize Logger jfastlogging
-        ConsoleWriterConfig console = new ConsoleWriterConfig(level, true);
+        //ConsoleWriterConfig console = new ConsoleWriterConfig(level, true);
         FileWriterConfig file = null;
         if (pathName != null) {
             Path path = Paths.get(pathName);
@@ -114,7 +114,8 @@ class Benchmarks {
             }
             file = new FileWriterConfig(level, pathName, maxSize, backlog, timeout, time, compression);
         }
-        Logging logging = new Logging(level, "root", console, file);
+        Logging logging = new Logging(level, "root", file);
+        // Logging logging = new Logging(level, "root", console, file);
         Instant start = Instant.now();
         long dt0 = LoggingWork(logging, cnt, bWithException, message);
         logging.shutdown();
@@ -167,13 +168,14 @@ class Benchmarks {
                     dtAllJsonMsgExc.put(tnfr[1], dtAllJsonMsgExcName);
                     int[] levels = { FastLogging.DEBUG, FastLogging.INFO, FastLogging.WARNING, FastLogging.ERROR,
                             FastLogging.CRITICAL, FastLogging.EXCEPTION };
+                    // int[] levels = { FastLogging.EXCEPTION };
                     for (int level : levels) {
                         boolean bRotate = tnfr[3] != null;
                         long dtTotal = 0;
                         try {
                             String fileName = tnfr[2];
                             String title = getTitle(msg, fileName, bRotate, bWithException, level);
-                            String pathName = getLogPathName(tmpDirName, fileName, title);
+                            String pathName = getLogPathName(tmpDirName, "fastlogging-rs", fileName, title);
                             System.out.println("fastlogging-rs: " + title);
                             int dtCnt = 0;
                             while (dtCnt++ < 10) {
@@ -197,5 +199,6 @@ class Benchmarks {
         ObjectMapper objectMapper = new ObjectMapper();
         String jacksonData = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(dtAllOs);
         Files.write(Paths.get("../../jfastlogging.json"), jacksonData.getBytes());
+        System.out.println("Finished.");
     }
 }
