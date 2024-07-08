@@ -3,6 +3,8 @@ import time
 
 import json
 import shutil
+import traceback
+
 from fastlogging import LogInit
 import fastlogging_rs as fl
 from fastlogging_rs import (
@@ -12,7 +14,6 @@ from fastlogging_rs import (
     INFO,
     DEBUG,
     Logging,
-    Logger,
     Level2Sym,
     FileWriterConfig,
     CompressionMethodEnum,
@@ -115,6 +116,7 @@ def DoLogging(
     t1 = time.time()
     dt0 = LoggingWork(logger, cnt, bWithException, message)
     logHandler.close()
+    logger.removeHandler(logHandler)
     dt = time.time() - t1
     print(f"  total: {dt0: .3f} {dt: .3f}")
     return dt
@@ -157,6 +159,7 @@ def DoLoggingOptimized(
     t1 = time.time()
     dt0 = LoggingWork(logger, cnt, bWithException, message)
     logHandler.close()
+    logger.removeHandler(logHandler)
     dt = time.time() - t1
     print(f"  total: {dt0: .3f} {dt: .3f}")
     return dt
@@ -178,10 +181,14 @@ def DoLoguru(
             os.remove(file)
 
     # Optimizations
-    logger.remove(0)
+    try:
+        logger.remove(0)
+    except:
+        pass
+    loggerId = None
     if pathName:
         if bRotate:
-            logger.add(
+            loggerId = logger.add(
                 pathName,
                 level=level,
                 format="{time} {name} {level} {message}",
@@ -189,10 +196,12 @@ def DoLoguru(
                 retention=retention,
             )
         else:
-            logger.add(pathName, level=level, format="{time} {name} {level} {message}")
+            loggerId = logger.add(pathName, level=level, format="{time} {name} {level} {message}")
     t1 = time.time()
     dt0 = LoggingWork(logger, cnt, bWithException, message)
     logger.complete()
+    if loggerId is not None:
+        logger.remove(loggerId)
     dt = time.time() - t1
     print(f"  total: {dt0: .3f} {dt: .3f}")
     return dt
@@ -247,11 +256,10 @@ def DoFastLoggingRsDefault(
     else:
         size = 0
         backlog = 0
-    fl.set_console_writer()  # Disable console writer
     fw = FileWriterConfig(
         level, pathName, size, backlog, compression=CompressionMethodEnum.Deflate
     )
-    fl.set_file_writer(fw)
+    fl.add_writer(fw)
     t1 = time.time()
     dt0 = LoggingWork(fl, cnt, bWithException, message)
     fl.sync_all()
