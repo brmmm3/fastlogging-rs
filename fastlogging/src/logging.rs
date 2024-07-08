@@ -563,9 +563,9 @@ impl Logging {
         logger.set_tx(None);
     }
 
-    pub fn add_writer(&mut self, writer: &WriterConfigEnum) -> Result<(), Error> {
+    pub fn add_writer(&mut self, writer: &WriterConfigEnum) -> Result<WriterTypeEnum, Error> {
         let mut config = self.config.lock().unwrap();
-        match writer {
+        Ok(match writer {
             WriterConfigEnum::Root(_) => {
                 return Err(Error::new(
                     ErrorKind::NotFound,
@@ -574,17 +574,20 @@ impl Logging {
             }
             WriterConfigEnum::Console(cfg) => {
                 config.console = Some(ConsoleWriter::new(cfg.to_owned(), self.stop.clone())?);
+                WriterTypeEnum::Console
             }
             WriterConfigEnum::File(cfg) => {
                 config.files.insert(
                     cfg.path.clone(),
                     FileWriter::new(cfg.to_owned(), self.stop.clone())?,
                 );
+                WriterTypeEnum::File(cfg.path.clone())
             }
             WriterConfigEnum::Client(cfg) => {
                 let address: String = cfg.address.clone();
                 let client: ClientWriter = ClientWriter::new(cfg.to_owned(), self.stop.clone())?;
-                config.clients.insert(address, client);
+                config.clients.insert(address.clone(), client);
+                WriterTypeEnum::Client(address)
             }
             WriterConfigEnum::Server(cfg) => {
                 config.server = Some(LoggingServer::new(
@@ -592,12 +595,13 @@ impl Logging {
                     self.tx.clone(),
                     self.stop.clone(),
                 )?);
+                WriterTypeEnum::Server
             }
             WriterConfigEnum::Syslog(cfg) => {
                 config.syslog = Some(SyslogWriter::new(cfg.to_owned(), self.stop.clone())?);
+                WriterTypeEnum::Syslog
             }
-        }
-        Ok(())
+        })
     }
 
     pub fn remove_writer(&mut self, writer: &WriterTypeEnum) -> Result<(), Error> {
