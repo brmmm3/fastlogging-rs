@@ -130,7 +130,8 @@ class BenchmarksLog4j2 {
         return title;
     }
 
-    private static String getLogPathName(String tmpDirName, String loggerName, String fileName, String title) throws IOException {
+    private static String getLogPathName(String tmpDirName, String loggerName, String fileName, String title)
+            throws IOException {
         String pathName = null;
         if (fileName != null) {
             String dirName = tmpDirName + "/" + loggerName + "/" + title;
@@ -238,7 +239,7 @@ class BenchmarksLog4j2 {
                         { "Log file", "file", "logging.log", null },
                         { "Rotating log file", "rotate", "logging.log", "rotate" }
                 };
-                for (var tnfr : titleNameFileNamebRotate) {
+                for (String[] tnfr : titleNameFileNamebRotate) {
                     Map<String, Double> dtAllJsonMsgExcName = new HashMap<>();
                     dtAllJsonMsgExc.put(tnfr[1], dtAllJsonMsgExcName);
                     int[] levels = { DEBUG, INFO, WARNING, ERROR, CRITICAL, EXCEPTION };

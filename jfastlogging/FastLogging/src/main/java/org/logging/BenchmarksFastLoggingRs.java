@@ -11,7 +11,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.logging.FastLogging.CompressionMethodEnum;
-import org.logging.FastLogging.ConsoleWriterConfig;
 import org.logging.FastLogging.FileWriterConfig;
 import org.logging.FastLogging.Logging;
 
@@ -80,7 +79,8 @@ class BenchmarksFastLoggingRs {
         return title;
     }
 
-    private static String getLogPathName(String tmpDirName, String loggerName, String fileName, String title) throws IOException {
+    private static String getLogPathName(String tmpDirName, String loggerName, String fileName, String title)
+            throws IOException {
         String pathName = null;
         if (fileName != null) {
             String dirName = tmpDirName + "/" + loggerName + "/" + title;
@@ -105,7 +105,7 @@ class BenchmarksFastLoggingRs {
             backlog = 10;
         }
         // Initialize Logger jfastlogging
-        //ConsoleWriterConfig console = new ConsoleWriterConfig(level, true);
+        // ConsoleWriterConfig console = new ConsoleWriterConfig(level, true);
         FileWriterConfig file = null;
         if (pathName != null) {
             Path path = Paths.get(pathName);
@@ -132,7 +132,7 @@ class BenchmarksFastLoggingRs {
         Map<String, Map> dtAllJson = new HashMap<>();
         Map<String, String> msgMessage = new HashMap<String, String>() {
             private static final long serialVersionUID = 1L;
-			{
+            {
                 put("short", "Message");
                 put("long",
                         "Message Message Message Message Message Message Message Message Message Message Message Message Message Message Message Message Message");
