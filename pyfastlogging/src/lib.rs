@@ -1,7 +1,6 @@
 use std::path::PathBuf;
 use std::sync::Mutex;
 
-use fastlogging::NOTSET;
 use once_cell::sync::Lazy;
 use pyo3::prelude::*;
 
@@ -14,22 +13,10 @@ mod logger;
 mod logging;
 
 static LOGGING: Lazy<Mutex<logging::Logging>> = Lazy::new(|| {
-    Python::with_gil(|py| -> Mutex<logging::Logging> {
-        let console = Bound::new(py, ConsoleWriterConfig::new(NOTSET, false)).unwrap();
+    Python::with_gil(|_py| -> Mutex<logging::Logging> {
         Mutex::new(
-            logging::Logging::new(
-                None,
-                None,
-                None,
-                None,
-                Some(&console),
-                None,
-                None,
-                None,
-                None,
-                None,
-            )
-            .unwrap(),
+            logging::Logging::new(None, None, None, None, None, None, None, None, None, None)
+                .unwrap(),
         )
     })
 });
@@ -38,16 +25,6 @@ static LOGGING: Lazy<Mutex<logging::Logging>> = Lazy::new(|| {
 #[pyo3(signature=(now=None,))]
 fn shutdown(now: Option<bool>) -> PyResult<()> {
     LOGGING.lock().unwrap().shutdown(now)
-}
-
-#[pyfunction]
-fn add_logger(obj: Py<logger::Logger>, py: Python) {
-    LOGGING.lock().unwrap().add_logger(obj, py)
-}
-
-#[pyfunction]
-fn remove_logger(obj: Py<logger::Logger>, py: Python) {
-    LOGGING.lock().unwrap().remove_logger(obj, py)
 }
 
 #[pyfunction]
@@ -68,6 +45,16 @@ fn set_level2sym(level2sym: &Bound<'_, def::LevelSyms>) {
 #[pyfunction]
 fn set_ext_config(ext_config: &Bound<'_, def::ExtConfig>) {
     LOGGING.lock().unwrap().set_ext_config(ext_config)
+}
+
+#[pyfunction]
+fn add_logger(obj: Py<logger::Logger>, py: Python) {
+    LOGGING.lock().unwrap().add_logger(obj, py)
+}
+
+#[pyfunction]
+fn remove_logger(obj: Py<logger::Logger>, py: Python) {
+    LOGGING.lock().unwrap().remove_logger(obj, py)
 }
 
 #[pyfunction]
