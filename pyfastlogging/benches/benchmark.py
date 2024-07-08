@@ -259,10 +259,11 @@ def DoFastLoggingRsDefault(
     fw = FileWriterConfig(
         level, pathName, size, backlog, compression=CompressionMethodEnum.Deflate
     )
-    fl.add_writer(fw)
+    wr = fl.add_writer(fw)
     t1 = time.time()
     dt0 = LoggingWork(fl, cnt, bWithException, message)
     fl.sync_all()
+    fl.remove_writer(wr)
     dt = time.time() - t1
     print(f"  total: {dt0: .3f} {dt: .3f}")
     return dt
