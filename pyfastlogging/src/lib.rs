@@ -239,6 +239,10 @@ fn init(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
         .getattr("register")?
         .into();
     let _ = fun.call1(py, (wrap_pyfunction!(shutdown_at_exit, m)?,))?;
+    println!("#name# {:?}", m.name());
+    println!("#filename# {:?}", m.filename());
+    println!("#dict# {:#?}", m.dict());
+    println!("#index# {:?}", m.index());
     Ok(())
 }
 
