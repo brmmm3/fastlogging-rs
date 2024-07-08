@@ -632,6 +632,20 @@ impl From<WriterTypeEnum> for fastlogging::WriterTypeEnum {
     }
 }
 
+impl From<fastlogging::WriterTypeEnum> for WriterTypeEnum {
+    fn from(val: fastlogging::WriterTypeEnum) -> Self {
+        use fastlogging::WriterTypeEnum::*;
+        match val {
+            Root => WriterTypeEnum::Root {},
+            Console => WriterTypeEnum::Console {},
+            File(path) => WriterTypeEnum::File { path },
+            Client(address) => WriterTypeEnum::Client { address },
+            Server => WriterTypeEnum::Server {},
+            Syslog => WriterTypeEnum::Syslog {},
+        }
+    }
+}
+
 #[pymethods]
 impl WriterTypeEnum {
     fn __repr__(&self) -> String {

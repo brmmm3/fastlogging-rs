@@ -58,7 +58,7 @@ fn remove_logger(obj: Py<logger::Logger>, py: Python) {
 }
 
 #[pyfunction]
-fn add_writer(writer: PyObject, py: Python) -> PyResult<()> {
+fn add_writer(writer: PyObject, py: Python) -> PyResult<WriterTypeEnum> {
     LOGGING.lock().unwrap().add_writer(writer, py)
 }
 

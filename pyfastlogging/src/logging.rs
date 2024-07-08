@@ -128,7 +128,7 @@ impl Logging {
         self.instance.set_ext_config(&ext_config.borrow().0)
     }
 
-    pub fn add_writer(&mut self, writer: PyObject, py: Python) -> PyResult<()> {
+    pub fn add_writer(&mut self, writer: PyObject, py: Python) -> PyResult<WriterTypeEnum> {
         let writer = if let Ok(writer) = writer.extract::<RootConfig>(py) {
             fastlogging::WriterConfigEnum::Root(writer.0)
         } else if let Ok(writer) = writer.extract::<ConsoleWriterConfig>(py) {
@@ -144,9 +144,11 @@ impl Logging {
         } else {
             return Err(PyTypeError::new_err("writer has invalid argument type"));
         };
-        self.instance
+        Ok(self
+            .instance
             .add_writer(&writer)
-            .map_err(PyException::new_err)
+            .map_err(PyException::new_err)?
+            .into())
     }
 
     pub fn remove_writer(&mut self, writer: WriterTypeEnum) -> PyResult<()> {
