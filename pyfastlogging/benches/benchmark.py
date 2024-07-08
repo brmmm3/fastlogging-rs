@@ -1,9 +1,9 @@
 import os
 import time
+import platform
 
 import json
 import shutil
-import traceback
 
 from fastlogging import LogInit
 import fastlogging_rs as fl
@@ -196,7 +196,9 @@ def DoLoguru(
                 retention=retention,
             )
         else:
-            loggerId = logger.add(pathName, level=level, format="{time} {name} {level} {message}")
+            loggerId = logger.add(
+                pathName, level=level, format="{time} {name} {level} {message}"
+            )
     t1 = time.time()
     dt0 = LoggingWork(logger, cnt, bWithException, message)
     logger.complete()
@@ -348,20 +350,6 @@ if __name__ == "__main__":
                 dtAllJsonMsgExcName = dtAllJsonMsgExc[name] = {}
                 dtAll = {"TITLE": title}
                 for level in (DEBUG, INFO, WARNING, ERROR, CRITICAL):
-                    for _ in range(10):
-                        break
-                        Measure(
-                            num,
-                            "FastLoggingRsDefault",
-                            DoFastLoggingRsDefault,
-                            cnt,
-                            level,
-                            fileName,
-                            bRotate,
-                            bWithException,
-                            msg,
-                            message,
-                        )
                     dts = [
                         Measure(
                             num,
@@ -483,5 +471,5 @@ if __name__ == "__main__":
                     name += "_exc"
                 with open(f"doc/benchmarks/{name}_{msg}.html", "w") as F:
                     F.write(htmlTemplate % dtAll)
-    with open(f"doc/benchmarks/{os.name}_pybenchmarks.json", "w") as F:
+    with open(f"doc/benchmarks/python_{platform.system().lower()}.json", "w") as F:
         F.write(json.dumps(dtAllJson, indent=4))
