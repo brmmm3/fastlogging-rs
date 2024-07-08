@@ -205,7 +205,7 @@ fn file_writer_thread_worker(
             drop(file);
             // Rotate
             if let Err(err) = rotate_do(&path, backlog, compression) {
-                eprintln!("Failed to rotate log files: {err:?}");
+                eprintln!("Failed to rotate log files: {path:?}\n  {err:?}");
             }
             create_time = SystemTime::now();
             file = BufWriter::new(OpenOptions::new().write(true).truncate(true).open(&path)?);
@@ -222,8 +222,9 @@ fn file_writer_thread(
     stop: Arc<Mutex<bool>>,
     sync_tx: Sender<u8>,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    if let Err(err) = file_writer_thread_worker(config, rx, stop, sync_tx) {
+    if let Err(err) = file_writer_thread_worker(config.clone(), rx, stop, sync_tx) {
         eprintln!("Logging file worker crashed with error: {err:?}");
+        eprintln!("{:#?}", config.lock().unwrap());
         Err(err)
     } else {
         Ok(())
