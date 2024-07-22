@@ -9,7 +9,10 @@ package main
 import "C"
 
 func main() {
+	var encryption EncryptionMethod = NONE
+	server := ServerConfigNew(DEBUG, "127.0.0.1")
 	logging := C.logging_init()
+	C.logging_trace(logging, C.CString("Trace message"))
 	C.logging_debug(logging, C.CString("Debug message"))
 	C.logging_info(logging, C.CString("Info Message"))
 	C.logging_warning(logging, C.CString("Warning Message"))

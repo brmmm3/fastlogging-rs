@@ -22,15 +22,152 @@ const DEBUG = C.DEBUG
 const TRACE = C.TRACE
 const NOTSET = C.NOTSET
 
-type Logger struct {
-	logger C.Logger
+type LevelSyms int
+
+const (
+	Sym LevelSyms = iota
+	Short
+	Str
+)
+
+func (s LevelSyms) into() C.LevelSyms {
+	switch s {
+	case Sym:
+		return 0
+	case Short:
+		return 1
+	case Str:
+		return 2
+	}
+	return 0
 }
 
-type Logging struct {
-	logging C.Logging
+type FileTypeEnum int
+
+const (
+	Message FileTypeEnum = iota
+	Sync
+	Rotate
+	Stop
+)
+
+func (s FileTypeEnum) into() C.FileTypeEnum {
+	switch s {
+	case Message:
+		return 0
+	case Sync:
+		return 1
+	case Rotate:
+		return 2
+	case Stop:
+		return 3
+	}
+	return 0
 }
 
-func ExtConfigNew(structured C.MessageStructEnum, hostname bool, pname bool, pid bool, tname bool, tid bool) C.ExtConfig {
+type CompressionMethodEnum int
+
+const (
+	Store CompressionMethodEnum = iota
+	Deflate
+	Zstd
+	Lzma
+)
+
+func (s CompressionMethodEnum) into() C.CompressionMethodEnum {
+	switch s {
+	case Store:
+		return 0
+	case Deflate:
+		return 1
+	case Zstd:
+		return 2
+	case Lzma:
+		return 3
+	}
+	return 0
+}
+
+type WriterConfigEnum C.WriterConfigEnum
+
+type WriterTypeEnum int
+
+const (
+	Root WriterTypeEnum = iota
+	Console
+	File
+	Client
+	Server
+	Syslog
+)
+
+func (s WriterTypeEnum) into() C.WriterTypeEnum {
+	switch s {
+	case Root:
+		return 0
+	case File:
+		return 1
+	case Client:
+		return 2
+	case Server:
+		return 3
+	case Syslog:
+		return 4
+	}
+	return 0
+}
+
+type MessageStructEnum int
+
+const (
+	String MessageStructEnum = iota
+	Json
+	Xml
+)
+
+func (s MessageStructEnum) into() C.MessageStructEnum {
+	switch s {
+	case String:
+		return 0
+	case Json:
+		return 1
+	case Xml:
+		return 2
+	}
+	return 0
+}
+
+type EncryptionMethod int
+
+const (
+	NONE EncryptionMethod = iota
+	AuthKey
+	AES
+)
+
+func (s EncryptionMethod) into() C.EncryptionMethod {
+	switch s {
+	case NONE:
+		return 0
+	case AuthKey:
+		return 1
+	case AES:
+		return 2
+	}
+	return 0
+}
+
+type ExtConfig struct {
+	config C.ExtConfig
+}
+
+func (s ExtConfig) New(
+	structured MessageStructEnum,
+	hostname bool,
+	pname bool,
+	pid bool,
+	tname bool,
+	tid bool) ExtConfig {
 	var c_hostname C.int8_t
 	if hostname {
 		c_hostname = 1
@@ -51,48 +188,107 @@ func ExtConfigNew(structured C.MessageStructEnum, hostname bool, pname bool, pid
 	if tid {
 		c_tid = 1
 	}
-	return C.ext_config_new(structured, c_hostname, c_pname, c_pid, c_tname, c_tid)
+	return ExtConfig{C.ext_config_new(structured.into(), c_hostname, c_pname, c_pid, c_tname, c_tid)}
+}
+
+type ConsoleWriterConfig struct {
+	config C.ConsoleWriterConfig
+}
+
+type FileWriterConfig struct {
+	config C.FileWriterConfig
+}
+
+type ClientWriterConfig struct {
+	config C.ClientWriterConfig
+}
+
+type ServerConfig struct {
+	level   uint8
+	address string
+	port    uint16
+	key     EncryptionMethod
+}
+
+type SyslogWriterConfig struct {
+	config C.SyslogWriterConfig
+}
+
+type Logger struct {
+	logger C.Logger
+}
+
+type Logging struct {
+	logging C.Logging
 }
 
 // Console writer
 
-func ConsoleWriterConfigNew(level uint8, colors bool) C.ConsoleWriterConfig {
+func ConsoleWriterConfigNew(
+	level uint8,
+	colors bool) ConsoleWriterConfig {
 	var colors_int int8
 	if colors {
 		colors_int = 1
 	}
-	return C.console_writer_config_new(C.uint8_t(level), C.int8_t(colors_int))
+	return ConsoleWriterConfig{C.console_writer_config_new(C.uint8_t(level), C.int8_t(colors_int))}
 }
 
 // File writer
 
-func FileWriterConfigNew(level uint8, path string, size uint32, backlog uint32, timeout int32, time int64, compression C.CompressionMethodEnum) C.FileWriterConfig {
-	return C.file_writer_config_new(C.uint8_t(level), C.CString(path), C.uint32_t(size), C.uint32_t(backlog), C.int32_t(timeout), C.int64_t(time), compression)
+func FileWriterConfigNew(
+	level uint8,
+	path string,
+	size uint32,
+	backlog uint32,
+	timeout int32,
+	time int64,
+	compression CompressionMethodEnum) FileWriterConfig {
+	return FileWriterConfig{C.file_writer_config_new(
+		C.uint8_t(level),
+		C.CString(path),
+		C.uint32_t(size),
+		C.uint32_t(backlog),
+		C.int32_t(timeout),
+		C.int64_t(time),
+		compression.into())}
 }
 
 // Client writer
 
-func ClientWriterConfigNew(level uint8, address string, encryption C.EncryptionMethod, key *string) C.ClientWriterConfig {
+func ClientWriterConfigNew(
+	level uint8,
+	address string,
+	encryption EncryptionMethod,
+	key *string) ClientWriterConfig {
 	var c_key *C.char = nil
 	if key != nil {
 		c_key = C.CString(*key)
 	}
-	return C.client_writer_config_new(C.uint8_t(level), C.CString(address), encryption, c_key)
+	return ClientWriterConfig{C.client_writer_config_new(C.uint8_t(level), C.CString(address), encryption.into(), c_key)}
 }
 
 // Server
 
-func ServerConfigNew(level uint8, address string, encryption C.EncryptionMethod, key *string) C.ServerConfig {
+func ServerConfigNew(
+	level uint8,
+	address string,
+	encryption EncryptionMethod,
+	key *string) ServerConfig {
 	var c_key *C.char = nil
 	if key != nil {
 		c_key = C.CString(*key)
 	}
-	return C.server_config_new(C.uint8_t(level), C.CString(address), encryption, c_key)
+	return ServerConfig{C.server_config_new(C.uint8_t(level), C.CString(address), encryption.into(), c_key)}
 }
 
 // Syslog writer
 
-func SyslogWriterConfigNew(level uint8, hostname *string, pname *string, pid uint32) C.SyslogWriterConfig {
+func SyslogWriterConfigNew(
+	level uint8,
+	hostname *string,
+	pname *string,
+	pid uint32) SyslogWriterConfig {
 	var c_hostname *C.char = nil
 	if hostname != nil {
 		c_hostname = C.CString(*hostname)
@@ -101,7 +297,7 @@ func SyslogWriterConfigNew(level uint8, hostname *string, pname *string, pid uin
 	if pname != nil {
 		c_pname = C.CString(*pname)
 	}
-	return C.syslog_writer_config_new(C.uint8_t(level), c_hostname, c_pname, C.uint32_t(pid))
+	return SyslogWriterConfig{C.syslog_writer_config_new(C.uint8_t(level), c_hostname, c_pname, C.uint32_t(pid))}
 }
 
 // Logging module
@@ -112,11 +308,14 @@ func Init() Logging {
 	return instance
 }
 
-func New(level uint8, domain *string, ext_config *C.ExtConfig,
-	console *C.ConsoleWriterConfig,
-	file *C.FileWriterConfig,
-	server *C.ServerConfig,
-	connect *C.ClientWriterConfig,
+func New(
+	level uint8,
+	domain *string,
+	ext_config ExtConfig,
+	console ConsoleWriterConfig,
+	file FileWriterConfig,
+	server ServerConfig,
+	connect ClientWriterConfig,
 	syslog int8,
 	config *string) Logging {
 	var c_domain *C.char = nil
@@ -127,21 +326,28 @@ func New(level uint8, domain *string, ext_config *C.ExtConfig,
 	if config != nil {
 		c_config = C.CString(*config)
 	}
-	logging := C.logging_new(C.uint8_t(level), c_domain, ext_config, console, file, server, connect, C.int8_t(syslog), c_config)
-	instance := Logging{logging}
-	return instance
+	return Logging{C.logging_new(
+		C.uint8_t(level),
+		c_domain,
+		&ext_config.config,
+		&console.config,
+		&file.config,
+		&server.config,
+		&connect.config,
+		C.int8_t(syslog),
+		c_config)}
 }
 
 func (instance Logging) Shutdown(now bool) int {
+	var c_now C.schar = 0
 	if now {
-		return int(C.logging_shutdown(instance.logging, 1))
-	} else {
-		return int(C.logging_shutdown(instance.logging, 0))
+		c_now = 1
 	}
+	return int(C.logging_shutdown(instance.logging, c_now))
 }
 
-func (instance Logging) SetLevel(writer C.WriterTypeEnum, level uint8) int {
-	return int(C.logging_set_level(instance.logging, writer, C.uchar(level)))
+func (instance Logging) SetLevel(writer WriterTypeEnum, level uint8) int {
+	return int(C.logging_set_level(instance.logging, writer.into(), C.uchar(level)))
 }
 
 func (instance Logging) SetDomain(domain *string) {
@@ -156,16 +362,24 @@ func (instance Logging) SetLevel2Sym(level2sym uint8) {
 	C.logging_set_level2sym(instance.logging, C.uchar(level2sym))
 }
 
-func (instance Logging) SetExtConfig(ext_config C.ExtConfig) {
-	C.logging_set_ext_config(instance.logging, ext_config)
+func (instance Logging) SetExtConfig(ext_config ExtConfig) {
+	C.logging_set_ext_config(instance.logging, ext_config.into())
 }
 
-func (instance Logging) AddWriter(writer C.WriterConfigEnum) int {
+func (instance Logging) AddLogger(logger Logger) int {
+	return int(C.logging_add_logger(instance.logging, &logger.logger))
+}
+
+func (instance Logging) RemoveLogger(logger Logger) int {
+	return int(C.logging_remove_logger(instance.logging, &logger.logger))
+}
+
+func (instance Logging) AddWriter(writer WriterConfigEnum) int {
 	return int(C.logging_add_writer(instance.logging, writer))
 }
 
-func (instance Logging) RemoveWriter(writer C.WriterTypeEnum) int {
-	return int(C.logging_remove_writer(instance.logging, writer))
+func (instance Logging) RemoveWriter(writer WriterTypeEnum) int {
+	return int(C.logging_remove_writer(instance.logging, writer.into()))
 }
 
 func (instance Logging) Sync(console bool, file bool, client bool, syslog bool, timeout float64) int {
@@ -200,22 +414,28 @@ func (instance Logging) Rotate(path string) int {
 
 // Network
 
-func (instance Logging) SetEncryption(address string, writer C.WriterTypeEnum, encryption C.EncryptionMethod, key *string) int {
+func (instance Logging) SetEncryption(address string, writer WriterTypeEnum, encryption EncryptionMethod, key *string) int {
 	var c_key *C.char = nil
 	if key != nil {
 		c_key = C.CString(*key)
 	}
-	return int(C.logging_set_encryption(instance.logging, writer, encryption, c_key))
+	return int(C.logging_set_encryption(instance.logging, writer.into(), encryption.into(), c_key))
 }
 
 // Config
 
-func (instance Logging) GetConfig(writer C.WriterTypeEnum) C.WriterConfigEnum {
-	return C.logging_get_config(instance.logging, writer)
+func (instance Logging) GetConfig(writer WriterTypeEnum) C.WriterConfigEnum {
+	return C.logging_get_config(instance.logging, writer.into())
 }
 
-func (instance Logging) GetServerConfig() C.ServerConfig {
-	return C.logging_get_server_config(instance.logging)
+func (instance Logging) GetServerConfig() ServerConfig {
+	var config C.CServerConfig = C.logging_get_server_config(instance.logging)
+	var key EncryptionMethod = map[C.EncryptionMethod]EncryptionMethod{
+		0: NONE,
+		1: AuthKey,
+		2: AES,
+	}
+	return ServerConfig{uint8(config.level), C.GoString(config.address), uint16(config.port), key}
 }
 
 func (instance Logging) GetServerAuthKey() string {
