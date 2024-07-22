@@ -19,7 +19,7 @@ include = [
 ]
 
 [dependencies]
-gethostname = "0.4"
+gethostname = "0.5"
 syslog = "6.1"
 flume = "0.11"
 chrono = "0.4"
@@ -37,9 +37,17 @@ rand = "0.8"
 ring = "0.17"
 serde = { version = "1.0", optional = true }
 serde_derive = { version = "1.0", optional = true }
-serde_json = { version = "1.0", optional = true }
+serde_json = { version = "1.0" }
 serde_yaml = { version = "0.9", optional = true }
-quick-xml = { version = "0.31", features = ["serialize"], optional = true }
+quick-xml = { version = "0.36", features = ["serialize"], optional = true }
+windows-sys = { version = "0.52", features = [
+    "Win32",
+    "Win32_Foundation",
+    "Win32_System",
+    "Win32_System_Threading",
+    "Win32_System_Diagnostics",
+    "Win32_System_Diagnostics_ToolHelp",
+] }
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
@@ -52,6 +60,6 @@ tempdir = "0.3"
 
 [features]
 default = ["config_json", "config_xml", "config_yaml"]
-config_json = ["dep:serde", "dep:serde_derive", "dep:serde_json"]
+config_json = ["dep:serde", "dep:serde_derive"]
 config_xml = ["dep:serde", "dep:serde_derive", "dep:quick-xml"]
 config_yaml = ["dep:serde", "dep:serde_derive", "dep:serde_yaml"]

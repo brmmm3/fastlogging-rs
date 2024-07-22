@@ -190,17 +190,10 @@ fn handle_encrypted_client(
 
 fn server_thread(
     config: Arc<Mutex<NetConfig>>,
+    listener: TcpListener,
     tx: Sender<LoggingTypeEnum>,
     stop: Arc<Mutex<bool>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let listener = {
-        let mut config = config.lock().unwrap();
-        let listener = TcpListener::bind(format!("{}:{}", config.address, config.port))?;
-        if config.port == 0 {
-            config.port = listener.local_addr()?.port();
-        }
-        listener
-    };
     let pool = threadpool::ThreadPool::new(num_cpus::get());
     let clients: Arc<Mutex<HashMap<std::net::SocketAddr, TcpStream>>> =
         Arc::new(Mutex::new(HashMap::new()));
@@ -300,8 +293,37 @@ impl LoggingServer {
         let thr = thread::Builder::new()
             .name("LoggingServer".to_string())
             .spawn(move || {
+                let listener = {
+                    let mut config_clone = config_clone.lock().unwrap();
+                    let listener = match TcpListener::bind(format!(
+                        "{}:{}",
+                        config_clone.address, config_clone.port
+                    )) {
+                        Ok(v) => v,
+                        Err(err) => {
+                            eprintln!(
+                                "LOGSRV: server_thread: Failed to bind {}:{}: {err:?}",
+                                config_clone.address, config_clone.port
+                            );
+                            return;
+                        }
+                    };
+                    if config_clone.port == 0 {
+                        config_clone.port = match listener.local_addr() {
+                            Ok(v) => v,
+                            Err(err) => {
+                                eprintln!(
+                                    "LOGSRV: server_thread: Failed to get local address: {err:?}"
+                                );
+                                return;
+                            }
+                        }
+                        .port();
+                    }
+                    listener
+                };
                 tx_started.send(1).expect("Failed to send started signal");
-                if let Err(err) = server_thread(config_clone, tx, stop) {
+                if let Err(err) = server_thread(config_clone, listener, tx, stop) {
                     eprintln!("LOGSRV: server_thread: {err:?}");
                 }
             })?;

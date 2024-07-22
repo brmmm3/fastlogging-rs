@@ -4,7 +4,7 @@ use jni::JNIEnv;
 
 use jni::objects::{JClass, JString};
 
-use jni::sys::{jboolean, jbyte, jdouble, jint, jlong, jstring};
+use jni::sys::{jboolean, jbyte, jdouble, jint, jlong};
 
 use fastlogging::{
     ClientWriterConfig, ConsoleWriterConfig, EncryptionMethod, ExtConfig, FileWriterConfig,
@@ -12,17 +12,6 @@ use fastlogging::{
 };
 
 use crate::{get_pathbuf, get_string, log_message};
-
-/// # Safety
-///
-/// Create new default instance.
-#[no_mangle]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingInit(
-    _env: JNIEnv,
-    _class: JClass,
-) -> jlong {
-    Box::into_raw(Box::new(fastlogging::logging_init())) as jlong
-}
 
 /// # Safety
 ///
@@ -123,7 +112,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingSetLevel(
         1 => WriterTypeEnum::Console,
         2 => WriterTypeEnum::File(get_pathbuf!(env, key)),
         3 => WriterTypeEnum::Client(get_string!(env, key)),
-        4 => WriterTypeEnum::Server,
+        4 => WriterTypeEnum::Server(get_string!(env, key)),
         _ => {
             env.throw(format!("Invalid value {writer} for writer."))
                 .unwrap();
@@ -240,7 +229,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingRemoveWriter(
         1 => WriterTypeEnum::Console,
         2 => WriterTypeEnum::File(get_pathbuf!(env, key)),
         3 => WriterTypeEnum::Client(get_string!(env, key)),
-        4 => WriterTypeEnum::Server,
+        4 => WriterTypeEnum::Server(get_string!(env, key)),
         _ => {
             env.throw(format!("Invalid value {writer} for writer."))
                 .unwrap();
@@ -327,7 +316,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingSetEncryption(
     key: JString,
 ) -> jint {
     let writer = if address.is_null() {
-        WriterTypeEnum::Server
+        WriterTypeEnum::Server(get_string!(env, address))
     } else {
         WriterTypeEnum::Client(get_string!(env, address))
     };
@@ -366,26 +355,50 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingGetConfig(
 ///
 /// Get server configuration
 #[no_mangle]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingGetServerConfig(
-    _env: JNIEnv,
-    _class: JClass,
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingGetServerConfig<'a>(
+    mut env: JNIEnv<'a>,
+    _class: JClass<'a>,
     logging: &mut Logging,
+    address: JString,
 ) -> jlong {
-    Box::into_raw(Box::new(logging.get_server_config())) as jlong
+    let address = get_string!(env, address);
+    Box::into_raw(Box::new(logging.get_server_config(&address))) as jlong
 }
 
 /// # Safety
 ///
-/// Get server configuration
+/// Get server configurations
 #[no_mangle]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingGetServerAddress<'a>(
-    env: JNIEnv<'a>,
-    _class: JClass<'a>,
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingGetServerConfigs(
+    _env: JNIEnv,
+    _class: JClass,
     logging: &mut Logging,
-) -> jstring {
-    let address: String = logging.get_server_address().unwrap();
-    let address: JString = env.new_string(address).unwrap();
-    address.into_raw()
+) -> jlong {
+    Box::into_raw(Box::new(logging.get_server_configs())) as jlong
+}
+
+/// # Safety
+///
+/// Get server addresses
+#[no_mangle]
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingGetServerAddresses(
+    _env: JNIEnv,
+    _class: JClass,
+    logging: &mut Logging,
+) -> jlong {
+    Box::into_raw(Box::new(logging.get_server_addresses())) as jlong
+}
+
+/// # Safety
+///
+/// Get server addresses
+#[no_mangle]
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingGetServerPorts(
+    _env: JNIEnv,
+    _class: JClass,
+    logging: &mut Logging,
+) -> jlong {
+    Box::into_raw(Box::new(logging.get_server_ports())) as jlong
 }
 
 /// # Safety

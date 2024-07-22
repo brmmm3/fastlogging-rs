@@ -1,5 +1,6 @@
 import os
 
+import fastlogging_rs
 from fastlogging_rs import (
     TRACE,
     Logging,
@@ -27,7 +28,10 @@ def ChildProcess():
 
 
 if __name__ == "__main__":
+    import multiprocessing
     from multiprocessing import Pool, freeze_support
+
+    multiprocessing.set_start_method("spawn")
     freeze_support()
     with Pool() as pool:
         pool.apply(ChildProcess)
@@ -45,4 +49,3 @@ if __name__ == "__main__":
     logger.error("Error Message")
     logger.fatal("Fatal Message")
     logger.shutdown()
-

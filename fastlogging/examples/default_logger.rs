@@ -1,9 +1,9 @@
 use std::io::Error;
 
-use fastlogging::logging_init;
+use fastlogging::DEFAULT_LOGGER;
 
 fn main() -> Result<(), Error> {
-    let logger = logging_init();
+    let logger = DEFAULT_LOGGER.lock().unwrap();
     logger.trace("Trace Message")?;
     logger.debug("Debug Message")?;
     logger.info("Info Message")?;

@@ -614,7 +614,7 @@ pub enum WriterTypeEnum {
     Console {},
     File { path: PathBuf },
     Client { address: String },
-    Server {},
+    Server { address: String },
     Syslog {},
 }
 
@@ -626,7 +626,7 @@ impl From<WriterTypeEnum> for fastlogging::WriterTypeEnum {
             Console {} => fastlogging::WriterTypeEnum::Console,
             File { path } => fastlogging::WriterTypeEnum::File(path),
             Client { address } => fastlogging::WriterTypeEnum::Client(address),
-            Server {} => fastlogging::WriterTypeEnum::Server,
+            Server { address } => fastlogging::WriterTypeEnum::Server(address),
             Syslog {} => fastlogging::WriterTypeEnum::Syslog,
         }
     }
@@ -640,7 +640,7 @@ impl From<fastlogging::WriterTypeEnum> for WriterTypeEnum {
             Console => WriterTypeEnum::Console {},
             File(path) => WriterTypeEnum::File { path },
             Client(address) => WriterTypeEnum::Client { address },
-            Server => WriterTypeEnum::Server {},
+            Server(address) => WriterTypeEnum::Server { address },
             Syslog => WriterTypeEnum::Syslog {},
         }
     }

@@ -41,10 +41,7 @@ mod tests {
         let console_writer2 = ConsoleWriterConfig::new(DEBUG, false);
         let client_writer = ClientWriterConfig::new(
             DEBUG,
-            format!(
-                "127.0.0.1:{}",
-                logging_server.get_server_config().unwrap().port
-            ),
+            logging_server.get_server_addresses().get(0).unwrap(),
             logging_server.get_server_auth_key(),
         );
         let mut logging_client = Logging::new(

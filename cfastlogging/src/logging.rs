@@ -45,14 +45,6 @@ pub unsafe extern "C" fn ext_config_new(
     ))
 }
 
-/// # Safety
-///
-/// Create default logging instance.
-#[no_mangle]
-pub unsafe extern "C" fn logging_init() -> &'static Logging {
-    fastlogging::logging_init()
-}
-
 /// For further reading ...
 /// #[no_mangle] - // https://internals.rust-lang.org/t/precise-semantics-of-no-mangle/4098
 
@@ -204,11 +196,12 @@ pub unsafe extern "C" fn logging_add_writer(
     logging: &mut Logging,
     writer: &WriterConfigEnum,
 ) -> isize {
-    if let Err(err) = logging.add_writer(writer) {
-        eprintln!("logging_add_writer failed: {err:?}");
-        err.raw_os_error().unwrap_or(nix::Error::EFAULT as i32) as isize
-    } else {
-        0
+    match logging.add_writer(writer) {
+        Ok(r) => Box::into_raw(Box::new(r)) as isize,
+        Err(err) => {
+            eprintln!("logging_add_writer failed: {err:?}");
+            err.raw_os_error().unwrap_or(nix::Error::EFAULT as i32) as isize
+        }
     }
 }
 
@@ -339,8 +332,11 @@ pub unsafe extern "C" fn logging_get_config(
 ///
 /// Get server configuration.
 #[no_mangle]
-pub unsafe extern "C" fn logging_get_server_config(logging: &Logging) -> *mut CServerConfig {
-    if let Some(config) = logging.get_server_config() {
+pub unsafe extern "C" fn logging_get_server_config(
+    logging: &Logging,
+    address: *const c_char,
+) -> *mut CServerConfig {
+    if let Some(config) = logging.get_server_config(&char2string(address)) {
         Box::into_raw(Box::new(CServerConfig {
             level: config.level,
             address: CString::new(config.address)
@@ -358,8 +354,11 @@ pub unsafe extern "C" fn logging_get_server_config(logging: &Logging) -> *mut CS
 ///
 /// Get server configuration.
 #[no_mangle]
-pub unsafe extern "C" fn logging_get_server_address(logging: &Logging) -> *const char {
-    if let Some(config) = logging.get_server_config() {
+pub unsafe extern "C" fn logging_get_server_address(
+    logging: &Logging,
+    address: *const c_char,
+) -> *const char {
+    if let Some(config) = logging.get_server_config(&char2string(address)) {
         CString::new(format!("{}:{}", config.address, config.port))
             .expect("Error: CString::new()")
             .into_raw() as *const char

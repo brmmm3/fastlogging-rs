@@ -1,13 +1,17 @@
-use std::io::{Error, ErrorKind};
+use std::io::{Error, ErrorKind, Read, Write};
+use std::net::TcpStream;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
+use std::process;
+use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
+use std::{env, fs};
 
 use chrono::Local;
 use flume::{bounded, Receiver, Sender};
+use once_cell::sync::Lazy;
 
-use crate::config::{ConfigFile, ExtConfig, LoggingConfig};
+use crate::config::{default_config_file, ConfigFile, ExtConfig, LoggingInstance};
 use crate::console::{ConsoleWriter, ConsoleWriterConfig};
 use crate::def::{LoggingTypeEnum, CRITICAL, DEBUG, ERROR, EXCEPTION, FATAL, INFO, WARNING};
 use crate::file::{FileWriter, FileWriterConfig};
@@ -16,16 +20,90 @@ use crate::net::{
     ClientWriter, ClientWriterConfig, EncryptionMethod, LoggingServer, ServerConfig, AUTH_KEY,
 };
 use crate::{
-    level2short, level2str, level2string, level2sym, LevelSyms, MessageStructEnum, RootConfig,
-    SyslogWriter, WriterConfigEnum, WriterTypeEnum, SUCCESS, TRACE,
+    getppid, level2short, level2str, level2string, level2sym, LevelSyms, MessageStructEnum,
+    RootConfig, SyslogWriter, WriterConfigEnum, WriterTypeEnum, NOTSET, SUCCESS, TRACE,
 };
 
-pub static LOGGING: OnceLock<Logging> = OnceLock::new();
+pub static DEFAULT_LOGGER: Lazy<Mutex<Logging>> = Lazy::new(|| {
+    fn create_default_logger(config_file: Option<PathBuf>) -> Logging {
+        let server = ServerConfig::new(NOTSET, "127.0.0.1", EncryptionMethod::NONE);
+        let mut logging = Logging::new(
+            None,
+            None,
+            None,
+            None,
+            None,
+            Some(server),
+            None,
+            None,
+            config_file,
+        )
+        .unwrap();
+        logging.drop = false;
+        logging
+    }
+
+    fn get_port_file(pid: u32) -> PathBuf {
+        let mut temp_dir = env::temp_dir();
+        temp_dir.push(format!("fastlogging_rs_server_port.{pid}"));
+        temp_dir
+    }
+
+    fn get_parent_server_address() -> Result<Option<String>, Error> {
+        let port_file = get_port_file(getppid());
+        if port_file.exists() {
+            // Parent process exists. Check if logging server is reachable.
+            let mut buf = [0u8; 2];
+            if fs::File::open(port_file)?.read(&mut buf)? == 2 {
+                let port = u16::from_le_bytes(buf);
+                let address = format!("127.0.0.1:{port}");
+                if TcpStream::connect(&address).is_ok() {
+                    return Ok(Some(address));
+                }
+            }
+        }
+        Ok(None)
+    }
+
+    fn setup_logging() -> Result<Logging, Error> {
+        // Check if parent process with fastlogging instance exists.
+        let mut logging = create_default_logger(None);
+        if let Some(server_port) = logging.get_server_ports().get(0) {
+            let port_file = get_port_file(process::id());
+            fs::File::create(port_file)?.write_all(&u16::to_le_bytes(*server_port))?;
+        }
+        if let Some(server_address) = get_parent_server_address()? {
+            // Connect to parent server port
+            let client = ClientWriterConfig::new(NOTSET, server_address, EncryptionMethod::NONE);
+            logging.add_writer(&WriterConfigEnum::Client(client))?;
+        } else {
+            // If default config file exists, then use this configuration. Else create default console logger.
+            let config_file = default_config_file();
+            if config_file.1.is_empty() {
+                logging.add_writer(&WriterConfigEnum::Console(ConsoleWriterConfig::new(
+                    NOTSET, false,
+                )))?;
+            } else {
+                logging.apply_config(&config_file.0)?;
+            }
+        }
+        Ok(logging)
+    }
+
+    let logging = match setup_logging() {
+        Ok(l) => l,
+        Err(e) => {
+            eprintln!("Failed to setup default logger: {e}");
+            create_default_logger(None)
+        }
+    };
+    Mutex::new(logging)
+});
 
 #[inline]
 fn build_string_message(
     buffer: &mut String,
-    config: &MutexGuard<LoggingConfig>,
+    config: &MutexGuard<LoggingInstance>,
     level: u8,
     tname: Option<String>,
     tid: u32,
@@ -76,7 +154,7 @@ fn build_string_message(
 #[inline]
 fn build_json_message(
     buffer: &mut String,
-    config: &MutexGuard<LoggingConfig>,
+    config: &MutexGuard<LoggingInstance>,
     level: u8,
     tname: Option<String>,
     tid: u32,
@@ -124,7 +202,7 @@ fn build_json_message(
 #[inline]
 fn build_xml_message(
     buffer: &mut String,
-    config: &MutexGuard<LoggingConfig>,
+    config: &MutexGuard<LoggingInstance>,
     level: u8,
     tname: Option<String>,
     tid: u32,
@@ -175,7 +253,7 @@ fn build_xml_message(
 fn logging_thread_worker(
     rx: Receiver<LoggingTypeEnum>,
     sync_tx: Sender<u8>,
-    config: Arc<Mutex<LoggingConfig>>,
+    config: Arc<Mutex<LoggingInstance>>,
     stop: Arc<Mutex<bool>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut buffer = String::with_capacity(4096);
@@ -311,7 +389,7 @@ fn logging_thread_worker(
 fn logging_thread(
     rx: Receiver<LoggingTypeEnum>,
     sync_tx: Sender<u8>,
-    config: Arc<Mutex<LoggingConfig>>,
+    config: Arc<Mutex<LoggingInstance>>,
     stop: Arc<Mutex<bool>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut some_err = None;
@@ -322,12 +400,12 @@ fn logging_thread(
     if let Ok(mut config) = config.lock() {
         for (address, writer) in config.clients.iter_mut() {
             if let Err(err) = writer.shutdown() {
-                eprintln!("Failed to stop client {address}: {err:?}");
+                eprintln!("Failed to stop client writer {address}: {err:?}");
             }
         }
-        if let Some(ref mut writer) = config.server {
+        for (address, writer) in config.servers.iter_mut() {
             if let Err(err) = writer.shutdown() {
-                eprintln!("Failed to stop logging server: {err:?}");
+                eprintln!("Failed to stop logging server {address}: {err:?}");
             }
         }
         if let Some(ref mut writer) = config.console {
@@ -353,36 +431,12 @@ fn logging_thread(
     }
 }
 
-pub fn logging_init() -> &'static Logging {
-    match LOGGING.get() {
-        Some(l) => l,
-        None => {
-            let console_writer = ConsoleWriterConfig::new(DEBUG, false);
-            let mut logging = Logging::new(
-                None,
-                None,
-                None,
-                Some(console_writer),
-                None,
-                None,
-                None,
-                None,
-                None,
-            )
-            .unwrap();
-            logging.drop = false;
-            LOGGING.set(logging).unwrap();
-            LOGGING.get().unwrap()
-        }
-    }
-}
-
 #[repr(C)]
 #[derive(Debug)]
 pub struct Logging {
     pub level: u8,
     config_file: ConfigFile,
-    config: Arc<Mutex<LoggingConfig>>,
+    pub instance: Arc<Mutex<LoggingInstance>>,
     tname: bool,
     tid: bool,
     pub tx: Sender<LoggingTypeEnum>,
@@ -417,7 +471,7 @@ impl Logging {
         let config = Arc::new(Mutex::new(config));
         Ok(Self {
             level,
-            config: config.clone(),
+            instance: config.clone(),
             config_file,
             tname,
             tid,
@@ -438,7 +492,7 @@ impl Logging {
     }
 
     pub fn init() -> Result<Self, Error> {
-        let console_writer = ConsoleWriterConfig::new(DEBUG, false);
+        let console_writer = ConsoleWriterConfig::new(NOTSET, false);
         Logging::new(
             None,
             None,
@@ -450,6 +504,47 @@ impl Logging {
             None,
             None,
         )
+    }
+
+    pub fn apply_config(&mut self, path: &Path) -> Result<(), Error> {
+        self.config_file = ConfigFile::new(Some(path.to_path_buf()))?;
+        let config = &self.config_file.config;
+        let mut instance = self.instance.lock().unwrap();
+        instance.level = config.level;
+        instance.domain = config.domain.clone();
+        // Console writer
+        if let Some(ref writer_config) = config.console {
+            instance.console = Some(ConsoleWriter::new(
+                writer_config.clone(),
+                self.stop.clone(),
+            )?);
+        }
+        // File writer
+        if let Some(ref writer_config) = config.file {
+            instance.files.insert(
+                writer_config.path.clone(),
+                FileWriter::new(writer_config.clone(), self.stop.clone())?,
+            );
+        }
+        // Network writer
+        if let Some(ref writer_config) = config.connect {
+            instance.clients.insert(
+                writer_config.address.clone(),
+                ClientWriter::new(writer_config.clone(), self.stop.clone())?,
+            );
+        }
+        // Logging server
+        if let Some(ref writer_config) = config.server {
+            instance.servers.insert(
+                writer_config.address.clone(),
+                LoggingServer::new(writer_config.clone(), self.tx.clone(), self.stop.clone())?,
+            );
+        }
+        // Syslog
+        if let Some(ref writer_config) = config.syslog {
+            instance.syslog = Some(SyslogWriter::new(writer_config.clone(), self.stop.clone())?);
+        }
+        Ok(())
     }
 
     pub fn shutdown(&mut self, now: bool) -> Result<(), Error> {
@@ -475,7 +570,7 @@ impl Logging {
     }
 
     pub fn set_level(&mut self, writer: &WriterTypeEnum, level: u8) -> Result<(), Error> {
-        let mut config = self.config.lock().unwrap();
+        let mut config = self.instance.lock().unwrap();
         match writer {
             WriterTypeEnum::Root => {
                 config.level = level;
@@ -507,17 +602,17 @@ impl Logging {
                 } else {
                     return Err(Error::new(
                         ErrorKind::NotFound,
-                        "Client writer not configured".to_string(),
+                        format!("Client {address} not configured"),
                     ));
                 }
             }
-            WriterTypeEnum::Server => {
-                if let Some(ref mut writer) = config.server {
+            WriterTypeEnum::Server(address) => {
+                if let Some(writer) = config.servers.get_mut(address) {
                     writer.set_level(level);
                 } else {
                     return Err(Error::new(
                         ErrorKind::NotFound,
-                        "Server not running".to_string(),
+                        format!("Server {address} not running"),
                     ));
                 }
             }
@@ -536,19 +631,19 @@ impl Logging {
     }
 
     pub fn set_domain(&mut self, domain: String) {
-        if let Ok(mut config) = self.config.lock() {
+        if let Ok(mut config) = self.instance.lock() {
             config.domain = domain;
         }
     }
 
     pub fn set_level2sym(&mut self, level2sym: LevelSyms) {
-        if let Ok(mut config) = self.config.lock() {
+        if let Ok(mut config) = self.instance.lock() {
             config.level2sym = level2sym;
         }
     }
 
     pub fn set_ext_config(&mut self, ext_config: &ExtConfig) {
-        if let Ok(mut config) = self.config.lock() {
+        if let Ok(mut config) = self.instance.lock() {
             config.set_ext_config(ext_config.to_owned());
             self.tname = config.tname;
             self.tid = config.tid;
@@ -564,7 +659,7 @@ impl Logging {
     }
 
     pub fn add_writer(&mut self, writer: &WriterConfigEnum) -> Result<WriterTypeEnum, Error> {
-        let mut config = self.config.lock().unwrap();
+        let mut config = self.instance.lock().unwrap();
         Ok(match writer {
             WriterConfigEnum::Root(_) => {
                 return Err(Error::new(
@@ -585,17 +680,16 @@ impl Logging {
             }
             WriterConfigEnum::Client(cfg) => {
                 let address: String = cfg.address.clone();
-                let client: ClientWriter = ClientWriter::new(cfg.to_owned(), self.stop.clone())?;
+                let client = ClientWriter::new(cfg.to_owned(), self.stop.clone())?;
                 config.clients.insert(address.clone(), client);
                 WriterTypeEnum::Client(address)
             }
             WriterConfigEnum::Server(cfg) => {
-                config.server = Some(LoggingServer::new(
-                    cfg.to_owned(),
-                    self.tx.clone(),
-                    self.stop.clone(),
-                )?);
-                WriterTypeEnum::Server
+                let address: String = cfg.address.clone();
+                let server =
+                    LoggingServer::new(cfg.to_owned(), self.tx.clone(), self.stop.clone())?;
+                config.servers.insert(address.clone(), server);
+                WriterTypeEnum::Server(address)
             }
             WriterConfigEnum::Syslog(cfg) => {
                 config.syslog = Some(SyslogWriter::new(cfg.to_owned(), self.stop.clone())?);
@@ -605,7 +699,7 @@ impl Logging {
     }
 
     pub fn remove_writer(&mut self, writer: &WriterTypeEnum) -> Result<(), Error> {
-        let mut config = self.config.lock().unwrap();
+        let mut config = self.instance.lock().unwrap();
         match writer {
             WriterTypeEnum::Root => {
                 return Err(Error::new(
@@ -639,17 +733,17 @@ impl Logging {
                 } else {
                     return Err(Error::new(
                         ErrorKind::NotFound,
-                        "Client writer not configured".to_string(),
+                        format!("Client {address} not configured"),
                     ));
                 }
             }
-            WriterTypeEnum::Server => {
-                if let Some(mut server) = config.server.take() {
+            WriterTypeEnum::Server(address) => {
+                if let Some(mut server) = config.servers.remove(address) {
                     server.shutdown()?;
                 } else {
                     return Err(Error::new(
                         ErrorKind::NotFound,
-                        "Server not conigured".to_string(),
+                        format!("Server {address} not conigured"),
                     ));
                 }
             }
@@ -694,7 +788,7 @@ impl Logging {
     // File logger
 
     pub fn rotate(&self, path: Option<PathBuf>) -> Result<(), Error> {
-        for (key, file) in self.config.lock().unwrap().files.iter() {
+        for (key, file) in self.instance.lock().unwrap().files.iter() {
             if path.is_none() || path.as_ref().unwrap() == key {
                 file.rotate()?;
             }
@@ -709,15 +803,15 @@ impl Logging {
         writer: WriterTypeEnum,
         key: EncryptionMethod,
     ) -> Result<(), Error> {
-        let mut config = self.config.lock().unwrap();
+        let mut config = self.instance.lock().unwrap();
         match writer {
-            WriterTypeEnum::Server => {
-                if let Some(ref mut writer) = config.server {
+            WriterTypeEnum::Server(address) => {
+                if let Some(writer) = config.servers.get_mut(&address) {
                     writer.set_encryption(key)?;
                 } else {
                     return Err(Error::new(
                         ErrorKind::NotFound,
-                        "Server not configured".to_string(),
+                        format!("Server {address} not configured"),
                     ));
                 }
             }
@@ -727,7 +821,7 @@ impl Logging {
                 } else {
                     return Err(Error::new(
                         ErrorKind::NotFound,
-                        "Client writer not configured".to_string(),
+                        format!("Client {address} not configured"),
                     ));
                 }
             }
@@ -744,15 +838,15 @@ impl Logging {
     // Config
 
     pub fn set_debug(&mut self, debug: u8) {
-        let mut config = self.config.lock().unwrap();
+        let mut config = self.instance.lock().unwrap();
         config.debug = debug;
-        if let Some(ref server) = config.server {
+        for server in config.servers.values_mut() {
             server.config.lock().unwrap().debug = debug;
         }
     }
 
     pub fn get_config(&self, writer: &WriterTypeEnum) -> Result<WriterConfigEnum, Error> {
-        let mut config = self.config.lock().unwrap();
+        let mut config = self.instance.lock().unwrap();
         Ok(match writer {
             WriterTypeEnum::Root => WriterConfigEnum::Root(RootConfig {
                 level: self.level,
@@ -787,31 +881,21 @@ impl Logging {
             }
             WriterTypeEnum::Client(address) => {
                 if let Some(writer) = config.clients.get_mut(address) {
-                    let cfg = writer.config.lock().unwrap();
-                    WriterConfigEnum::Client(ClientWriterConfig::new(
-                        cfg.level,
-                        format!("{}:{}", cfg.address, cfg.port),
-                        cfg.key.clone(),
-                    ))
+                    WriterConfigEnum::Client(writer.config.lock().unwrap().get_client_config())
                 } else {
                     return Err(Error::new(
                         ErrorKind::NotFound,
-                        "Client writer not configured".to_string(),
+                        format!("Client {address} not configured"),
                     ));
                 }
             }
-            WriterTypeEnum::Server => {
-                if let Some(ref mut writer) = config.server {
-                    let cfg = writer.config.lock().unwrap();
-                    WriterConfigEnum::Server(ServerConfig::new(
-                        cfg.level,
-                        format!("{}:{}", cfg.address, cfg.port),
-                        cfg.key.clone(),
-                    ))
+            WriterTypeEnum::Server(address) => {
+                if let Some(writer) = config.servers.get_mut(address) {
+                    WriterConfigEnum::Server(writer.config.lock().unwrap().get_server_config())
                 } else {
                     return Err(Error::new(
                         ErrorKind::NotFound,
-                        "Server not running".to_string(),
+                        format!("Server {address} not running"),
                     ));
                 }
             }
@@ -828,20 +912,37 @@ impl Logging {
         })
     }
 
-    pub fn get_server_config(&self) -> Option<ServerConfig> {
-        if let Ok(WriterConfigEnum::Server(config)) = self.get_config(&WriterTypeEnum::Server) {
+    pub fn get_server_config(&self, address: &str) -> Option<ServerConfig> {
+        if let Ok(WriterConfigEnum::Server(config)) =
+            self.get_config(&WriterTypeEnum::Server(address.to_owned()))
+        {
             Some(config)
         } else {
             None
         }
     }
 
-    pub fn get_server_address(&self) -> Option<String> {
-        if let Ok(WriterConfigEnum::Server(config)) = self.get_config(&WriterTypeEnum::Server) {
-            Some(format!("{}:{}", config.address, config.port))
-        } else {
-            None
-        }
+    pub fn get_server_configs(&self) -> Vec<ServerConfig> {
+        let config = self.instance.lock().unwrap();
+        config
+            .servers
+            .values()
+            .map(|v| v.config.lock().unwrap().get_server_config())
+            .collect()
+    }
+
+    pub fn get_server_addresses(&self) -> Vec<String> {
+        let config = self.instance.lock().unwrap();
+        config.servers.keys().map(|k| k.to_owned()).collect()
+    }
+
+    pub fn get_server_ports(&self) -> Vec<u16> {
+        let config = self.instance.lock().unwrap();
+        config
+            .servers
+            .values()
+            .map(|v| v.config.lock().unwrap().port)
+            .collect()
     }
 
     pub fn get_server_auth_key(&self) -> EncryptionMethod {
@@ -849,7 +950,7 @@ impl Logging {
     }
 
     pub fn get_config_string(&self) -> String {
-        let c = self.config.lock().unwrap();
+        let c = self.instance.lock().unwrap();
         format!(
             "level={:?}\n\
             domain={:?}\n\
@@ -862,7 +963,7 @@ impl Logging {
             console={:?}\n\
             file={:?}\n\
             syslog={:?}\n\
-            server={:?}\n\
+            servers={:?}\n\
             clients={:?}",
             level2string(&c.level2sym, c.level),
             c.domain,
@@ -881,9 +982,11 @@ impl Logging {
             c.syslog
                 .as_ref()
                 .map(|c| c.config.lock().unwrap().to_string()),
-            c.server
-                .as_ref()
-                .map(|c| c.config.lock().unwrap().to_string()),
+            c.servers
+                .iter()
+                .map(|(ip, c)| format!("{ip}: {}", c.config.lock().unwrap()))
+                .collect::<Vec<_>>()
+                .join("\n"),
             c.clients
                 .iter()
                 .map(|(ip, c)| format!("{ip}: {}", c.config.lock().unwrap()))
@@ -984,7 +1087,7 @@ impl Logging {
     }
 
     pub fn __repr__(&self) -> String {
-        if let Ok(config) = self.config.lock() {
+        if let Ok(config) = self.instance.lock() {
             format!("Logging(level={} domain={})", self.level, config.domain)
         } else {
             format!("Logging(level={})", self.level)

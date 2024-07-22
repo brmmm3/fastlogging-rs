@@ -120,7 +120,7 @@ pub enum WriterTypeEnum {
     Console,
     File(PathBuf),
     Client(String),
-    Server,
+    Server(String),
     Syslog,
 }
 

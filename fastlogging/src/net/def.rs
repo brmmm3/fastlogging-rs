@@ -7,6 +7,8 @@ use once_cell::sync::Lazy;
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use ring::aead::{self, BoundKey, SealingKey};
 
+use crate::{ClientWriterConfig, ServerConfig};
+
 use super::{EncryptionMethod, NonceGenerator};
 
 pub static AUTH_KEY: Lazy<Vec<u8>> =
@@ -69,6 +71,24 @@ impl NetConfig {
             self.address.clone()
         } else {
             format!("{}:{}", self.address, self.port)
+        }
+    }
+
+    pub fn get_server_config(&self) -> ServerConfig {
+        ServerConfig {
+            level: self.level,
+            address: self.address.clone(),
+            port: self.port,
+            key: self.key.clone(),
+        }
+    }
+
+    pub fn get_client_config(&self) -> ClientWriterConfig {
+        ClientWriterConfig {
+            level: self.level,
+            address: self.address.clone(),
+            port: self.port,
+            key: self.key.clone(),
         }
     }
 }

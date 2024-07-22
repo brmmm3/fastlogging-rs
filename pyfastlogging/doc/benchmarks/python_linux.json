@@ -1,0 +1,82 @@
+{
+    "long": {
+        "noexc": {
+            "rotate": {
+                "DEBUG": {
+                    "logging": 4.752497434616089,
+                    "fastlogging": 3.9874625205993652,
+                    "fastlogging-threads": 5.7524638175964355,
+                    "fastlogging-rs": 0.662096381187439,
+                    "fastlogging-rs-default": 1.336672067642212
+                },
+                "INFO": {
+                    "logging": 3.2515807151794434,
+                    "fastlogging": 3.244006872177124,
+                    "fastlogging-threads": 4.434616327285767,
+                    "fastlogging-rs": 0.5219103693962097,
+                    "fastlogging-rs-default": 1.0532562732696533
+                },
+                "WARNING": {
+                    "logging": 2.4500386714935303,
+                    "fastlogging": 2.4597835540771484,
+                    "fastlogging-threads": 3.3475873470306396,
+                    "fastlogging-rs": 0.39768747488657635,
+                    "fastlogging-rs-default": 0.8843355178833008
+                },
+                "ERROR": {
+                    "logging": 1.6462812423706055,
+                    "fastlogging": 1.6452484130859375,
+                    "fastlogging-threads": 2.256255865097046,
+                    "fastlogging-rs": 0.2801966667175293,
+                    "fastlogging-rs-default": 0.6949581305185953
+                },
+                "CRITICAL": {
+                    "logging": 0.8429481188456217,
+                    "fastlogging": 0.8454024791717529,
+                    "fastlogging-threads": 1.1525503396987915,
+                    "fastlogging-rs": 0.1658795118331909,
+                    "fastlogging-rs-default": 0.4019569953282674
+                }
+            }
+        },
+        "exc": {
+            "rotate": {
+                "DEBUG": {
+                    "logging": 5.141938209533691,
+                    "fastlogging": 5.136381149291992,
+                    "fastlogging-threads": 7.837607383728027,
+                    "fastlogging-rs": 1.4579163789749146,
+                    "fastlogging-rs-default": 2.009758949279785
+                },
+                "INFO": {
+                    "logging": 4.34567666053772,
+                    "fastlogging": 4.337334394454956,
+                    "fastlogging-threads": 6.771713495254517,
+                    "fastlogging-rs": 1.337213158607483,
+                    "fastlogging-rs-default": 1.7626184225082397
+                },
+                "WARNING": {
+                    "logging": 3.5379576683044434,
+                    "fastlogging": 3.527616500854492,
+                    "fastlogging-threads": 5.664044618606567,
+                    "fastlogging-rs": 1.207362413406372,
+                    "fastlogging-rs-default": 1.535526156425476
+                },
+                "ERROR": {
+                    "logging": 2.7250783443450928,
+                    "fastlogging": 2.7194857597351074,
+                    "fastlogging-threads": 4.611411809921265,
+                    "fastlogging-rs": 1.0829683542251587,
+                    "fastlogging-rs-default": 1.2689788341522217
+                },
+                "CRITICAL": {
+                    "logging": 0.8715128898620605,
+                    "fastlogging": 0.8706716696421305,
+                    "fastlogging-threads": 1.164023518562317,
+                    "fastlogging-rs": 0.9570959409077963,
+                    "fastlogging-rs-default": 1.0868421792984009
+                }
+            }
+        }
+    }
+}

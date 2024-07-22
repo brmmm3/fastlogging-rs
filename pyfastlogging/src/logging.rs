@@ -2,9 +2,13 @@ use std::cmp;
 use std::io::Error;
 use std::path::PathBuf;
 
-use fastlogging::{CRITICAL, DEBUG, ERROR, EXCEPTION, FATAL, INFO, SUCCESS, TRACE, WARNING};
 use pyo3::exceptions::{PyException, PyTypeError};
 use pyo3::prelude::*;
+
+use fastlogging::{
+    LoggingConfig, CRITICAL, DEBUG, ERROR, EXCEPTION, FATAL, INFO, SUCCESS, TRACE, WARNING,
+};
+use pyo3::types::PyBytes;
 
 use crate::def::{
     ClientWriterConfig, ConsoleWriterConfig, EncryptionMethod, ExtConfig, FileWriterConfig,
@@ -222,12 +226,24 @@ impl Logging {
             .map_err(PyException::new_err)
     }
 
-    pub fn get_server_config(&self) -> Option<ServerConfig> {
-        self.instance.get_server_config().map(ServerConfig)
+    pub fn get_server_config(&self, address: String) -> Option<ServerConfig> {
+        self.instance.get_server_config(&address).map(ServerConfig)
     }
 
-    pub fn get_server_address(&self) -> Option<String> {
-        self.instance.get_server_address()
+    pub fn get_server_configs(&self) -> Vec<ServerConfig> {
+        self.instance
+            .get_server_configs()
+            .into_iter()
+            .map(ServerConfig)
+            .collect()
+    }
+
+    pub fn get_server_addresses(&self) -> Vec<String> {
+        self.instance.get_server_addresses()
+    }
+
+    pub fn get_server_ports(&self) -> Vec<u16> {
+        self.instance.get_server_ports()
     }
 
     pub fn get_server_auth_key(&self) -> EncryptionMethod {
@@ -340,6 +356,40 @@ impl Logging {
         } else {
             Ok(())
         }
+    }
+
+    pub fn __setstate__(&mut self, state: Bound<'_, PyBytes>) -> PyResult<()> {
+        println!("__setstate__");
+        let data: &[u8] = state.as_bytes();
+        let config = LoggingConfig::from_json_vec(data);
+        println!("config={:?}", config);
+        Ok(())
+    }
+
+    pub fn __getstate__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyBytes>> {
+        println!("__getstate__");
+        let config = self
+            .instance
+            .instance
+            .lock()
+            .unwrap()
+            .get_config()
+            .to_json_vec()
+            .map_err(PyException::new_err)?;
+        Ok(PyBytes::new_bound(py, &config))
+    }
+
+    pub fn __getnewargs__<'py>(&self, py: Python<'py>) -> PyResult<(Bound<'py, PyBytes>,)> {
+        println!("__getnewargs__");
+        let config = self
+            .instance
+            .instance
+            .lock()
+            .unwrap()
+            .get_config()
+            .to_json_vec()
+            .map_err(PyException::new_err)?;
+        Ok((PyBytes::new_bound(py, &config),))
     }
 
     fn __repr__(&self) -> String {

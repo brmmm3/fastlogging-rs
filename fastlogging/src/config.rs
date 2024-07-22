@@ -103,8 +103,37 @@ impl Default for FileConfig {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LoggingConfig {
+    pub level: u8,
+    pub domain: String,
+    pub hostname: Option<String>,
+    pub pname: String,
+    pub pid: u32,
+    pub tname: bool,
+    pub tid: bool,
+    pub structured: MessageStructEnum,
+    pub level2sym: LevelSyms,
+    pub console: Option<ConsoleWriterConfig>,
+    pub files: HashMap<PathBuf, FileWriterConfig>,
+    pub servers: HashMap<String, ServerConfig>,
+    pub clients: HashMap<String, ClientWriterConfig>,
+    pub syslog: Option<SyslogWriterConfig>,
+    pub debug: u8,
+}
+
+impl LoggingConfig {
+    pub fn from_json_vec(data: &[u8]) -> Self {
+        serde_json::from_slice(data).unwrap()
+    }
+
+    pub fn to_json_vec(&self) -> Result<Vec<u8>, Error> {
+        Ok(serde_json::to_vec(&self).unwrap())
+    }
+}
+
+#[derive(Debug)]
+pub struct LoggingInstance {
     pub(crate) level: u8,
     pub(crate) domain: String,
     pub(crate) hostname: Option<String>,
@@ -116,13 +145,13 @@ pub struct LoggingConfig {
     pub(crate) level2sym: LevelSyms,
     pub(crate) console: Option<ConsoleWriter>,
     pub(crate) files: HashMap<PathBuf, FileWriter>,
-    pub(crate) server: Option<LoggingServer>,
+    pub(crate) servers: HashMap<String, LoggingServer>,
     pub(crate) clients: HashMap<String, ClientWriter>,
     pub(crate) syslog: Option<SyslogWriter>,
     pub(crate) debug: u8,
 }
 
-impl LoggingConfig {
+impl LoggingInstance {
     pub fn set_ext_config(&mut self, ext_config: ExtConfig) {
         self.structured = ext_config.structured;
         let hostname = if ext_config.hostname {
@@ -149,6 +178,64 @@ impl LoggingConfig {
         self.tname = ext_config.tname;
         self.tid = ext_config.tid;
     }
+
+    pub fn get_config(&self) -> LoggingConfig {
+        LoggingConfig {
+            level: self.level,
+            domain: self.domain.clone(),
+            hostname: self.hostname.clone(),
+            pname: self.pname.clone(),
+            pid: self.pid,
+            tname: self.tname,
+            tid: self.tid,
+            structured: self.structured.clone(),
+            level2sym: self.level2sym.clone(),
+            console: self
+                .console
+                .as_ref()
+                .map(|c| c.config.lock().unwrap().clone()),
+            files: self
+                .files
+                .iter()
+                .map(|(k, v)| (k.clone(), v.config.lock().unwrap().clone()))
+                .collect(),
+            servers: self
+                .servers
+                .iter()
+                .map(|(k, v)| {
+                    (k.clone(), {
+                        let config = v.config.lock().unwrap();
+                        ServerConfig {
+                            level: config.level,
+                            address: config.address.clone(),
+                            port: config.port,
+                            key: config.key.clone(),
+                        }
+                    })
+                })
+                .collect(),
+            clients: self
+                .clients
+                .iter()
+                .map(|(k, v)| {
+                    (k.clone(), {
+                        let config = v.config.lock().unwrap();
+                        ClientWriterConfig {
+                            level: config.level,
+                            address: config.address.clone(),
+                            port: config.port,
+                            key: config.key.clone(),
+                        }
+                    })
+                })
+                .collect(),
+            syslog: self
+                .syslog
+                .as_ref()
+                .map(|c| c.config.lock().unwrap().clone()),
+            debug: self.debug,
+        }
+    }
 }
 
 #[repr(C)]
@@ -158,7 +245,7 @@ pub struct ConfigFile {
     pub(crate) config: FileConfig,
 }
 
-fn default_config_file() -> (PathBuf, Vec<u8>) {
+pub fn default_config_file() -> (PathBuf, Vec<u8>) {
     #[cfg(feature = "config_json")]
     if Path::new("fastlogging.json").exists() {
         return (PathBuf::from("fastlogging.json"), b"json".to_vec());
@@ -264,7 +351,7 @@ impl ConfigFile {
         syslog: Option<u8>,            // If log level is defined start SyslogLogging
     ) -> Result<
         (
-            LoggingConfig,
+            LoggingInstance,
             Sender<LoggingTypeEnum>,
             Receiver<LoggingTypeEnum>,
             Arc<Mutex<bool>>,
@@ -311,18 +398,20 @@ impl ConfigFile {
             );
         }
         // Logging server
-        let server = if let Some(config) = server {
-            Some(LoggingServer::new(config, tx.clone(), stop.clone())?)
+        let mut servers = HashMap::new();
+        if let Some(config) = server {
+            self.config.server = Some(config.clone());
+            servers.insert(
+                config.address.clone(),
+                LoggingServer::new(config, tx.clone(), stop.clone())?,
+            );
         } else if let Some(ref config) = self.config.server {
-            Some(LoggingServer::new(
-                config.to_owned(),
-                tx.clone(),
-                stop.clone(),
-            )?)
-        } else {
-            None
+            servers.insert(
+                config.address.clone(),
+                LoggingServer::new(config.to_owned(), tx.clone(), stop.clone())?,
+            );
         };
-        let mut config = LoggingConfig {
+        let mut config = LoggingInstance {
             level,
             domain,
             hostname: self.config.hostname.clone(),
@@ -333,7 +422,7 @@ impl ConfigFile {
             structured: self.config.structured.clone(),
             console,
             files,
-            server,
+            servers,
             clients,
             syslog: None,
             level2sym: LevelSyms::Sym,
@@ -342,6 +431,7 @@ impl ConfigFile {
         if let Some(ext_config) = ext_config {
             config.set_ext_config(ext_config);
         }
+        // Syslog
         config.syslog = if let Some(level) = syslog {
             self.config.structured = config.structured.clone();
             Some(SyslogWriter::new(

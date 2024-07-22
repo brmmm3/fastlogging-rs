@@ -109,8 +109,8 @@ fn get_config(writer: WriterTypeEnum) -> PyResult<WriterConfigEnum> {
 }
 
 #[pyfunction]
-fn get_server_config() -> Option<ServerConfig> {
-    LOGGING.lock().unwrap().get_server_config()
+fn get_server_config(address: String) -> Option<ServerConfig> {
+    LOGGING.lock().unwrap().get_server_config(address)
 }
 
 #[pyfunction]
@@ -184,6 +184,7 @@ fn shutdown_at_exit() -> PyResult<()> {
 #[pymodule]
 #[pyo3(name = "fastlogging_rs")]
 fn init(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
+    println!("#fastlogging_rs_init#BEGIN");
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     m.add("EXCEPTION", fastlogging::EXCEPTION)?;
     m.add("CRITICAL", fastlogging::CRITICAL)?;
@@ -243,6 +244,7 @@ fn init(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     println!("#filename# {:?}", m.filename());
     println!("#dict# {:#?}", m.dict());
     println!("#index# {:?}", m.index());
+    println!("#fastlogging_rs_init#END");
     Ok(())
 }
 
