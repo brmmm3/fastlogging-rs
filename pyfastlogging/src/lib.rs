@@ -1,7 +1,5 @@
 use std::path::PathBuf;
-use std::sync::Mutex;
 
-use once_cell::sync::Lazy;
 use pyo3::prelude::*;
 
 mod def;
@@ -12,59 +10,54 @@ pub use def::{
 mod logger;
 mod logging;
 
-static LOGGING: Lazy<Mutex<logging::Logging>> = Lazy::new(|| {
-    Python::with_gil(|_py| -> Mutex<logging::Logging> {
-        Mutex::new(
-            logging::Logging::new(None, None, None, None, None, None, None, None, None, None)
-                .unwrap(),
-        )
-    })
-});
-
 #[pyfunction]
 #[pyo3(signature=(now=None,))]
 fn shutdown(now: Option<bool>) -> PyResult<()> {
-    LOGGING.lock().unwrap().shutdown(now)
+    Ok(fastlogging::shutdown(now.unwrap_or_default())?)
 }
 
 #[pyfunction]
 fn set_level(writer: WriterTypeEnum, level: u8) -> PyResult<()> {
-    LOGGING.lock().unwrap().set_level(writer, level)
+    Ok(fastlogging::set_level(&writer.into(), level)?)
 }
 
 #[pyfunction]
 fn set_domain(domain: String) {
-    LOGGING.lock().unwrap().set_domain(domain)
+    fastlogging::set_domain(domain)
 }
 
 #[pyfunction]
 fn set_level2sym(level2sym: &Bound<'_, def::LevelSyms>) {
-    LOGGING.lock().unwrap().set_level2sym(level2sym)
+    fastlogging::set_level2sym(&level2sym.borrow().0)
 }
 
 #[pyfunction]
 fn set_ext_config(ext_config: &Bound<'_, def::ExtConfig>) {
-    LOGGING.lock().unwrap().set_ext_config(ext_config)
+    fastlogging::set_ext_config(&ext_config.borrow().0)
 }
 
 #[pyfunction]
-fn add_logger(obj: Py<logger::Logger>, py: Python) {
-    LOGGING.lock().unwrap().add_logger(obj, py)
+fn add_logger(logger: Py<logger::Logger>, py: Python) {
+    fastlogging::add_logger(&mut logger.borrow_mut(py).instance)
 }
 
 #[pyfunction]
-fn remove_logger(obj: Py<logger::Logger>, py: Python) {
-    LOGGING.lock().unwrap().remove_logger(obj, py)
+fn remove_logger(logger: Py<logger::Logger>, py: Python) {
+    fastlogging::remove_logger(&mut logger.borrow_mut(py).instance)
 }
 
 #[pyfunction]
 fn add_writer(writer: PyObject, py: Python) -> PyResult<WriterTypeEnum> {
-    LOGGING.lock().unwrap().add_writer(writer, py)
+    let config = writer
+        .downcast_bound::<WriterConfigEnum>(py)?
+        .borrow()
+        .clone();
+    Ok(fastlogging::add_writer(&mut config.into())?.into())
 }
 
 #[pyfunction]
 fn remove_writer(writer: WriterTypeEnum) -> PyResult<()> {
-    LOGGING.lock().unwrap().remove_writer(writer)
+    Ok(fastlogging::remove_writer(&writer.into())?)
 }
 
 #[pyfunction]
@@ -76,115 +69,117 @@ fn sync(
     syslog: Option<bool>,
     timeout: Option<f64>,
 ) -> PyResult<()> {
-    LOGGING
-        .lock()
-        .unwrap()
-        .sync(console, file, client, syslog, timeout)
+    Ok(fastlogging::sync(
+        console.unwrap_or_default(),
+        file.unwrap_or_default(),
+        client.unwrap_or_default(),
+        syslog.unwrap_or_default(),
+        timeout.unwrap_or_default(),
+    )?)
 }
 
 #[pyfunction]
 #[pyo3(signature=(timeout=None))]
 fn sync_all(timeout: Option<f64>) -> PyResult<()> {
-    LOGGING.lock().unwrap().sync_all(timeout)
+    Ok(fastlogging::sync_all(timeout.unwrap_or_default())?)
 }
 
 #[pyfunction]
 #[pyo3(signature=(path=None))]
 fn rotate(path: Option<PathBuf>) -> PyResult<()> {
-    LOGGING.lock().unwrap().rotate(path)
+    Ok(fastlogging::rotate(path)?)
 }
 
 // Network
 
 #[pyfunction]
 fn set_encryption(writer: WriterTypeEnum, key: EncryptionMethod) -> PyResult<()> {
-    LOGGING.lock().unwrap().set_encryption(writer, key)
+    Ok(fastlogging::set_encryption(writer.into(), key.into())?)
 }
 
 // Config
 
 #[pyfunction]
 fn get_config(writer: WriterTypeEnum) -> PyResult<WriterConfigEnum> {
-    LOGGING.lock().unwrap().get_config(writer)
+    Ok(fastlogging::get_config(&writer.into())?.into())
 }
 
 #[pyfunction]
 fn get_server_config(address: String) -> Option<ServerConfig> {
-    LOGGING.lock().unwrap().get_server_config(address)
+    fastlogging::get_server_config(&address).map(|v| v.into())
 }
 
 #[pyfunction]
 fn get_server_auth_key() -> EncryptionMethod {
-    LOGGING.lock().unwrap().get_server_auth_key()
+    fastlogging::get_server_auth_key().into()
 }
 
 #[pyfunction]
 fn get_config_string() -> String {
-    LOGGING.lock().unwrap().get_config_string()
+    fastlogging::get_config_string()
 }
 
 #[pyfunction]
 fn save_config(path: PathBuf) -> PyResult<()> {
-    LOGGING.lock().unwrap().save_config(path)
+    Ok(fastlogging::save_config(&path)?)
 }
 
 // Logging methods
 
 #[pyfunction]
 fn trace(obj: PyObject) -> PyResult<()> {
-    LOGGING.lock().unwrap().trace(obj)
+    Ok(fastlogging::trace(obj.to_string())?)
 }
 
 #[pyfunction]
 fn debug(obj: PyObject) -> PyResult<()> {
-    LOGGING.lock().unwrap().debug(obj)
+    Ok(fastlogging::debug(obj.to_string())?)
 }
 
 #[pyfunction]
 fn info(obj: PyObject) -> PyResult<()> {
-    LOGGING.lock().unwrap().info(obj)
+    Ok(fastlogging::info(obj.to_string())?)
 }
 
 #[pyfunction]
 fn success(obj: PyObject) -> PyResult<()> {
-    LOGGING.lock().unwrap().success(obj)
+    Ok(fastlogging::success(obj.to_string())?)
 }
 
 #[pyfunction]
 fn warning(obj: PyObject) -> PyResult<()> {
-    LOGGING.lock().unwrap().warning(obj)
+    Ok(fastlogging::warning(obj.to_string())?)
 }
 
 #[pyfunction]
 fn error(obj: PyObject) -> PyResult<()> {
-    LOGGING.lock().unwrap().error(obj)
+    Ok(fastlogging::error(obj.to_string())?)
 }
 
 #[pyfunction]
 fn critical(obj: PyObject) -> PyResult<()> {
-    LOGGING.lock().unwrap().critical(obj)
+    Ok(fastlogging::critical(obj.to_string())?)
 }
 
 #[pyfunction]
 fn fatal(obj: PyObject) -> PyResult<()> {
-    LOGGING.lock().unwrap().fatal(obj)
+    Ok(fastlogging::fatal(obj.to_string())?)
 }
 
 #[pyfunction]
 fn exception(obj: PyObject) -> PyResult<()> {
-    LOGGING.lock().unwrap().exception(obj)
+    Ok(fastlogging::exception(obj.to_string())?)
 }
 
 #[pyfunction]
 fn shutdown_at_exit() -> PyResult<()> {
-    LOGGING.lock().unwrap().shutdown(None)
+    Ok(fastlogging::shutdown(false)?)
 }
 
 /// fastlogging_rs is a simple example for using Rust to create Python extension modules.
 #[pymodule]
 #[pyo3(name = "fastlogging_rs")]
 fn init(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
-    println!("#fastlogging_rs_init#BEGIN");
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     m.add("EXCEPTION", fastlogging::EXCEPTION)?;
     m.add("CRITICAL", fastlogging::CRITICAL)?;
@@ -240,11 +235,6 @@ fn init(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
         .getattr("register")?
         .into();
     let _ = fun.call1(py, (wrap_pyfunction!(shutdown_at_exit, m)?,))?;
-    println!("#name# {:?}", m.name());
-    println!("#filename# {:?}", m.filename());
-    println!("#dict# {:#?}", m.dict());
-    println!("#index# {:?}", m.index());
-    println!("#fastlogging_rs_init#END");
     Ok(())
 }
 

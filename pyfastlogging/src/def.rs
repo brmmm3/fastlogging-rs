@@ -173,6 +173,17 @@ impl From<EncryptionMethod> for fastlogging::EncryptionMethod {
     }
 }
 
+impl From<fastlogging::EncryptionMethod> for EncryptionMethod {
+    fn from(val: fastlogging::EncryptionMethod) -> Self {
+        use fastlogging::EncryptionMethod::*;
+        match val {
+            NONE => EncryptionMethod::NONE {},
+            AuthKey(key) => EncryptionMethod::AuthKey { key },
+            AES(key) => EncryptionMethod::AES { key },
+        }
+    }
+}
+
 #[pymethods]
 impl EncryptionMethod {
     fn __repr__(&self) -> String {

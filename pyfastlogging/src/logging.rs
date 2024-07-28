@@ -121,11 +121,11 @@ impl Logging {
     }
 
     pub fn set_domain(&mut self, domain: String) {
-        self.instance.set_domain(domain)
+        self.instance.set_domain(&domain)
     }
 
     pub fn set_level2sym(&mut self, level2sym: &Bound<'_, LevelSyms>) {
-        self.instance.set_level2sym(level2sym.borrow().0.clone())
+        self.instance.set_level2sym(&level2sym.borrow().0)
     }
 
     pub fn set_ext_config(&mut self, ext_config: &Bound<'_, ExtConfig>) {
