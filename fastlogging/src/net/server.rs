@@ -55,6 +55,28 @@ impl fmt::Display for ServerConfig {
     }
 }
 
+fn read(
+    stream: &mut TcpStream,
+    buffer: &mut [u8],
+    read_max: usize,
+) -> Result<usize, std::io::Error> {
+    let mut bytes_read = 0;
+    loop {
+        let cnt = match stream.read(&mut buffer[bytes_read..read_max]) {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!("read ERROR: {e:?}");
+                return Err(e);
+            }
+        };
+        bytes_read += cnt;
+        if bytes_read >= read_max {
+            break;
+        }
+    }
+    Ok(bytes_read)
+}
+
 fn handle_client(
     config: Arc<Mutex<NetConfig>>,
     stream: &mut TcpStream,
@@ -62,6 +84,7 @@ fn handle_client(
     stop: Arc<Mutex<bool>>,
     stop_server: Arc<AtomicBool>,
 ) -> Result<bool, Box<dyn std::error::Error>> {
+    //println!("handle_client");
     let perr_addr = stream.peer_addr().unwrap().to_string();
     let mut buffer = [0u8; 4352];
     let mut authenticated = false;
@@ -79,10 +102,12 @@ fn handle_client(
         if debug > 1 {
             println!("handle_client: WAIT");
         }
-        if let Err(err) = stream.read_exact(&mut buffer[..3]) {
+        //println!("handle_client: WAIT");
+        if let Err(err) = read(stream, &mut buffer, 3) {
             if err.kind() == ErrorKind::WouldBlock {
                 continue;
             }
+            println!("handle_client: ERROR {err:?} {:?}", &buffer[..3]);
             break;
         }
         let size = (buffer[0] as usize) | ((buffer[1] as usize) << 8);
@@ -94,10 +119,17 @@ fn handle_client(
             return Ok(true);
         }
         if !authenticated {
+            //println!("handle_client: AUTHENTICATE");
             // If channel is unencrypted then an AUTH_KEY is required first.
             // Wait up to 5 seconds for auth key.
-            stream.read_exact(&mut buffer[..size])?;
+            read(stream, &mut buffer, size)?;
             let key: Vec<u8> = config.lock().unwrap().key.key_cloned().unwrap();
+            /*println!(
+                "AUTH_KEY: {} {size}\n{:?}\n{:?}",
+                key.len(),
+                key,
+                &buffer[..size]
+            );*/
             if key.len() != size || !key.starts_with(&buffer[..size]) {
                 Err("Invalid auth key".to_string())?;
             }
@@ -108,7 +140,7 @@ fn handle_client(
             continue;
         }
         let msg_level = buffer[2];
-        stream.read_exact(&mut buffer[..size])?;
+        read(stream, &mut buffer, size)?;
         if msg_level >= config_level {
             let message = format!(
                 "{perr_addr}: {}",
@@ -120,6 +152,7 @@ fn handle_client(
             tx.send(LoggingTypeEnum::MessageRemote((msg_level, message)))?;
         }
     }
+    //println!("handle_client: FINISHED");
     Ok(false)
 }
 
@@ -130,6 +163,7 @@ fn handle_encrypted_client(
     stop: Arc<Mutex<bool>>,
     stop_server: Arc<AtomicBool>,
 ) -> Result<bool, Box<dyn std::error::Error>> {
+    //println!("handle_encrypted_client");
     let perr_addr = stream.peer_addr().unwrap().to_string();
     let mut buffer = [0u8; 4352];
     stream.set_read_timeout(Some(Duration::from_secs(5)))?;
@@ -200,8 +234,12 @@ fn server_thread(
     let buggy_clients: Arc<Mutex<HashMap<std::net::SocketAddr, usize>>> =
         Arc::new(Mutex::new(HashMap::new()));
     let stop_server = Arc::new(AtomicBool::new(false));
+    if config.lock().unwrap().debug > 0 {
+        println!("server_thread STARTED");
+    }
     for stream in listener.incoming() {
         if *stop.lock().unwrap() || stop_server.load(Ordering::Relaxed) {
+            //println!("server_thread STOPPING. Inform Clients");
             let stop_cmd = [255, 255, 255];
             for (_addr, mut stream) in clients.lock().unwrap().drain() {
                 stream.write_all(&stop_cmd)?;

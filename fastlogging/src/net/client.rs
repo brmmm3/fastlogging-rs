@@ -58,17 +58,21 @@ fn client_writer_thread(
     stop: Arc<Mutex<bool>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let address = config.lock().unwrap().address.clone();
+    //println!("client_writer_thread connecting to {address}");
     let mut stream = BufWriter::new(TcpStream::connect(address)?);
+    //println!("client_writer_thread CONNECTED");
     let mut buffer = [0u8; 3];
     {
         let config = config.lock().unwrap();
         if !config.key.is_encrypted() {
+            //println!("client_writer_thread SEND KEY");
             let key = config.key.key().unwrap();
             let size = key.len();
             buffer[0] = size as u8;
             buffer[1] = (size >> 8) as u8;
-            let _ = stream.write_all(&buffer);
-            let _ = stream.write_all(key);
+            stream.write_all(&buffer)?;
+            stream.write_all(key)?;
+            stream.flush()?;
         }
     }
     loop {
@@ -77,28 +81,38 @@ fn client_writer_thread(
         }
         match rx.recv()? {
             ClientTypeEnum::Message((level, message)) => {
-                let size = message.len();
-                buffer[0] = size as u8;
-                buffer[1] = (size >> 8) as u8;
-                buffer[2] = level;
+                //println!("client_writer_thread SEND MESSAGE {level} {message}");
                 if let Ok(ref mut config) = config.lock() {
-                    let _ = stream.write_all(&buffer);
+                    let size;
                     let seal = config.seal.clone();
                     let seal = aead::Aad::from(&seal);
                     if let Some(ref mut sk) = config.sk {
                         let mut encrypted = message.as_bytes().to_vec();
                         sk.seal_in_place_append_tag(seal, &mut encrypted)
                             .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+                        size = encrypted.len();
+                        buffer[0] = size as u8;
+                        buffer[1] = (size >> 8) as u8;
+                        buffer[2] = level;
+                        let _ = stream.write_all(&buffer);
                         let _ = stream.write_all(&encrypted);
                     } else {
+                        size = message.len();
+                        buffer[0] = size as u8;
+                        buffer[1] = (size >> 8) as u8;
+                        buffer[2] = level;
+                        let _ = stream.write_all(&buffer);
                         let _ = stream.write_all(message.as_bytes());
                     }
+                    stream.flush()?;
                 }
             }
             ClientTypeEnum::Sync => {
+                println!("client_writer_thread SYNC");
                 sync_tx.send(1)?;
             }
             ClientTypeEnum::Stop => {
+                println!("client_writer_thread STOP");
                 break;
             }
         }

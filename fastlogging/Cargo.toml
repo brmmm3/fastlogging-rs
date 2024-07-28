@@ -53,6 +53,9 @@ windows-sys = { version = "0.52", features = [
 criterion = { version = "0.5", features = ["html_reports"] }
 tempdir = "0.3"
 
+[target.'cfg(unix)'.dev-dependencies]
+fork = "0.2"
+
 #[[bench]]
 #name = "benchmarks"
 #path = "benches/benchmarks.rs"

@@ -35,6 +35,24 @@ impl EncryptionMethod {
             Self::AES(key) => key.len(),
         }
     }
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        match self {
+            Self::NONE => {
+                bytes.push(0);
+            }
+            Self::AuthKey(key) => {
+                bytes.push(1);
+                bytes.extend(key);
+            }
+            Self::AES(key) => {
+                bytes.push(2);
+                bytes.extend(key);
+            }
+        }
+        bytes
+    }
 }
 
 #[derive(Debug)]
