@@ -74,7 +74,7 @@ fn sync(
         file.unwrap_or_default(),
         client.unwrap_or_default(),
         syslog.unwrap_or_default(),
-        timeout.unwrap_or_default(),
+        timeout.unwrap_or(1.0),
     )?)
 }
 
@@ -98,6 +98,11 @@ fn set_encryption(writer: WriterTypeEnum, key: EncryptionMethod) -> PyResult<()>
 }
 
 // Config
+
+#[pyfunction]
+pub fn set_debug(debug: u8) {
+    fastlogging::set_debug(debug);
+}
 
 #[pyfunction]
 fn get_config(writer: WriterTypeEnum) -> PyResult<WriterConfigEnum> {
@@ -217,6 +222,7 @@ fn init(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(sync_all, m)?)?;
     m.add_function(wrap_pyfunction!(rotate, m)?)?;
     m.add_function(wrap_pyfunction!(set_encryption, m)?)?;
+    m.add_function(wrap_pyfunction!(set_debug, m)?)?;
     m.add_function(wrap_pyfunction!(get_config, m)?)?;
     m.add_function(wrap_pyfunction!(get_server_config, m)?)?;
     m.add_function(wrap_pyfunction!(get_server_auth_key, m)?)?;

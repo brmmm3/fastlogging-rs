@@ -219,6 +219,10 @@ impl Logging {
 
     // Config
 
+    pub fn set_debug(&mut self, debug: u8) {
+        self.instance.set_debug(debug);
+    }
+
     pub fn get_config(&self, writer: WriterTypeEnum) -> PyResult<WriterConfigEnum> {
         self.instance
             .get_config(&(writer.into()))

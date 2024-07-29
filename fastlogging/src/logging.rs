@@ -877,6 +877,9 @@ impl Logging {
     pub fn set_debug(&mut self, debug: u8) {
         let mut config = self.instance.lock().unwrap();
         config.debug = debug;
+        for writer in config.clients.values_mut() {
+            writer.config.lock().unwrap().debug = debug;
+        }
         for server in config.servers.values_mut() {
             server.config.lock().unwrap().debug = debug;
         }

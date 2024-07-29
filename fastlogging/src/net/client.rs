@@ -57,10 +57,17 @@ fn client_writer_thread(
     sync_tx: Sender<u8>,
     stop: Arc<Mutex<bool>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let address = config.lock().unwrap().address.clone();
-    //println!("client_writer_thread connecting to {address}");
-    let mut stream = BufWriter::new(TcpStream::connect(address)?);
-    //println!("client_writer_thread CONNECTED");
+    let (address, debug) = {
+        let config = config.lock().unwrap();
+        (config.address.clone(), config.debug)
+    };
+    if debug > 0 {
+        println!("client_writer_thread CONNECTING to {address}");
+    }
+    let mut stream = BufWriter::new(TcpStream::connect(&address)?);
+    if debug > 0 {
+        println!("client_writer_thread CONNECTED to {address}");
+    }
     let mut buffer = [0u8; 3];
     {
         let config = config.lock().unwrap();
@@ -77,6 +84,9 @@ fn client_writer_thread(
     }
     loop {
         if *stop.lock().unwrap() {
+            if debug > 0 {
+                println!("client_writer_thread STOP signal");
+            }
             break;
         }
         match rx.recv()? {
@@ -108,11 +118,15 @@ fn client_writer_thread(
                 }
             }
             ClientTypeEnum::Sync => {
-                println!("client_writer_thread SYNC");
+                if debug > 0 {
+                    println!("client_writer_thread SYNC");
+                }
                 sync_tx.send(1)?;
             }
             ClientTypeEnum::Stop => {
-                println!("client_writer_thread STOP");
+                if debug > 0 {
+                    println!("client_writer_thread STOP received");
+                }
                 break;
             }
         }

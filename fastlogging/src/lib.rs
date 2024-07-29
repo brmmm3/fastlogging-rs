@@ -96,6 +96,18 @@ pub fn set_encryption(writer: WriterTypeEnum, key: EncryptionMethod) -> Result<(
 
 // Config
 
+pub fn set_debug(debug: u8) {
+    let logger = ROOT_LOGGER.lock().unwrap();
+    let mut config = logger.instance.lock().unwrap();
+    config.debug = debug;
+    for writer in config.clients.values_mut() {
+        writer.config.lock().unwrap().debug = debug;
+    }
+    for server in config.servers.values_mut() {
+        server.config.lock().unwrap().debug = debug;
+    }
+}
+
 pub fn get_config(writer: &WriterTypeEnum) -> Result<WriterConfigEnum, Error> {
     ROOT_LOGGER.lock().unwrap().get_config(writer)
 }

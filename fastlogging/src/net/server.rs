@@ -3,6 +3,7 @@ use std::{
     fmt,
     io::{Error, ErrorKind, Read, Write},
     net::{Shutdown, TcpListener, TcpStream},
+    process,
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc, Mutex,
@@ -228,16 +229,18 @@ fn server_thread(
     tx: Sender<LoggingTypeEnum>,
     stop: Arc<Mutex<bool>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    let mut debug = config.lock().unwrap().debug;
     let pool = threadpool::ThreadPool::new(num_cpus::get());
     let clients: Arc<Mutex<HashMap<std::net::SocketAddr, TcpStream>>> =
         Arc::new(Mutex::new(HashMap::new()));
     let buggy_clients: Arc<Mutex<HashMap<std::net::SocketAddr, usize>>> =
         Arc::new(Mutex::new(HashMap::new()));
     let stop_server = Arc::new(AtomicBool::new(false));
-    if config.lock().unwrap().debug > 0 {
-        println!("server_thread STARTED");
+    if debug > 0 {
+        println!("server_thread STARTED {}", process::id());
     }
     for stream in listener.incoming() {
+        debug = config.lock().unwrap().debug;
         if *stop.lock().unwrap() || stop_server.load(Ordering::Relaxed) {
             //println!("server_thread STOPPING. Inform Clients");
             let stop_cmd = [255, 255, 255];
@@ -261,8 +264,8 @@ fn server_thread(
                 continue;
             }
         };
-        if config.lock().unwrap().debug > 0 {
-            println!("server_thread: CLIENT CONNECTED {addr:?}");
+        if debug > 0 {
+            println!("server_thread: CLIENT CONNECTED {} {addr:?}", process::id());
         }
         // Clients have are allowed to produce 3 errors. In case of more errors they will be ignored.
         if *buggy_clients.lock().unwrap().get(&addr).unwrap_or(&0) > 3 {
@@ -277,10 +280,22 @@ fn server_thread(
         let clients = clients.clone();
         pool.execute(move || {
             let is_encrypted = config.lock().unwrap().key.is_encrypted();
+            if debug > 0 {
+                println!(
+                    "server_thread: CLIENT {} {addr:?} ENCRYPTED {is_encrypted}",
+                    process::id()
+                );
+            }
             let result = match is_encrypted {
                 false => handle_client(config, &mut stream, tx, stop, stop_server.clone()),
                 true => handle_encrypted_client(config, &mut stream, tx, stop, stop_server.clone()),
             };
+            if debug > 0 {
+                println!(
+                    "server_thread: CLIENT DISCONNECTED {} {addr:?}",
+                    process::id()
+                );
+            }
             clients.lock().unwrap().remove(&addr);
             match result {
                 Ok(stop) => {
@@ -301,9 +316,12 @@ fn server_thread(
             }
         });
     }
+    if debug > 0 {
+        println!("server_thread: JOIN {}", process::id());
+    }
     pool.join();
-    if config.lock().unwrap().debug > 0 {
-        println!("server_thread: FINISHED");
+    if debug > 0 {
+        println!("server_thread: FINISHED {}", process::id());
     }
     Ok(())
 }
