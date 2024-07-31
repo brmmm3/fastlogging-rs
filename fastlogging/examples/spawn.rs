@@ -35,6 +35,7 @@ fn run_child(ppid: u32) -> Result<(), Error> {
 
 fn main() -> Result<(), Error> {
     println!("\n# Start main with pid {}", process::id());
+    fastlogging::set_debug(3);
     if let Some(ppid) = get_parent_pid() {
         // This is the child
         run_child(ppid)?;
@@ -48,7 +49,9 @@ fn main() -> Result<(), Error> {
     }
     println!("# Continue main with pid {}", process::id());
     fastlogging::debug("Debug Message from main")?;
+    println!("# Shutdown main with pid {}", process::id());
+    fastlogging::shutdown(false)?;
     thread::sleep(Duration::from_millis(100));
-    println!("# main finished\n");
+    println!("# main with pid {} finished\n", process::id());
     Ok(())
 }

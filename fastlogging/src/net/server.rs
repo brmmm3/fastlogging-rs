@@ -3,6 +3,7 @@ use std::{
     fmt,
     io::{Error, ErrorKind, Read, Write},
     net::{Shutdown, TcpListener, TcpStream},
+    path::PathBuf,
     process,
     sync::{
         atomic::{AtomicBool, Ordering},
@@ -26,6 +27,7 @@ pub struct ServerConfig {
     pub address: String,
     pub port: u16,
     pub key: EncryptionMethod,
+    pub port_file: Option<PathBuf>,
 }
 
 impl ServerConfig {
@@ -46,6 +48,7 @@ impl ServerConfig {
             address,
             port,
             key,
+            port_file: None,
         }
     }
 }
@@ -242,7 +245,13 @@ fn server_thread(
     for stream in listener.incoming() {
         debug = config.lock().unwrap().debug;
         if *stop.lock().unwrap() || stop_server.load(Ordering::Relaxed) {
-            //println!("server_thread STOPPING. Inform Clients");
+            if debug > 0 {
+                println!(
+                    "server_thread: STOPPING pid={}. Inform {} Clients",
+                    process::id(),
+                    clients.lock().unwrap().len()
+                );
+            }
             let stop_cmd = [255, 255, 255];
             for (_addr, mut stream) in clients.lock().unwrap().drain() {
                 stream.write_all(&stop_cmd)?;
@@ -265,7 +274,11 @@ fn server_thread(
             }
         };
         if debug > 0 {
-            println!("server_thread: CLIENT CONNECTED {} {addr:?}", process::id());
+            println!(
+                "server_thread: CLIENT {} CONNECTED pid={} {addr:?}",
+                clients.lock().unwrap().len() + 1,
+                process::id()
+            );
         }
         // Clients have are allowed to produce 3 errors. In case of more errors they will be ignored.
         if *buggy_clients.lock().unwrap().get(&addr).unwrap_or(&0) > 3 {
@@ -292,7 +305,8 @@ fn server_thread(
             };
             if debug > 0 {
                 println!(
-                    "server_thread: CLIENT DISCONNECTED {} {addr:?}",
+                    "server_thread: CLIENT {} DISCONNECTED pid={} {addr:?}",
+                    clients.lock().unwrap().len(),
                     process::id()
                 );
             }
@@ -317,11 +331,15 @@ fn server_thread(
         });
     }
     if debug > 0 {
-        println!("server_thread: JOIN {}", process::id());
+        println!(
+            "server_thread: JOIN pid={} CLIENTS={}",
+            process::id(),
+            clients.lock().unwrap().len()
+        );
     }
     pool.join();
     if debug > 0 {
-        println!("server_thread: FINISHED {}", process::id());
+        println!("server_thread: FINISHED pid={}", process::id());
     }
     Ok(())
 }
@@ -379,8 +397,15 @@ impl LoggingServer {
                     listener
                 };
                 tx_started.send(1).expect("Failed to send started signal");
-                if let Err(err) = server_thread(config_clone, listener, tx, stop) {
+                if let Err(err) = server_thread(config_clone.clone(), listener, tx, stop) {
                     eprintln!("LOGSRV: server_thread: {err:?}");
+                }
+                println!("SERVER FIN");
+                if let Some(ref port_file) = config_clone.lock().unwrap().port_file {
+                    println!("Remove PORT FILE {port_file:?}");
+                    if let Err(err) = std::fs::remove_file(port_file) {
+                        eprintln!("LOGSRV: Failed to remove port file {port_file:?}: {err:?}");
+                    }
                 }
             })?;
         // Wait for thread started

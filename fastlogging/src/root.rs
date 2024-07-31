@@ -86,12 +86,26 @@ pub static ROOT_LOGGER: Lazy<Mutex<Logging>> = Lazy::new(|| {
         //println!("---setup_logging");
         // Check if parent process with fastlogging instance exists.
         let mut logging = create_default_logger(None);
-        if let Some(server_port) = logging.get_server_ports().get(0) {
+        if let Some(server) = logging.get_server_configs().get(0) {
             let port_file = get_port_file(process::id());
-            //println!("Create port_file {port_file:?} for port {server_port}");
+            // Server config above is just a copy. So we need to access the original directly.
+            logging
+                .instance
+                .lock()
+                .unwrap()
+                .servers
+                .values()
+                .collect::<Vec<_>>()
+                .get_mut(0)
+                .unwrap()
+                .config
+                .lock()
+                .unwrap()
+                .port_file = Some(port_file.clone());
+            println!("Create port_file {port_file:?} for port {}", server.port);
             //println!("SERVER_AUTH_KEY {:?}", logging.get_server_auth_key());
             let mut file = fs::File::create(port_file)?;
-            file.write_all(&u16::to_le_bytes(*server_port))?;
+            file.write_all(&u16::to_le_bytes(server.port))?;
             file.write_all(&logging.get_server_auth_key().to_bytes())?;
         }
         if let Some((server_address, encryption)) = get_parent_server_address()? {

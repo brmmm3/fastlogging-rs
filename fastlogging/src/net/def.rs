@@ -1,6 +1,7 @@
 use std::{
     fmt,
     io::{Error, ErrorKind},
+    path::PathBuf,
 };
 
 use once_cell::sync::Lazy;
@@ -22,6 +23,7 @@ pub struct NetConfig {
     pub key: EncryptionMethod,
     pub sk: Option<SealingKey<NonceGenerator>>,
     pub seal: String,
+    pub port_file: Option<PathBuf>,
     pub debug: u8,
 }
 
@@ -39,6 +41,7 @@ impl NetConfig {
             key: key.clone(),
             sk: None,
             seal: "FastLoggingRs".to_string(),
+            port_file: None,
             debug: 0,
         };
         config.set_encryption(key)?;
@@ -80,6 +83,7 @@ impl NetConfig {
             address: self.address.clone(),
             port: self.port,
             key: self.key.clone(),
+            port_file: self.port_file.clone(),
         }
     }
 
