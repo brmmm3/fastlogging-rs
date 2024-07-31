@@ -17,9 +17,12 @@ pub use net::{ClientWriter, ClientWriterConfig, EncryptionMethod, LoggingServer,
 mod console;
 pub use console::{ConsoleWriter, ConsoleWriterConfig};
 mod syslog;
+use root::PARENT_LOGGER_ADDRESS;
 pub use syslog::{SyslogWriter, SyslogWriterConfig};
+mod root;
+pub use root::ROOT_LOGGER;
 mod logging;
-pub use logging::{Logging, ROOT_LOGGER};
+pub use logging::Logging;
 mod logger;
 pub use logger::Logger;
 #[cfg(target_family = "unix")]
@@ -126,6 +129,28 @@ pub fn get_config_string() -> String {
 
 pub fn save_config(path: &Path) -> Result<(), Error> {
     ROOT_LOGGER.lock().unwrap().save_config(path)
+}
+
+pub fn get_parent_pid() -> Option<u32> {
+    // Initialize root logger is not already done.
+    let _logger = ROOT_LOGGER.lock().unwrap();
+    PARENT_LOGGER_ADDRESS.lock().unwrap().as_ref().map(|v| v.0)
+}
+
+pub fn get_parent_server_address() -> Option<ClientWriterConfig> {
+    // Initialize root logger is not already done.
+    let _logger = ROOT_LOGGER.lock().unwrap();
+    PARENT_LOGGER_ADDRESS
+        .lock()
+        .unwrap()
+        .as_ref()
+        .map(|v| v.1.clone())
+}
+
+pub fn get_parent_pid_server_address() -> Option<(u32, ClientWriterConfig)> {
+    // Initialize root logger is not already done.
+    let _logger = ROOT_LOGGER.lock().unwrap();
+    PARENT_LOGGER_ADDRESS.lock().unwrap().clone()
 }
 
 // Logging methods
