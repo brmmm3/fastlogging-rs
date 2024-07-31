@@ -129,6 +129,21 @@ fn save_config(path: PathBuf) -> PyResult<()> {
     Ok(fastlogging::save_config(&path)?)
 }
 
+#[pyfunction]
+pub fn get_parent_pid() -> Option<u32> {
+    fastlogging::get_parent_pid()
+}
+
+#[pyfunction]
+pub fn get_parent_server_address() -> Option<ClientWriterConfig> {
+    fastlogging::get_parent_server_address().map(|v| v.into())
+}
+
+#[pyfunction]
+pub fn get_parent_pid_server_address() -> Option<(u32, ClientWriterConfig)> {
+    fastlogging::get_parent_pid_server_address().map(|(ppid, config)| (ppid, config.into()))
+}
+
 // Logging methods
 
 #[pyfunction]
@@ -228,6 +243,9 @@ fn init(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(get_server_auth_key, m)?)?;
     m.add_function(wrap_pyfunction!(get_config_string, m)?)?;
     m.add_function(wrap_pyfunction!(save_config, m)?)?;
+    m.add_function(wrap_pyfunction!(get_parent_pid, m)?)?;
+    m.add_function(wrap_pyfunction!(get_parent_server_address, m)?)?;
+    m.add_function(wrap_pyfunction!(get_parent_pid_server_address, m)?)?;
     m.add_function(wrap_pyfunction!(trace, m)?)?;
     m.add_function(wrap_pyfunction!(debug, m)?)?;
     m.add_function(wrap_pyfunction!(info, m)?)?;
