@@ -9,7 +9,7 @@ use std::{
 use flume::{bounded, Receiver, SendError, Sender};
 use syslog::{Facility, Formatter3164};
 
-use crate::{CRITICAL, DEBUG, ERROR, EXCEPTION, INFO, SUCCESS, WARNING};
+use crate::{LoggingError, CRITICAL, DEBUG, ERROR, EXCEPTION, INFO, SUCCESS, WARNING};
 
 #[derive(Debug)]
 pub enum SyslogTypeEnum {
@@ -50,10 +50,12 @@ fn syslog_writer_thread(
     rx: Receiver<SyslogTypeEnum>,
     sync_tx: Sender<u8>,
     stop: Arc<Mutex<bool>>,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), LoggingError> {
     let mut writer = match syslog::unix(config.lock().unwrap().formatter.clone()) {
         Ok(w) => w,
-        Err(err) => Err(format!("impossible to connect to syslog: {err:?}"))?,
+        Err(err) => Err(LoggingError::SyslogError(format!(
+            "impossible to connect to syslog: {err:?}"
+        )))?,
     };
     loop {
         if *stop.lock().unwrap() {

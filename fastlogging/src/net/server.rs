@@ -2,7 +2,7 @@ use std::{
     collections::HashMap,
     fmt,
     io::{Error, ErrorKind, Read, Write},
-    net::{Shutdown, TcpListener, TcpStream},
+    net::{TcpListener, TcpStream},
     path::PathBuf,
     process,
     sync::{
@@ -16,7 +16,7 @@ use std::{
 use flume::{bounded, Sender};
 use ring::aead::{self, BoundKey};
 
-use crate::def::LoggingTypeEnum;
+use crate::{def::LoggingTypeEnum, LoggingError};
 
 use super::{def::NetConfig, EncryptionMethod, NonceGenerator};
 
@@ -87,7 +87,7 @@ fn handle_client(
     tx: Sender<LoggingTypeEnum>,
     stop: Arc<Mutex<bool>>,
     stop_server: Arc<AtomicBool>,
-) -> Result<bool, Box<dyn std::error::Error>> {
+) -> Result<bool, LoggingError> {
     //println!("handle_client");
     let perr_addr = stream.peer_addr().unwrap().to_string();
     let mut buffer = [0u8; 4352];
@@ -106,19 +106,25 @@ fn handle_client(
         if debug > 1 {
             println!("handle_client: WAIT");
         }
-        //println!("handle_client: WAIT");
+        /*println!(
+            "--handle_client: WAIT {:?} {}",
+            stream.peer_addr(),
+            process::id()
+        );*/
         if let Err(err) = read(stream, &mut buffer, 3) {
             if err.kind() == ErrorKind::WouldBlock {
                 continue;
             }
-            println!("handle_client: ERROR {err:?} {:?}", &buffer[..3]);
+            eprintln!("handle_client: ERROR {err:?} {:?}", &buffer[..3]);
             break;
         }
         let size = (buffer[0] as usize) | ((buffer[1] as usize) << 8);
         if size > buffer.len() {
             // Exit if received data is too big
             if size < 0xffff {
-                Err(format!("Receive size {size} is too big"))?;
+                Err(LoggingError::RecvError(format!(
+                    "Receive size {size} is too big"
+                )))?;
             }
             return Ok(true);
         }
@@ -135,7 +141,7 @@ fn handle_client(
                 &buffer[..size]
             );*/
             if key.len() != size || !key.starts_with(&buffer[..size]) {
-                Err("Invalid auth key".to_string())?;
+                Err(LoggingError::RecvError("Invalid auth key".to_string()))?;
             }
             if debug > 1 {
                 println!("handle_client: AUTHENTICATED");
@@ -156,7 +162,11 @@ fn handle_client(
             tx.send(LoggingTypeEnum::MessageRemote((msg_level, message)))?;
         }
     }
-    //println!("handle_client: FINISHED");
+    /*println!(
+        "handle_client: FINISHED {:?} {}",
+        stream.peer_addr(),
+        process::id()
+    );*/
     Ok(false)
 }
 
@@ -166,7 +176,7 @@ fn handle_encrypted_client(
     tx: Sender<LoggingTypeEnum>,
     stop: Arc<Mutex<bool>>,
     stop_server: Arc<AtomicBool>,
-) -> Result<bool, Box<dyn std::error::Error>> {
+) -> Result<bool, LoggingError> {
     //println!("handle_encrypted_client");
     let perr_addr = stream.peer_addr().unwrap().to_string();
     let mut buffer = [0u8; 4352];
@@ -202,7 +212,9 @@ fn handle_encrypted_client(
         if size > buffer.len() {
             // Exit if received data is too big
             if size < 0xffff {
-                Err(format!("Receive size {size} is too big"))?;
+                Err(LoggingError::RecvError(format!(
+                    "Receive size {size} is too big"
+                )))?;
             }
             return Ok(true);
         }
@@ -231,7 +243,7 @@ fn server_thread(
     listener: TcpListener,
     tx: Sender<LoggingTypeEnum>,
     stop: Arc<Mutex<bool>>,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), LoggingError> {
     let mut debug = config.lock().unwrap().debug;
     let pool = threadpool::ThreadPool::new(num_cpus::get());
     let clients: Arc<Mutex<HashMap<std::net::SocketAddr, TcpStream>>> =
@@ -400,9 +412,9 @@ impl LoggingServer {
                 if let Err(err) = server_thread(config_clone.clone(), listener, tx, stop) {
                     eprintln!("LOGSRV: server_thread: {err:?}");
                 }
-                println!("SERVER FIN");
+                //println!("SERVER FIN {}", process::id());
                 if let Some(ref port_file) = config_clone.lock().unwrap().port_file {
-                    println!("Remove PORT FILE {port_file:?}");
+                    //println!("Remove PORT FILE {port_file:?}");
                     if let Err(err) = std::fs::remove_file(port_file) {
                         eprintln!("LOGSRV: Failed to remove port file {port_file:?}: {err:?}");
                     }
@@ -430,7 +442,8 @@ impl LoggingServer {
             loop {
                 let mut stream = TcpStream::connect(self.config.lock().unwrap().get_address())?;
                 stream.write_all(&stop_cmd)?;
-                stream.shutdown(Shutdown::Both)?;
+                stream.flush()?;
+                //stream.shutdown(Shutdown::Both)?;
                 thread::sleep(Duration::from_millis(10));
                 if thr.is_finished() {
                     break;

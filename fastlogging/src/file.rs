@@ -11,6 +11,8 @@ use std::{
 use flume::{bounded, Receiver, RecvTimeoutError, Sender};
 use zip::{write::SimpleFileOptions, ZipWriter};
 
+use crate::LoggingError;
+
 const BACKLOG_MAX: usize = 1000;
 const QUEUE_CAPACITY: usize = 10000;
 const DEFAULT_DELAY: u64 = 3600;
@@ -148,7 +150,7 @@ fn file_writer_thread_worker(
     rx: Receiver<FileTypeEnum>,
     stop: Arc<Mutex<bool>>,
     sync_tx: Sender<u8>,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), LoggingError> {
     let path = config.lock().unwrap().path.clone();
     let mut create_time = SystemTime::now();
     let mut file = BufWriter::new(OpenOptions::new().create(true).append(true).open(&path)?);
@@ -221,7 +223,7 @@ fn file_writer_thread(
     rx: Receiver<FileTypeEnum>,
     stop: Arc<Mutex<bool>>,
     sync_tx: Sender<u8>,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), LoggingError> {
     if let Err(err) = file_writer_thread_worker(config.clone(), rx, stop, sync_tx) {
         eprintln!("Logging file worker crashed with error: {err:?}");
         eprintln!("{:#?}", config.lock().unwrap());

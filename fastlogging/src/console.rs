@@ -9,7 +9,9 @@ use std::{
 use flume::{bounded, Receiver, SendError, Sender};
 use termcolor::{BufferWriter, Color, ColorChoice, ColorSpec, WriteColor};
 
-use crate::{CRITICAL, DEBUG, ERROR, EXCEPTION, INFO, NOTSET, SUCCESS, TRACE, WARNING};
+use crate::{
+    LoggingError, CRITICAL, DEBUG, ERROR, EXCEPTION, INFO, NOTSET, SUCCESS, TRACE, WARNING,
+};
 
 #[derive(Debug)]
 pub enum ConsoleTypeEnum {
@@ -51,7 +53,7 @@ fn console_writer_thread(
     rx: Receiver<ConsoleTypeEnum>,
     sync_tx: Sender<u8>,
     stop: Arc<Mutex<bool>>,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), LoggingError> {
     let bufwtr = BufferWriter::stdout(ColorChoice::Always);
     let mut buffer = bufwtr.buffer();
     loop {

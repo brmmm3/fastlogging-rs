@@ -49,7 +49,7 @@ pub static ROOT_LOGGER: Lazy<Mutex<Logging>> = Lazy::new(|| {
     fn get_parent_server_address() -> Result<Option<(String, EncryptionMethod)>, Error> {
         /*println!("get_parent_server_address");
         println!(
-            "## {} {}",
+            "## pid={} ppid={}",
             process::id(),
             std::os::unix::process::parent_id()
         );*/
@@ -61,7 +61,7 @@ pub static ROOT_LOGGER: Lazy<Mutex<Logging>> = Lazy::new(|| {
             if fs::File::open(port_file)?.read_to_end(&mut buffer)? >= 4 {
                 let port = u16::from_le_bytes(buffer[..2].try_into().unwrap());
                 let address = format!("127.0.0.1:{port}");
-                //println!("Connecting to address={address}");
+                //println!("TRY connecting to address={address}");
                 let encryption = match buffer[2] {
                     0 => EncryptionMethod::NONE,
                     1 => EncryptionMethod::AuthKey(buffer[3..].to_vec()),
@@ -73,8 +73,12 @@ pub static ROOT_LOGGER: Lazy<Mutex<Logging>> = Lazy::new(|| {
                         ))
                     }
                 };
-                if TcpStream::connect(&address).is_ok() {
-                    //println!("CONNECTED to {address}");
+                if let Ok(mut stream) = TcpStream::connect(&address) {
+                    //println!("OK CONNECTED to {address}");
+                    let buffer = vec![0xffu8, 0xffu8, 0xffu8];
+                    stream.write_all(&buffer)?;
+                    stream.flush()?;
+                    //stream.shutdown(Shutdown::Both)?;
                     return Ok(Some((address, encryption)));
                 }
             }
@@ -102,16 +106,17 @@ pub static ROOT_LOGGER: Lazy<Mutex<Logging>> = Lazy::new(|| {
                 .lock()
                 .unwrap()
                 .port_file = Some(port_file.clone());
-            println!("Create port_file {port_file:?} for port {}", server.port);
+            //println!("Create port_file {port_file:?} for port {}", server.port);
             //println!("SERVER_AUTH_KEY {:?}", logging.get_server_auth_key());
             let mut file = fs::File::create(port_file)?;
             file.write_all(&u16::to_le_bytes(server.port))?;
             file.write_all(&logging.get_server_auth_key().to_bytes())?;
         }
         if let Some((server_address, encryption)) = get_parent_server_address()? {
-            //println!("** CHILD {} ", process::id());
+            //println!("** CHILD {}", process::id());
             // Connect to parent server port
-            let client = ClientWriterConfig::new(NOTSET, server_address, encryption);
+            let mut client = ClientWriterConfig::new(NOTSET, server_address, encryption);
+            client.debug = logging.instance.lock().unwrap().debug;
             *PARENT_LOGGER_ADDRESS.lock().unwrap() = Some((getppid(), client.clone()));
             //println!("ADD_WRITER {client:?}");
             logging.add_writer(&WriterConfigEnum::Client(client))?;

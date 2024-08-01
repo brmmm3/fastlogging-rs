@@ -10,6 +10,8 @@ use std::{
 use flume::{bounded, Receiver, SendError, Sender};
 use ring::aead;
 
+use crate::LoggingError;
+
 use super::{def::NetConfig, EncryptionMethod};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -26,6 +28,7 @@ pub struct ClientWriterConfig {
     pub(crate) address: String,
     pub(crate) port: u16,
     pub(crate) key: EncryptionMethod,
+    pub(crate) debug: u8,
 }
 
 impl ClientWriterConfig {
@@ -41,6 +44,7 @@ impl ClientWriterConfig {
             address,
             port,
             key,
+            debug: 0,
         }
     }
 }
@@ -56,7 +60,7 @@ fn client_writer_thread(
     rx: Receiver<ClientTypeEnum>,
     sync_tx: Sender<u8>,
     stop: Arc<Mutex<bool>>,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), LoggingError> {
     let (address, debug) = {
         let config = config.lock().unwrap();
         (config.address.clone(), config.debug)
@@ -64,10 +68,18 @@ fn client_writer_thread(
     if debug > 0 {
         println!("client_writer_thread CONNECTING to {address}");
     }
+    /*println!(
+        "++client_writer_thread CONNECTING to {address} {}",
+        std::process::id()
+    );*/
     let mut stream = BufWriter::new(TcpStream::connect(&address)?);
     if debug > 0 {
         println!("client_writer_thread CONNECTED to {address}");
     }
+    /*println!(
+        "++client_writer_thread CONNECTED to {address} {}",
+        std::process::id()
+    );*/
     let mut buffer = [0u8; 3];
     {
         let config = config.lock().unwrap();
@@ -87,11 +99,15 @@ fn client_writer_thread(
             if debug > 0 {
                 println!("client_writer_thread STOP signal");
             }
+            //println!("++client_writer_thread STOP signal {}", std::process::id());
             break;
         }
         match rx.recv()? {
             ClientTypeEnum::Message((level, message)) => {
-                //println!("client_writer_thread SEND MESSAGE {level} {message}");
+                /*println!(
+                    "++client_writer_thread SEND MESSAGE {} {level} {message}",
+                    std::process::id()
+                );*/
                 if let Ok(ref mut config) = config.lock() {
                     let size;
                     let seal = config.seal.clone();
@@ -121,16 +137,23 @@ fn client_writer_thread(
                 if debug > 0 {
                     println!("client_writer_thread SYNC");
                 }
+                //println!("++client_writer_thread SYNC {}", std::process::id());
                 sync_tx.send(1)?;
             }
             ClientTypeEnum::Stop => {
                 if debug > 0 {
                     println!("client_writer_thread STOP received");
                 }
+                /*println!(
+                    "++client_writer_thread STOP received {}",
+                    std::process::id()
+                );*/
                 break;
             }
         }
     }
+    //stream.into_inner()?.shutdown(Shutdown::Both)?;
+    //println!("++client_writer_thread FIN {}", std::process::id());
     Ok(())
 }
 
@@ -143,13 +166,14 @@ pub struct ClientWriter {
 }
 
 impl ClientWriter {
-    pub fn new(config: ClientWriterConfig, stop: Arc<Mutex<bool>>) -> Result<Self, Error> {
+    pub fn new(writer: ClientWriterConfig, stop: Arc<Mutex<bool>>) -> Result<Self, Error> {
         let config = Arc::new(Mutex::new(NetConfig::new(
-            config.level,
-            config.address,
-            config.port,
-            config.key,
+            writer.level,
+            writer.address,
+            writer.port,
+            writer.key,
         )?));
+        config.lock().unwrap().debug = writer.debug;
         let (tx, rx) = bounded(1000);
         let (sync_tx, sync_rx) = bounded(1);
         let (tx_started, rx_started) = bounded(1);
@@ -160,8 +184,12 @@ impl ClientWriter {
             .spawn(move || {
                 tx_started.send(1).expect("Failed to send started signal");
                 if let Err(err) = client_writer_thread(config_cloned, rx, sync_tx, stop) {
-                    eprintln!("{err:?}");
+                    eprintln!(
+                        "client_writer_thread: Finished with error: {} {err:?}",
+                        std::process::id()
+                    );
                 }
+                //println!("++client_writer_thread FINISHED {}", std::process::id());
             })?;
         rx_started
             .recv_timeout(Duration::from_millis(100))

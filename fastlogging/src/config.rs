@@ -226,6 +226,7 @@ impl LoggingInstance {
                             address: config.address.clone(),
                             port: config.port,
                             key: config.key.clone(),
+                            debug: config.debug,
                         }
                     })
                 })

@@ -1,6 +1,6 @@
 [project]
 name = "fastlogging-rs"
-version = "0.2.0"
+version = "0.3.0"
 authors = [{ name = "Martin Bammer", email = "mrbm74@gmail.com" }]
 description = "A fast logger"
 license = "MIT OR Apache-2.0"

@@ -16,8 +16,8 @@ use crate::net::{
     ClientWriter, ClientWriterConfig, EncryptionMethod, LoggingServer, ServerConfig, AUTH_KEY,
 };
 use crate::{
-    level2short, level2str, level2string, level2sym, LevelSyms, MessageStructEnum, RootConfig,
-    SyslogWriter, WriterConfigEnum, WriterTypeEnum, NOTSET, SUCCESS, TRACE,
+    level2short, level2str, level2string, level2sym, LevelSyms, LoggingError, MessageStructEnum,
+    RootConfig, SyslogWriter, WriterConfigEnum, WriterTypeEnum, NOTSET, SUCCESS, TRACE,
 };
 
 #[inline]
@@ -175,7 +175,7 @@ fn logging_thread_worker(
     sync_tx: Sender<u8>,
     config: Arc<Mutex<LoggingInstance>>,
     stop: Arc<Mutex<bool>>,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), LoggingError> {
     let mut buffer = String::with_capacity(4096);
     loop {
         if *stop.lock().unwrap() {
@@ -311,10 +311,13 @@ fn logging_thread(
     sync_tx: Sender<u8>,
     config: Arc<Mutex<LoggingInstance>>,
     stop: Arc<Mutex<bool>>,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), LoggingError> {
     let mut some_err = None;
     if let Err(err) = logging_thread_worker(rx, sync_tx, config.clone(), stop) {
-        eprintln!("Logging broker thread crashed with error: {err:?}");
+        eprintln!(
+            "Logging broker thread crashed with error: {} {err:?}",
+            std::process::id()
+        );
         some_err = Some(err);
     }
     if let Ok(mut config) = config.lock() {

@@ -3,7 +3,7 @@ pub use def::AUTH_KEY;
 mod server;
 pub use server::{LoggingServer, ServerConfig};
 mod client;
-pub use client::{ClientWriter, ClientWriterConfig};
+pub use client::{ClientTypeEnum, ClientWriter, ClientWriterConfig};
 mod encryption;
 pub use encryption::{EncryptionMethod, NonceGenerator};
 

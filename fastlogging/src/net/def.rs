@@ -93,6 +93,7 @@ impl NetConfig {
             address: self.address.clone(),
             port: self.port,
             key: self.key.clone(),
+            debug: self.debug,
         }
     }
 }

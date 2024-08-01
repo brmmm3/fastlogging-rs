@@ -1,8 +1,9 @@
 import os
+import time
 
 import fastlogging_rs as fl
 
-fl.set_debug(3)
+# fl.set_debug(3)
 
 
 def run_parent():
@@ -32,13 +33,13 @@ if __name__ == "__main__":
     freeze_support()
     ppid = os.getpid()
     print(f"# Start main with pid {ppid}")
-    cnt = 1  # os.cpu_count()
-    pool = Pool(cnt)
-    for _ in range(cnt):
-        pool.apply(run_child, (ppid,))
-    run_parent()
-    pool.close()
-    pool.join()
+    cnt = 3  # os.cpu_count()
+    with Pool(cnt) as pool:
+        results = []
+        for _ in range(cnt):
+            results.append(pool.apply_async(run_child, (ppid,)))
+        run_parent()
+        time.sleep(0.5)
     fl.debug("Debug Message from main")
     fl.sync()
     print("# main finished")

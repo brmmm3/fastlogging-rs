@@ -9,16 +9,20 @@ use std::{
 
 pub use def::*;
 mod config;
+mod error;
 pub use config::{ExtConfig, LoggingConfig};
+pub use error::LoggingError;
 mod file;
 pub use file::{CompressionMethodEnum, FileWriter, FileWriterConfig};
 mod net;
-pub use net::{ClientWriter, ClientWriterConfig, EncryptionMethod, LoggingServer, ServerConfig};
+pub use net::{
+    ClientTypeEnum, ClientWriter, ClientWriterConfig, EncryptionMethod, LoggingServer, ServerConfig,
+};
 mod console;
 pub use console::{ConsoleWriter, ConsoleWriterConfig};
 mod syslog;
 use root::PARENT_LOGGER_ADDRESS;
-pub use syslog::{SyslogWriter, SyslogWriterConfig};
+pub use syslog::{SyslogTypeEnum, SyslogWriter, SyslogWriterConfig};
 mod root;
 pub use root::ROOT_LOGGER;
 mod logging;
