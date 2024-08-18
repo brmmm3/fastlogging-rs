@@ -1,8 +1,6 @@
-use std::io::Error;
+use fastlogging::{Logging, LoggingError, DEBUG};
 
-use fastlogging::{Logging, DEBUG};
-
-fn main() -> Result<(), Error> {
+fn main() -> Result<(), LoggingError> {
     let mut logger = Logging::new(None, None, None, None, None, None, None, Some(DEBUG), None)?;
     logger.trace("Trace Message")?;
     logger.debug("Debug Message")?;

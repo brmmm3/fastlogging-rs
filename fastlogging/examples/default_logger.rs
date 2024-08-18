@@ -1,8 +1,6 @@
-use std::io::Error;
+use fastlogging::{LoggingError, ROOT_LOGGER};
 
-use fastlogging::ROOT_LOGGER;
-
-fn main() -> Result<(), Error> {
+fn main() -> Result<(), LoggingError> {
     let logger = ROOT_LOGGER.lock().unwrap();
     logger.trace("Trace Message")?;
     logger.debug("Debug Message")?;

@@ -1,15 +1,15 @@
-use std::io::Error;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 
 use fastlogging::{
     ClientWriterConfig, CompressionMethodEnum, ConsoleWriterConfig, EncryptionMethod, ExtConfig,
-    FileWriterConfig, Logging, MessageStructEnum, ServerConfig, DEBUG, ERROR, FATAL, INFO,
+    FileWriterConfig, Logging, LoggingError, MessageStructEnum, ServerConfig, DEBUG, ERROR, FATAL,
+    INFO,
 };
 
 const MB: usize = 1024 * 1024;
 
-fn main() -> Result<(), Error> {
+fn main() -> Result<(), LoggingError> {
     let mut logger = Logging::default();
     logger.save_config(Path::new("/tmp/config_default.json"))?;
     logger.save_config(Path::new("/tmp/config_default.xml"))?;

@@ -2,7 +2,11 @@ use std::{
     fmt,
     io::{BufWriter, Error, ErrorKind, Write},
     net::TcpStream,
-    sync::{Arc, Mutex},
+    process,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc, Mutex,
+    },
     thread::{self, JoinHandle},
     time::Duration,
 };
@@ -59,32 +63,32 @@ fn client_writer_thread(
     config: Arc<Mutex<NetConfig>>,
     rx: Receiver<ClientTypeEnum>,
     sync_tx: Sender<u8>,
-    stop: Arc<Mutex<bool>>,
+    stop: Arc<AtomicBool>,
 ) -> Result<(), LoggingError> {
     let (address, debug) = {
         let config = config.lock().unwrap();
         (config.address.clone(), config.debug)
     };
     if debug > 0 {
-        println!("client_writer_thread CONNECTING to {address}");
+        println!(
+            "{} client_writer_thread CONNECTING to {address}",
+            process::id()
+        );
     }
-    /*println!(
-        "++client_writer_thread CONNECTING to {address} {}",
-        std::process::id()
-    );*/
     let mut stream = BufWriter::new(TcpStream::connect(&address)?);
     if debug > 0 {
-        println!("client_writer_thread CONNECTED to {address}");
+        println!(
+            "{} client_writer_thread CONNECTED to {address}",
+            process::id()
+        );
     }
-    /*println!(
-        "++client_writer_thread CONNECTED to {address} {}",
-        std::process::id()
-    );*/
     let mut buffer = [0u8; 3];
     {
         let config = config.lock().unwrap();
         if !config.key.is_encrypted() {
-            //println!("client_writer_thread SEND KEY");
+            if debug > 1 {
+                println!("{} client_writer_thread SEND KEY", process::id());
+            }
             let key = config.key.key().unwrap();
             let size = key.len();
             buffer[0] = size as u8;
@@ -95,19 +99,20 @@ fn client_writer_thread(
         }
     }
     loop {
-        if *stop.lock().unwrap() {
+        if stop.load(Ordering::Relaxed) {
             if debug > 0 {
-                println!("client_writer_thread STOP signal");
+                println!("{} client_writer_thread STOP signal", process::id());
             }
-            //println!("++client_writer_thread STOP signal {}", std::process::id());
             break;
         }
         match rx.recv()? {
             ClientTypeEnum::Message((level, message)) => {
-                /*println!(
-                    "++client_writer_thread SEND MESSAGE {} {level} {message}",
-                    std::process::id()
-                );*/
+                if debug > 1 {
+                    println!(
+                        "{} client_writer_thread SEND MESSAGE {level} {message}",
+                        process::id()
+                    );
+                }
                 if let Ok(ref mut config) = config.lock() {
                     let size;
                     let seal = config.seal.clone();
@@ -135,25 +140,20 @@ fn client_writer_thread(
             }
             ClientTypeEnum::Sync => {
                 if debug > 0 {
-                    println!("client_writer_thread SYNC");
+                    println!("{} client_writer_thread SYNC", process::id());
                 }
-                //println!("++client_writer_thread SYNC {}", std::process::id());
                 sync_tx.send(1)?;
             }
             ClientTypeEnum::Stop => {
                 if debug > 0 {
-                    println!("client_writer_thread STOP received");
+                    println!("{} client_writer_thread STOP received", process::id());
                 }
-                /*println!(
-                    "++client_writer_thread STOP received {}",
-                    std::process::id()
-                );*/
                 break;
             }
         }
     }
     //stream.into_inner()?.shutdown(Shutdown::Both)?;
-    //println!("++client_writer_thread FIN {}", std::process::id());
+    //println!("{} client_writer_thread FIN", process::id());
     Ok(())
 }
 
@@ -166,7 +166,7 @@ pub struct ClientWriter {
 }
 
 impl ClientWriter {
-    pub fn new(writer: ClientWriterConfig, stop: Arc<Mutex<bool>>) -> Result<Self, Error> {
+    pub fn new(writer: ClientWriterConfig, stop: Arc<AtomicBool>) -> Result<Self, LoggingError> {
         let config = Arc::new(Mutex::new(NetConfig::new(
             writer.level,
             writer.address,
@@ -185,20 +185,15 @@ impl ClientWriter {
                 tx_started.send(1).expect("Failed to send started signal");
                 if let Err(err) = client_writer_thread(config_cloned, rx, sync_tx, stop) {
                     eprintln!(
-                        "client_writer_thread: Finished with error: {} {err:?}",
-                        std::process::id()
+                        "{} client_writer_thread: Finished with error: {err:?}",
+                        process::id()
                     );
                 }
-                //println!("++client_writer_thread FINISHED {}", std::process::id());
+                //println!("{} client_writer_thread FINISHED", process::id());
             })?;
         rx_started
             .recv_timeout(Duration::from_millis(100))
-            .map_err(|e| {
-                Error::new(
-                    ErrorKind::Other,
-                    format!("Failed to start logging server: {e}"),
-                )
-            })?;
+            .map_err(|e| LoggingError::RecvError(format!("Failed to start logging server: {e}")))?;
         Ok(Self {
             config,
             tx,
@@ -207,14 +202,18 @@ impl ClientWriter {
         })
     }
 
-    pub fn shutdown(&mut self) -> Result<(), Error> {
+    pub fn shutdown(&mut self) -> Result<(), LoggingError> {
         if let Some(thr) = self.thr.take() {
-            self.tx
-                .send(ClientTypeEnum::Stop)
-                .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+            self.tx.send(ClientTypeEnum::Stop).map_err(|e| {
+                LoggingError::SendCmdError(
+                    "ClientWriter".to_string(),
+                    "STOP".to_string(),
+                    e.to_string(),
+                )
+            })?;
             thr.join().map_err(|e| {
-                Error::new(
-                    ErrorKind::Other,
+                LoggingError::JoinError(
+                    "ClientWriter".to_string(),
                     e.downcast_ref::<&str>().unwrap().to_string(),
                 )
             })
@@ -223,13 +222,23 @@ impl ClientWriter {
         }
     }
 
-    pub fn sync(&self, timeout: f64) -> Result<(), Error> {
-        self.tx
-            .send(ClientTypeEnum::Sync)
-            .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+    pub fn sync(&self, timeout: f64) -> Result<(), LoggingError> {
+        self.tx.send(ClientTypeEnum::Sync).map_err(|e| {
+            LoggingError::SendCmdError(
+                "ClientWriter".to_string(),
+                "SYNC".to_string(),
+                e.to_string(),
+            )
+        })?;
         self.sync_rx
             .recv_timeout(Duration::from_secs_f64(timeout))
-            .map_err(|e| Error::new(ErrorKind::BrokenPipe, e.to_string()))?;
+            .map_err(|e| {
+                LoggingError::RecvAswError(
+                    "ClientWriter".to_string(),
+                    "SYNC".to_string(),
+                    e.to_string(),
+                )
+            })?;
         Ok(())
     }
 
@@ -237,12 +246,14 @@ impl ClientWriter {
         self.config.lock().unwrap().level = level;
     }
 
-    pub fn set_encryption(&mut self, key: EncryptionMethod) -> Result<(), Error> {
+    pub fn set_encryption(&mut self, key: EncryptionMethod) -> Result<(), LoggingError> {
         self.config
             .lock()
             .unwrap()
-            .set_encryption(key)
-            .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))
+            .set_encryption(key.clone())
+            .map_err(|e| {
+                LoggingError::InvalidEncryption("ClientWriter".to_string(), key, e.to_string())
+            })
     }
 
     #[inline]

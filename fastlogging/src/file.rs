@@ -1,9 +1,12 @@
 use std::{
     fmt,
     fs::{rename, File, OpenOptions},
-    io::{BufWriter, Error, ErrorKind, Read, Seek, SeekFrom, Write},
+    io::{BufWriter, Read, Seek, SeekFrom, Write},
     path::{Path, PathBuf},
-    sync::{Arc, Mutex},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc, Mutex,
+    },
     thread::{self, JoinHandle},
     time::{Duration, SystemTime},
 };
@@ -11,7 +14,7 @@ use std::{
 use flume::{bounded, Receiver, RecvTimeoutError, Sender};
 use zip::{write::SimpleFileOptions, ZipWriter};
 
-use crate::LoggingError;
+use crate::{level2str, LoggingError};
 
 const BACKLOG_MAX: usize = 1000;
 const QUEUE_CAPACITY: usize = 10000;
@@ -77,17 +80,15 @@ impl FileWriterConfig {
         timeout: Option<Duration>,
         time: Option<SystemTime>,
         compression: Option<CompressionMethodEnum>,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, LoggingError> {
         if size > 0 || timeout.is_some() || time.is_some() {
             if backlog == 0 {
-                return Err(Error::new(
-                    ErrorKind::InvalidInput,
-                    "For rotating file logger backlog depth has to be set!",
+                return Err(LoggingError::InvalidValue(
+                    "For rotating file logger backlog depth has to be set!".to_string(),
                 ));
             } else if backlog > BACKLOG_MAX {
                 return Err(
-                    Error::new(
-                        ErrorKind::InvalidInput,
+                    LoggingError::InvalidValue(
                         format!(
                             "For rotating file logger backlog depth {backlog} too big! Maximum value is {BACKLOG_MAX}."
                         )
@@ -113,7 +114,11 @@ impl fmt::Display for FileWriterConfig {
     }
 }
 
-fn rotate_do(path: &Path, backlog: usize, compression: CompressionMethodEnum) -> Result<(), Error> {
+fn rotate_do(
+    path: &Path,
+    backlog: usize,
+    compression: CompressionMethodEnum,
+) -> Result<(), LoggingError> {
     for num in 1..backlog {
         let mut backlog_path_old = path.to_path_buf();
         backlog_path_old.set_extension(format!(".log.{}", backlog - num - 1));
@@ -148,7 +153,7 @@ fn rotate_do(path: &Path, backlog: usize, compression: CompressionMethodEnum) ->
 fn file_writer_thread_worker(
     config: Arc<Mutex<FileWriterConfig>>,
     rx: Receiver<FileTypeEnum>,
-    stop: Arc<Mutex<bool>>,
+    stop: Arc<AtomicBool>,
     sync_tx: Sender<u8>,
 ) -> Result<(), LoggingError> {
     let path = config.lock().unwrap().path.clone();
@@ -158,7 +163,7 @@ fn file_writer_thread_worker(
     let newline = vec![b'\n'];
     let default_delay = Duration::from_secs(DEFAULT_DELAY);
     loop {
-        if *stop.lock().unwrap() {
+        if stop.load(Ordering::Relaxed) {
             break;
         }
         let (max_size, backlog, timeout, time, compression) = {
@@ -221,7 +226,7 @@ fn file_writer_thread_worker(
 fn file_writer_thread(
     config: Arc<Mutex<FileWriterConfig>>,
     rx: Receiver<FileTypeEnum>,
-    stop: Arc<Mutex<bool>>,
+    stop: Arc<AtomicBool>,
     sync_tx: Sender<u8>,
 ) -> Result<(), LoggingError> {
     if let Err(err) = file_writer_thread_worker(config.clone(), rx, stop, sync_tx) {
@@ -242,7 +247,7 @@ pub struct FileWriter {
 }
 
 impl FileWriter {
-    pub fn new(config: FileWriterConfig, stop: Arc<Mutex<bool>>) -> Result<Self, Error> {
+    pub fn new(config: FileWriterConfig, stop: Arc<AtomicBool>) -> Result<Self, LoggingError> {
         let config = Arc::new(Mutex::new(config));
         let (tx, rx) = bounded(QUEUE_CAPACITY);
         let (sync_tx, sync_rx) = bounded(1);
@@ -255,21 +260,25 @@ impl FileWriter {
                     .name("FileWriter".to_string())
                     .spawn(move || {
                         if let Err(err) = file_writer_thread(config, rx, stop, sync_tx) {
-                            eprintln!("{err:?}");
+                            eprintln!("file_writer_thread failed: {err:?}");
                         }
                     })?,
             ),
         })
     }
 
-    pub fn shutdown(&mut self) -> Result<(), Error> {
+    pub fn shutdown(&mut self) -> Result<(), LoggingError> {
         if let Some(thr) = self.thr.take() {
-            self.tx
-                .send(FileTypeEnum::Stop)
-                .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+            self.tx.send(FileTypeEnum::Stop).map_err(|e| {
+                LoggingError::SendCmdError(
+                    "FileWriter".to_string(),
+                    "STOP".to_string(),
+                    e.to_string(),
+                )
+            })?;
             thr.join().map_err(|e| {
-                Error::new(
-                    ErrorKind::Other,
+                LoggingError::JoinError(
+                    "FileWriter".to_string(),
                     e.downcast_ref::<&str>().unwrap().to_string(),
                 )
             })
@@ -278,13 +287,19 @@ impl FileWriter {
         }
     }
 
-    pub fn sync(&self, timeout: f64) -> Result<(), Error> {
-        self.tx
-            .send(FileTypeEnum::Sync)
-            .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+    pub fn sync(&self, timeout: f64) -> Result<(), LoggingError> {
+        self.tx.send(FileTypeEnum::Sync).map_err(|e| {
+            LoggingError::SendCmdError("FileWriter".to_string(), "SYNC".to_string(), e.to_string())
+        })?;
         self.sync_rx
             .recv_timeout(Duration::from_secs_f64(timeout))
-            .map_err(|e| Error::new(ErrorKind::BrokenPipe, e.to_string()))?;
+            .map_err(|e| {
+                LoggingError::RecvAswError(
+                    "FileWriter".to_string(),
+                    "SYNC".to_string(),
+                    e.to_string(),
+                )
+            })?;
         Ok(())
     }
 
@@ -299,7 +314,7 @@ impl FileWriter {
         timeout: Option<Duration>,
         time: Option<SystemTime>,
         compression: Option<CompressionMethodEnum>,
-    ) -> Result<(), Error> {
+    ) -> Result<(), LoggingError> {
         let mut config = self.config.lock().unwrap();
         config.size = size;
         config.backlog = backlog;
@@ -309,17 +324,26 @@ impl FileWriter {
         self.sync(5.0)
     }
 
-    pub fn rotate(&self) -> Result<(), Error> {
-        self.tx
-            .send(FileTypeEnum::Rotate)
-            .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))
+    pub fn rotate(&self) -> Result<(), LoggingError> {
+        self.tx.send(FileTypeEnum::Rotate).map_err(|e| {
+            LoggingError::SendError(format!(
+                "Failed to rotate {:?}: {e:?}",
+                self.config.lock().unwrap().path
+            ))
+        })
     }
 
     #[inline]
-    pub fn send(&self, level: u8, message: String) -> Result<(), Error> {
+    pub fn send(&self, level: u8, message: String) -> Result<(), LoggingError> {
         self.tx
             .send(FileTypeEnum::Message((level, message)))
-            .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))
+            .map_err(|e| {
+                LoggingError::SendError(format!(
+                    "FileWriter::send: Failed to send {} message: {}",
+                    level2str(level),
+                    e.to_string()
+                ))
+            })
     }
 }
 

@@ -1,8 +1,6 @@
-use std::io::Error;
+use fastlogging::{ConsoleWriterConfig, Logging, LoggingError, DEBUG};
 
-use fastlogging::{ConsoleWriterConfig, Logging, DEBUG};
-
-fn main() -> Result<(), Error> {
+fn main() -> Result<(), LoggingError> {
     let console = ConsoleWriterConfig::new(DEBUG, true);
     let mut logger = Logging::new(
         None,

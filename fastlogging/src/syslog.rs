@@ -1,7 +1,9 @@
 use std::{
     fmt,
-    io::{Error, ErrorKind},
-    sync::{Arc, Mutex},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc, Mutex,
+    },
     thread::{self, JoinHandle},
     time::Duration,
 };
@@ -49,7 +51,7 @@ fn syslog_writer_thread(
     config: Arc<Mutex<SyslogWriterConfig>>,
     rx: Receiver<SyslogTypeEnum>,
     sync_tx: Sender<u8>,
-    stop: Arc<Mutex<bool>>,
+    stop: Arc<AtomicBool>,
 ) -> Result<(), LoggingError> {
     let mut writer = match syslog::unix(config.lock().unwrap().formatter.clone()) {
         Ok(w) => w,
@@ -58,7 +60,7 @@ fn syslog_writer_thread(
         )))?,
     };
     loop {
-        if *stop.lock().unwrap() {
+        if stop.load(Ordering::Relaxed) {
             break;
         }
         match rx.recv()? {
@@ -92,7 +94,7 @@ pub struct SyslogWriter {
 }
 
 impl SyslogWriter {
-    pub fn new(config: SyslogWriterConfig, stop: Arc<Mutex<bool>>) -> Result<Self, Error> {
+    pub fn new(config: SyslogWriterConfig, stop: Arc<AtomicBool>) -> Result<Self, LoggingError> {
         let config = Arc::new(Mutex::new(config));
         let (tx, rx) = bounded(1000);
         let (sync_tx, sync_rx) = bounded(1);
@@ -105,21 +107,25 @@ impl SyslogWriter {
                     .name("SyslogWriter".to_string())
                     .spawn(move || {
                         if let Err(err) = syslog_writer_thread(config, rx, sync_tx, stop) {
-                            eprintln!("{err:?}");
+                            eprintln!("syslog_writer_thread failed: {err:?}");
                         }
                     })?,
             ),
         })
     }
 
-    pub fn shutdown(&mut self) -> Result<(), Error> {
+    pub fn shutdown(&mut self) -> Result<(), LoggingError> {
         if let Some(thr) = self.thr.take() {
-            self.tx
-                .send(SyslogTypeEnum::Stop)
-                .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+            self.tx.send(SyslogTypeEnum::Stop).map_err(|e| {
+                LoggingError::SendCmdError(
+                    "SyslogWriter".to_string(),
+                    "STOP".to_string(),
+                    e.to_string(),
+                )
+            })?;
             thr.join().map_err(|e| {
-                Error::new(
-                    ErrorKind::Other,
+                LoggingError::JoinError(
+                    "SyslogWriter".to_string(),
                     e.downcast_ref::<&str>().unwrap().to_string(),
                 )
             })
@@ -128,13 +134,23 @@ impl SyslogWriter {
         }
     }
 
-    pub fn sync(&self, timeout: f64) -> Result<(), Error> {
-        self.tx
-            .send(SyslogTypeEnum::Sync(timeout))
-            .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+    pub fn sync(&self, timeout: f64) -> Result<(), LoggingError> {
+        self.tx.send(SyslogTypeEnum::Sync(timeout)).map_err(|e| {
+            LoggingError::SendCmdError(
+                "SyslogWriter".to_string(),
+                "SYNC".to_string(),
+                e.to_string(),
+            )
+        })?;
         self.sync_rx
             .recv_timeout(Duration::from_secs_f64(timeout))
-            .map_err(|e| Error::new(ErrorKind::BrokenPipe, e.to_string()))?;
+            .map_err(|e| {
+                LoggingError::RecvAswError(
+                    "SyslogWriter".to_string(),
+                    "SYNC".to_string(),
+                    e.to_string(),
+                )
+            })?;
         Ok(())
     }
 

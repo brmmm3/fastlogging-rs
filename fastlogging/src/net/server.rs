@@ -2,7 +2,7 @@ use std::{
     collections::HashMap,
     fmt,
     io::{Error, ErrorKind, Read, Write},
-    net::{TcpListener, TcpStream},
+    net::{Shutdown, TcpListener, TcpStream},
     path::PathBuf,
     process,
     sync::{
@@ -69,11 +69,19 @@ fn read(
         let cnt = match stream.read(&mut buffer[bytes_read..read_max]) {
             Ok(s) => s,
             Err(e) => {
-                eprintln!("read ERROR: {e:?}");
+                if e.kind() != ErrorKind::WouldBlock && e.kind() != ErrorKind::TimedOut {
+                    eprintln!("read ERROR: {e:?}");
+                }
                 return Err(e);
             }
         };
         bytes_read += cnt;
+        if cnt == 0 {
+            if let Err(err) = stream.peer_addr() {
+                return Err(err);
+            }
+            thread::sleep(Duration::from_millis(10));
+        }
         if bytes_read >= read_max {
             break;
         }
@@ -85,18 +93,19 @@ fn handle_client(
     config: Arc<Mutex<NetConfig>>,
     stream: &mut TcpStream,
     tx: Sender<LoggingTypeEnum>,
-    stop: Arc<Mutex<bool>>,
+    stop: Arc<AtomicBool>,
     stop_server: Arc<AtomicBool>,
 ) -> Result<bool, LoggingError> {
-    //println!("handle_client");
     let perr_addr = stream.peer_addr().unwrap().to_string();
     let mut buffer = [0u8; 4352];
     let mut authenticated = false;
-    stream.set_read_timeout(Some(Duration::from_secs(5)))?;
     let mut config_level = config.lock().unwrap().level;
     let mut debug = config.lock().unwrap().debug;
+    if debug > 0 {
+        println!("{} handle_client BEGIN", process::id());
+    }
     loop {
-        if *stop.lock().unwrap() || stop_server.load(Ordering::Relaxed) {
+        if stop.load(Ordering::Relaxed) || stop_server.load(Ordering::Relaxed) {
             break;
         }
         if let Ok(ref config) = config.lock() {
@@ -104,29 +113,36 @@ fn handle_client(
             debug = config.debug;
         }
         if debug > 1 {
-            println!("handle_client: WAIT");
+            println!(
+                "{} handle_client: WAIT {:?}",
+                process::id(),
+                stream.peer_addr()
+            );
         }
-        /*println!(
-            "--handle_client: WAIT {:?} {}",
-            stream.peer_addr(),
-            process::id()
-        );*/
         if let Err(err) = read(stream, &mut buffer, 3) {
-            if err.kind() == ErrorKind::WouldBlock {
+            if err.kind() == ErrorKind::WouldBlock || err.kind() != ErrorKind::TimedOut {
                 continue;
             }
-            eprintln!("handle_client: ERROR {err:?} {:?}", &buffer[..3]);
+            eprintln!(
+                "{} handle_client: ERROR {err:?} {:?}",
+                process::id(),
+                &buffer[..3]
+            );
             break;
         }
         let size = (buffer[0] as usize) | ((buffer[1] as usize) << 8);
         if size > buffer.len() {
             // Exit if received data is too big
-            if size < 0xffff {
+            if size < 0xfffe {
                 Err(LoggingError::RecvError(format!(
                     "Receive size {size} is too big"
                 )))?;
+            } else if size == 0xffff {
+                // Exit server
+                return Ok(true);
             }
-            return Ok(true);
+            // Exit just this client
+            return Ok(false);
         }
         if !authenticated {
             //println!("handle_client: AUTHENTICATE");
@@ -144,7 +160,7 @@ fn handle_client(
                 Err(LoggingError::RecvError("Invalid auth key".to_string()))?;
             }
             if debug > 1 {
-                println!("handle_client: AUTHENTICATED");
+                println!("{} handle_client: AUTHENTICATED", process::id());
             }
             authenticated = true;
             continue;
@@ -157,16 +173,18 @@ fn handle_client(
                 std::str::from_utf8(&buffer[..size]).unwrap()
             );
             if debug > 2 {
-                println!("handle_client: MESSAGE {message:?}");
+                println!("{} handle_client: MESSAGE {message:?}", process::id());
             }
             tx.send(LoggingTypeEnum::MessageRemote((msg_level, message)))?;
         }
     }
-    /*println!(
-        "handle_client: FINISHED {:?} {}",
-        stream.peer_addr(),
-        process::id()
-    );*/
+    if debug > 0 {
+        println!(
+            "{} handle_client: FINISHED {:?}",
+            process::id(),
+            stream.peer_addr()
+        );
+    }
     Ok(false)
 }
 
@@ -174,7 +192,7 @@ fn handle_encrypted_client(
     config: Arc<Mutex<NetConfig>>,
     stream: &mut TcpStream,
     tx: Sender<LoggingTypeEnum>,
-    stop: Arc<Mutex<bool>>,
+    stop: Arc<AtomicBool>,
     stop_server: Arc<AtomicBool>,
 ) -> Result<bool, LoggingError> {
     //println!("handle_encrypted_client");
@@ -193,7 +211,7 @@ fn handle_encrypted_client(
     let mut config_level = config.lock().unwrap().level;
     let mut debug = config.lock().unwrap().debug;
     loop {
-        if *stop.lock().unwrap() || stop_server.load(Ordering::Relaxed) {
+        if stop.load(Ordering::Relaxed) || stop_server.load(Ordering::Relaxed) {
             break;
         }
         if let Ok(ref config) = config.lock() {
@@ -242,7 +260,7 @@ fn server_thread(
     config: Arc<Mutex<NetConfig>>,
     listener: TcpListener,
     tx: Sender<LoggingTypeEnum>,
-    stop: Arc<Mutex<bool>>,
+    stop: Arc<AtomicBool>,
 ) -> Result<(), LoggingError> {
     let mut debug = config.lock().unwrap().debug;
     let pool = threadpool::ThreadPool::new(num_cpus::get());
@@ -252,21 +270,13 @@ fn server_thread(
         Arc::new(Mutex::new(HashMap::new()));
     let stop_server = Arc::new(AtomicBool::new(false));
     if debug > 0 {
-        println!("server_thread STARTED {}", process::id());
+        println!("{} server_thread STARTED", process::id());
     }
     for stream in listener.incoming() {
         debug = config.lock().unwrap().debug;
-        if *stop.lock().unwrap() || stop_server.load(Ordering::Relaxed) {
+        if stop.load(Ordering::Relaxed) || stop_server.load(Ordering::Relaxed) {
             if debug > 0 {
-                println!(
-                    "server_thread: STOPPING pid={}. Inform {} Clients",
-                    process::id(),
-                    clients.lock().unwrap().len()
-                );
-            }
-            let stop_cmd = [255, 255, 255];
-            for (_addr, mut stream) in clients.lock().unwrap().drain() {
-                stream.write_all(&stop_cmd)?;
+                println!("{} server_thread: EXIT FOR LOOP", process::id());
             }
             break;
         }
@@ -278,6 +288,8 @@ fn server_thread(
                 continue;
             }
         };
+        //stream.set_read_timeout(Some(Duration::from_millis(100)))?;
+        stream.set_nodelay(true)?;
         let addr = match stream.peer_addr() {
             Ok(addr) => addr,
             Err(e) => {
@@ -287,9 +299,9 @@ fn server_thread(
         };
         if debug > 0 {
             println!(
-                "server_thread: CLIENT {} CONNECTED pid={} {addr:?}",
-                clients.lock().unwrap().len() + 1,
-                process::id()
+                "{} server_thread: CLIENT {} CONNECTED {addr:?}",
+                process::id(),
+                clients.lock().unwrap().len() + 1
             );
         }
         // Clients have are allowed to produce 3 errors. In case of more errors they will be ignored.
@@ -307,7 +319,7 @@ fn server_thread(
             let is_encrypted = config.lock().unwrap().key.is_encrypted();
             if debug > 0 {
                 println!(
-                    "server_thread: CLIENT {} {addr:?} ENCRYPTED {is_encrypted}",
+                    "{} server_thread: CLIENT {addr:?} ENCRYPTED {is_encrypted}",
                     process::id()
                 );
             }
@@ -317,9 +329,9 @@ fn server_thread(
             };
             if debug > 0 {
                 println!(
-                    "server_thread: CLIENT {} DISCONNECTED pid={} {addr:?}",
-                    clients.lock().unwrap().len(),
-                    process::id()
+                    "{} server_thread: CLIENT {} DISCONNECTED {addr:?}",
+                    process::id(),
+                    clients.lock().unwrap().len()
                 );
             }
             clients.lock().unwrap().remove(&addr);
@@ -344,14 +356,26 @@ fn server_thread(
     }
     if debug > 0 {
         println!(
-            "server_thread: JOIN pid={} CLIENTS={}",
+            "{} server_thread: JOIN CLIENTS={}",
             process::id(),
             clients.lock().unwrap().len()
         );
     }
+    stop_server.store(true, Ordering::Relaxed);
+    for (addr, stream) in clients.lock().unwrap().drain() {
+        if debug > 0 {
+            println!("{} server_thread: SHUTDOWN CLIENT {addr:?}", process::id());
+        }
+        if let Err(err) = stream.shutdown(Shutdown::Both) {
+            eprintln!(
+                "{} server_thread: SHUTDOWN CLIENT {addr:?} FAILED: {err:?}",
+                process::id()
+            );
+        }
+    }
     pool.join();
     if debug > 0 {
-        println!("server_thread: FINISHED pid={}", process::id());
+        println!("{} server_thread: FINISHED", process::id());
     }
     Ok(())
 }
@@ -366,8 +390,8 @@ impl LoggingServer {
     pub fn new(
         config: ServerConfig,
         tx: Sender<LoggingTypeEnum>,
-        stop: Arc<Mutex<bool>>,
-    ) -> Result<Self, Error> {
+        stop: Arc<AtomicBool>,
+    ) -> Result<Self, LoggingError> {
         let config = Arc::new(Mutex::new(NetConfig::new(
             config.level,
             config.address,
@@ -435,7 +459,7 @@ impl LoggingServer {
         })
     }
 
-    pub fn shutdown(&mut self) -> Result<(), Error> {
+    pub fn shutdown(&mut self) -> Result<(), LoggingError> {
         if let Some(thr) = self.thr.take() {
             // Send SHUTDOWN (255) to server socket
             let stop_cmd = [255, 255, 255];
@@ -450,8 +474,8 @@ impl LoggingServer {
                 }
             }
             thr.join().map_err(|e| {
-                Error::new(
-                    ErrorKind::Other,
+                LoggingError::JoinError(
+                    "ServerWriter".to_string(),
                     e.downcast_ref::<&str>().unwrap().to_string(),
                 )
             })
@@ -464,11 +488,13 @@ impl LoggingServer {
         self.config.lock().unwrap().level = level;
     }
 
-    pub fn set_encryption(&mut self, key: EncryptionMethod) -> Result<(), Error> {
+    pub fn set_encryption(&mut self, key: EncryptionMethod) -> Result<(), LoggingError> {
         self.config
             .lock()
             .unwrap()
-            .set_encryption(key)
-            .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))
+            .set_encryption(key.clone())
+            .map_err(|e| {
+                LoggingError::InvalidEncryption("LoggingServer".to_string(), key, e.to_string())
+            })
     }
 }

@@ -1,7 +1,10 @@
 use std::{
     fmt,
-    io::{Error, ErrorKind, Write},
-    sync::{Arc, Mutex},
+    io::Write,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc, Mutex,
+    },
     thread::{self, JoinHandle},
     time::Duration,
 };
@@ -52,12 +55,12 @@ fn console_writer_thread(
     config: Arc<Mutex<ConsoleWriterConfig>>,
     rx: Receiver<ConsoleTypeEnum>,
     sync_tx: Sender<u8>,
-    stop: Arc<Mutex<bool>>,
+    stop: Arc<AtomicBool>,
 ) -> Result<(), LoggingError> {
     let bufwtr = BufferWriter::stdout(ColorChoice::Always);
     let mut buffer = bufwtr.buffer();
     loop {
-        if *stop.lock().unwrap() {
+        if stop.load(Ordering::Relaxed) {
             break;
         }
         match rx.recv()? {
@@ -106,7 +109,7 @@ pub struct ConsoleWriter {
 }
 
 impl ConsoleWriter {
-    pub fn new(config: ConsoleWriterConfig, stop: Arc<Mutex<bool>>) -> Result<Self, Error> {
+    pub fn new(config: ConsoleWriterConfig, stop: Arc<AtomicBool>) -> Result<Self, LoggingError> {
         let config = Arc::new(Mutex::new(config));
         let (tx, rx) = bounded(1000);
         let (sync_tx, sync_rx) = bounded(1);
@@ -119,21 +122,25 @@ impl ConsoleWriter {
                     .name("ConsoleWriter".to_string())
                     .spawn(move || {
                         if let Err(err) = console_writer_thread(config.clone(), rx, sync_tx, stop) {
-                            eprintln!("{err:?}");
+                            eprintln!("console_writer_thread failed: {err:?}");
                         }
                     })?,
             ),
         })
     }
 
-    pub fn shutdown(&mut self) -> Result<(), Error> {
+    pub fn shutdown(&mut self) -> Result<(), LoggingError> {
         if let Some(thr) = self.thr.take() {
-            self.tx
-                .send(ConsoleTypeEnum::Stop)
-                .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+            self.tx.send(ConsoleTypeEnum::Stop).map_err(|e| {
+                LoggingError::SendCmdError(
+                    "ConsoleWriter".to_string(),
+                    "STOP".to_string(),
+                    e.to_string(),
+                )
+            })?;
             thr.join().map_err(|e| {
-                Error::new(
-                    ErrorKind::Other,
+                LoggingError::JoinError(
+                    "ConsoleWriter".to_string(),
                     e.downcast_ref::<&str>().unwrap().to_string(),
                 )
             })
@@ -142,13 +149,23 @@ impl ConsoleWriter {
         }
     }
 
-    pub fn sync(&self, timeout: f64) -> Result<(), Error> {
-        self.tx
-            .send(ConsoleTypeEnum::Sync)
-            .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+    pub fn sync(&self, timeout: f64) -> Result<(), LoggingError> {
+        self.tx.send(ConsoleTypeEnum::Sync).map_err(|e| {
+            LoggingError::SendCmdError(
+                "ConsoleWriter".to_string(),
+                "SYNC".to_string(),
+                e.to_string(),
+            )
+        })?;
         self.sync_rx
             .recv_timeout(Duration::from_secs_f64(timeout))
-            .map_err(|e| Error::new(ErrorKind::BrokenPipe, e.to_string()))?;
+            .map_err(|e| {
+                LoggingError::RecvAswError(
+                    "ConsoleWriter".to_string(),
+                    "SYNC".to_string(),
+                    e.to_string(),
+                )
+            })?;
         Ok(())
     }
 

@@ -1,10 +1,11 @@
-use std::{io::Error, thread};
+use std::thread;
 
 use fastlogging::{
-    ConsoleWriterConfig, ExtConfig, Logger, Logging, MessageStructEnum, WriterConfigEnum, DEBUG,
+    ConsoleWriterConfig, ExtConfig, Logger, Logging, LoggingError, MessageStructEnum,
+    WriterConfigEnum, DEBUG,
 };
 
-fn main() -> Result<(), Error> {
+fn main() -> Result<(), LoggingError> {
     let mut logger = Logging::default();
     logger.set_ext_config(&mut ExtConfig::new(
         MessageStructEnum::String,

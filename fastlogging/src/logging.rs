@@ -1,5 +1,6 @@
-use std::io::{Error, ErrorKind};
 use std::path::{Path, PathBuf};
+use std::process;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
@@ -174,11 +175,11 @@ fn logging_thread_worker(
     rx: Receiver<LoggingTypeEnum>,
     sync_tx: Sender<u8>,
     config: Arc<Mutex<LoggingInstance>>,
-    stop: Arc<Mutex<bool>>,
+    stop: Arc<AtomicBool>,
 ) -> Result<(), LoggingError> {
     let mut buffer = String::with_capacity(4096);
     loop {
-        if *stop.lock().unwrap() {
+        if stop.load(Ordering::Relaxed) {
             break;
         }
         let mut remote = false;
@@ -208,12 +209,12 @@ fn logging_thread_worker(
                 let mut config = config.lock().unwrap();
                 let debug = config.debug;
                 if debug > 0 {
-                    println!("logging_thread_worker: SYNC");
+                    println!("{} logging_thread_worker: SYNC", process::id());
                 }
                 if console {
                     if let Some(ref mut console) = config.console {
                         if debug > 0 {
-                            println!("logging_thread_worker: SYNC->CONSOLE");
+                            println!("{} logging_thread_worker: SYNC->CONSOLE", process::id());
                         }
                         console.sync(timeout)?;
                     }
@@ -222,7 +223,8 @@ fn logging_thread_worker(
                     for file in config.files.values() {
                         if debug > 0 {
                             println!(
-                                "logging_thread_worker: SYNC->FILE {:?}",
+                                "{} logging_thread_worker: SYNC->FILE {:?}",
+                                process::id(),
                                 file.config.lock().unwrap().path
                             );
                         }
@@ -234,8 +236,10 @@ fn logging_thread_worker(
                         if debug > 0 {
                             let client_config = client.config.lock().unwrap();
                             println!(
-                                "logging_thread_worker: SYNC->CLIENT {}:{}",
-                                client_config.address, client_config.port
+                                "{} logging_thread_worker: SYNC->CLIENT {}:{}",
+                                process::id(),
+                                client_config.address,
+                                client_config.port
                             );
                         }
                         client.sync(timeout)?;
@@ -244,7 +248,7 @@ fn logging_thread_worker(
                 if syslog {
                     if let Some(ref mut syslog) = config.syslog {
                         if debug > 0 {
-                            println!("logging_thread_worker: SYNC->SYSLOG");
+                            println!("{} logging_thread_worker: SYNC->SYSLOG", process::id());
                         }
                         syslog.sync(timeout)?;
                     }
@@ -254,7 +258,7 @@ fn logging_thread_worker(
             }
             LoggingTypeEnum::Stop => {
                 if config.lock().unwrap().debug > 0 {
-                    println!("logging_thread_worker: STOP");
+                    println!("{} logging_thread_worker: STOP", process::id());
                 }
                 break;
             }
@@ -280,7 +284,10 @@ fn logging_thread_worker(
         }
         // Send message to writers
         if config.debug > 2 {
-            println!("logging_thread_worker: MESSAGE {buffer:?}");
+            println!(
+                "{} logging_thread_worker: MESSAGE {buffer:?}",
+                process::id()
+            );
         }
         if let Some(ref writer) = config.console {
             if writer.config.lock().unwrap().level <= level {
@@ -310,25 +317,31 @@ fn logging_thread(
     rx: Receiver<LoggingTypeEnum>,
     sync_tx: Sender<u8>,
     config: Arc<Mutex<LoggingInstance>>,
-    stop: Arc<Mutex<bool>>,
+    stop: Arc<AtomicBool>,
 ) -> Result<(), LoggingError> {
     let mut some_err = None;
     if let Err(err) = logging_thread_worker(rx, sync_tx, config.clone(), stop) {
         eprintln!(
-            "Logging broker thread crashed with error: {} {err:?}",
-            std::process::id()
+            "{} Logging broker thread crashed with error: {err:?}",
+            process::id()
         );
         some_err = Some(err);
     }
     if let Ok(mut config) = config.lock() {
         for (address, writer) in config.clients.iter_mut() {
             if let Err(err) = writer.shutdown() {
-                eprintln!("Failed to stop client writer {address}: {err:?}");
+                eprintln!(
+                    "{} Failed to stop client writer {address}: {err:?}",
+                    process::id()
+                );
             }
         }
         for (address, writer) in config.servers.iter_mut() {
             if let Err(err) = writer.shutdown() {
-                eprintln!("Failed to stop logging server {address}: {err:?}");
+                eprintln!(
+                    "{} Failed to stop logging server {address}: {err:?}",
+                    process::id()
+                );
             }
         }
         if let Some(ref mut writer) = config.console {
@@ -364,7 +377,7 @@ pub struct Logging {
     tid: bool,
     pub tx: Sender<LoggingTypeEnum>,
     sync_rx: Receiver<u8>,
-    stop: Arc<Mutex<bool>>,
+    stop: Arc<AtomicBool>,
     thr: Option<JoinHandle<()>>,
     pub drop: bool,
 }
@@ -380,7 +393,7 @@ impl Logging {
         connect: Option<ClientWriterConfig>, // If config is defined start ClientLogging
         syslog: Option<u8>,            // If log level is defined start SyslogLogging
         config: Option<PathBuf>,       // Optional configuration file
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, LoggingError> {
         // Initialize config from optional config file.
         let mut config_file = ConfigFile::new(config)?;
         // Overwrite settings with arguments, if provided.
@@ -406,7 +419,10 @@ impl Logging {
                     .name("LoggingThread".to_string())
                     .spawn(move || {
                         if let Err(err) = logging_thread(rx, sync_tx, config, stop) {
-                            eprintln!("logging_thread returned with error: {err:?}");
+                            eprintln!(
+                                "{} logging_thread returned with error: {err:?}",
+                                process::id()
+                            );
                         }
                     })?,
             ),
@@ -414,7 +430,7 @@ impl Logging {
         })
     }
 
-    pub fn init() -> Result<Self, Error> {
+    pub fn init() -> Result<Self, LoggingError> {
         let console_writer = ConsoleWriterConfig::new(NOTSET, false);
         Logging::new(
             None,
@@ -429,7 +445,7 @@ impl Logging {
         )
     }
 
-    pub fn apply_config(&mut self, path: &Path) -> Result<(), Error> {
+    pub fn apply_config(&mut self, path: &Path) -> Result<(), LoggingError> {
         self.config_file = ConfigFile::new(Some(path.to_path_buf()))?;
         let config = &self.config_file.config;
         let mut instance = self.instance.lock().unwrap();
@@ -470,20 +486,20 @@ impl Logging {
         Ok(())
     }
 
-    pub fn shutdown(&mut self, now: bool) -> Result<(), Error> {
+    pub fn shutdown(&mut self, now: bool) -> Result<(), LoggingError> {
         if self.thr.is_none() {
             return Ok(());
         }
         if now {
-            *self.stop.lock().unwrap() = true;
+            self.stop.store(true, Ordering::Relaxed);
         }
         if let Err(err) = self.tx.send(LoggingTypeEnum::Stop) {
             eprintln!("Failed to send STOP signal to broker thread: {err:?}");
         }
         if let Some(thr) = self.thr.take() {
             thr.join().map_err(|e| {
-                Error::new(
-                    ErrorKind::Other,
+                LoggingError::JoinError(
+                    "Logging".to_string(),
                     e.downcast_ref::<&str>().unwrap().to_string(),
                 )
             })
@@ -492,7 +508,7 @@ impl Logging {
         }
     }
 
-    pub fn set_level(&mut self, writer: &WriterTypeEnum, level: u8) -> Result<(), Error> {
+    pub fn set_level(&mut self, writer: &WriterTypeEnum, level: u8) -> Result<(), LoggingError> {
         let mut config = self.instance.lock().unwrap();
         match writer {
             WriterTypeEnum::Root => {
@@ -503,8 +519,7 @@ impl Logging {
                 if let Some(ref writer) = config.console {
                     writer.set_level(level);
                 } else {
-                    return Err(Error::new(
-                        ErrorKind::NotFound,
+                    return Err(LoggingError::InvalidValue(
                         "Console writer not configured".to_string(),
                     ));
                 }
@@ -513,8 +528,7 @@ impl Logging {
                 if let Some(writer) = config.files.get_mut(path) {
                     writer.set_level(level);
                 } else {
-                    return Err(Error::new(
-                        ErrorKind::NotFound,
+                    return Err(LoggingError::InvalidValue(
                         "File writer not configured".to_string(),
                     ));
                 }
@@ -523,28 +537,25 @@ impl Logging {
                 if let Some(writer) = config.clients.get_mut(address) {
                     writer.set_level(level);
                 } else {
-                    return Err(Error::new(
-                        ErrorKind::NotFound,
-                        format!("Client {address} not configured"),
-                    ));
+                    return Err(LoggingError::InvalidValue(format!(
+                        "Client {address} not configured"
+                    )));
                 }
             }
             WriterTypeEnum::Server(address) => {
                 if let Some(writer) = config.servers.get_mut(address) {
                     writer.set_level(level);
                 } else {
-                    return Err(Error::new(
-                        ErrorKind::NotFound,
-                        format!("Server {address} not running"),
-                    ));
+                    return Err(LoggingError::InvalidValue(format!(
+                        "Server {address} not running"
+                    )));
                 }
             }
             WriterTypeEnum::Syslog => {
                 if let Some(ref writer) = config.syslog {
                     writer.set_level(level);
                 } else {
-                    return Err(Error::new(
-                        ErrorKind::NotFound,
+                    return Err(LoggingError::InvalidValue(
                         "Syslog writer not configured".to_string(),
                     ));
                 }
@@ -581,12 +592,14 @@ impl Logging {
         logger.set_tx(None);
     }
 
-    pub fn add_writer(&mut self, writer: &WriterConfigEnum) -> Result<WriterTypeEnum, Error> {
+    pub fn add_writer(
+        &mut self,
+        writer: &WriterConfigEnum,
+    ) -> Result<WriterTypeEnum, LoggingError> {
         let mut config = self.instance.lock().unwrap();
         Ok(match writer {
             WriterConfigEnum::Root(_) => {
-                return Err(Error::new(
-                    ErrorKind::NotFound,
+                return Err(LoggingError::InvalidValue(
                     "Root logger can't be added".to_string(),
                 ));
             }
@@ -621,12 +634,11 @@ impl Logging {
         })
     }
 
-    pub fn remove_writer(&mut self, writer: &WriterTypeEnum) -> Result<(), Error> {
+    pub fn remove_writer(&mut self, writer: &WriterTypeEnum) -> Result<(), LoggingError> {
         let mut config = self.instance.lock().unwrap();
         match writer {
             WriterTypeEnum::Root => {
-                return Err(Error::new(
-                    ErrorKind::NotFound,
+                return Err(LoggingError::InvalidValue(
                     "Root logger can't be removed".to_string(),
                 ));
             }
@@ -634,8 +646,7 @@ impl Logging {
                 if let Some(mut writer) = config.console.take() {
                     writer.shutdown()?;
                 } else {
-                    return Err(Error::new(
-                        ErrorKind::NotFound,
+                    return Err(LoggingError::InvalidValue(
                         "Console writer not configured".to_string(),
                     ));
                 }
@@ -644,8 +655,7 @@ impl Logging {
                 if let Some(mut writer) = config.files.remove(path) {
                     writer.shutdown()?;
                 } else {
-                    return Err(Error::new(
-                        ErrorKind::NotFound,
+                    return Err(LoggingError::InvalidValue(
                         "File writer not configured".to_string(),
                     ));
                 }
@@ -654,28 +664,25 @@ impl Logging {
                 if let Some(mut writer) = config.clients.remove(address) {
                     writer.shutdown()?;
                 } else {
-                    return Err(Error::new(
-                        ErrorKind::NotFound,
-                        format!("Client {address} not configured"),
-                    ));
+                    return Err(LoggingError::InvalidValue(format!(
+                        "Client {address} not configured"
+                    )));
                 }
             }
             WriterTypeEnum::Server(address) => {
                 if let Some(mut server) = config.servers.remove(address) {
                     server.shutdown()?;
                 } else {
-                    return Err(Error::new(
-                        ErrorKind::NotFound,
-                        format!("Server {address} not conigured"),
-                    ));
+                    return Err(LoggingError::InvalidValue(format!(
+                        "Server {address} not conigured"
+                    )));
                 }
             }
             WriterTypeEnum::Syslog => {
                 if let Some(mut server) = config.syslog.take() {
                     server.shutdown()?;
                 } else {
-                    return Err(Error::new(
-                        ErrorKind::NotFound,
+                    return Err(LoggingError::InvalidValue(
                         "Syslog writer not conigured".to_string(),
                     ));
                 }
@@ -691,26 +698,30 @@ impl Logging {
         client: bool,
         syslog: bool,
         timeout: f64,
-    ) -> Result<(), Error> {
+    ) -> Result<(), LoggingError> {
         self.tx
             .send(LoggingTypeEnum::Sync((
                 console, file, client, syslog, timeout,
             )))
-            .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+            .map_err(|e| {
+                LoggingError::SendError(format!("Failed to send SYNC command: {}", e.to_string()))
+            })?;
         self.sync_rx
             .recv_timeout(Duration::from_secs_f64(timeout))
-            .map_err(|e| Error::new(ErrorKind::BrokenPipe, e.to_string()))?;
+            .map_err(|e| {
+                LoggingError::RecvError(format!("Failed to receive SYNC answer: {e:?}"))
+            })?;
         Ok(())
     }
 
-    pub fn sync_all(&self, timeout: f64) -> Result<(), Error> {
+    pub fn sync_all(&self, timeout: f64) -> Result<(), LoggingError> {
         self.sync(true, true, true, true, timeout)?;
         Ok(())
     }
 
     // File logger
 
-    pub fn rotate(&self, path: Option<PathBuf>) -> Result<(), Error> {
+    pub fn rotate(&self, path: Option<PathBuf>) -> Result<(), LoggingError> {
         for (key, file) in self.instance.lock().unwrap().files.iter() {
             if path.is_none() || path.as_ref().unwrap() == key {
                 file.rotate()?;
@@ -725,32 +736,29 @@ impl Logging {
         &mut self,
         writer: WriterTypeEnum,
         key: EncryptionMethod,
-    ) -> Result<(), Error> {
+    ) -> Result<(), LoggingError> {
         let mut config = self.instance.lock().unwrap();
         match writer {
             WriterTypeEnum::Server(address) => {
                 if let Some(writer) = config.servers.get_mut(&address) {
                     writer.set_encryption(key)?;
                 } else {
-                    return Err(Error::new(
-                        ErrorKind::NotFound,
-                        format!("Server {address} not configured"),
-                    ));
+                    return Err(LoggingError::InvalidValue(format!(
+                        "Server {address} not configured"
+                    )));
                 }
             }
             WriterTypeEnum::Client(address) => {
                 if let Some(writer) = config.clients.get_mut(&address) {
                     writer.set_encryption(key)?;
                 } else {
-                    return Err(Error::new(
-                        ErrorKind::NotFound,
-                        format!("Client {address} not configured"),
-                    ));
+                    return Err(LoggingError::InvalidValue(format!(
+                        "Client {address} not configured"
+                    )));
                 }
             }
             _ => {
-                return Err(Error::new(
-                    ErrorKind::NotFound,
+                return Err(LoggingError::InvalidValue(
                     "Unable to configure encryption for this writer type".to_string(),
                 ));
             }
@@ -771,7 +779,7 @@ impl Logging {
         }
     }
 
-    pub fn get_config(&self, writer: &WriterTypeEnum) -> Result<WriterConfigEnum, Error> {
+    pub fn get_config(&self, writer: &WriterTypeEnum) -> Result<WriterConfigEnum, LoggingError> {
         let mut config = self.instance.lock().unwrap();
         Ok(match writer {
             WriterTypeEnum::Root => WriterConfigEnum::Root(RootConfig {
@@ -789,8 +797,7 @@ impl Logging {
                 if let Some(ref writer) = config.console {
                     WriterConfigEnum::Console(writer.config.lock().unwrap().clone())
                 } else {
-                    return Err(Error::new(
-                        ErrorKind::NotFound,
+                    return Err(LoggingError::InvalidValue(
                         "Console writer not configured".to_string(),
                     ));
                 }
@@ -799,8 +806,7 @@ impl Logging {
                 if let Some(writer) = config.files.get_mut(path) {
                     WriterConfigEnum::File(writer.config.lock().unwrap().clone())
                 } else {
-                    return Err(Error::new(
-                        ErrorKind::NotFound,
+                    return Err(LoggingError::InvalidValue(
                         "File writer not configured".to_string(),
                     ));
                 }
@@ -809,28 +815,25 @@ impl Logging {
                 if let Some(writer) = config.clients.get_mut(address) {
                     WriterConfigEnum::Client(writer.config.lock().unwrap().get_client_config())
                 } else {
-                    return Err(Error::new(
-                        ErrorKind::NotFound,
-                        format!("Client {address} not configured"),
-                    ));
+                    return Err(LoggingError::InvalidValue(format!(
+                        "Client {address} not configured"
+                    )));
                 }
             }
             WriterTypeEnum::Server(address) => {
                 if let Some(writer) = config.servers.get_mut(address) {
                     WriterConfigEnum::Server(writer.config.lock().unwrap().get_server_config())
                 } else {
-                    return Err(Error::new(
-                        ErrorKind::NotFound,
-                        format!("Server {address} not running"),
-                    ));
+                    return Err(LoggingError::InvalidValue(format!(
+                        "Server {address} not running"
+                    )));
                 }
             }
             WriterTypeEnum::Syslog => {
                 if let Some(ref writer) = config.syslog {
                     WriterConfigEnum::Syslog(writer.config.lock().unwrap().clone())
                 } else {
-                    return Err(Error::new(
-                        ErrorKind::NotFound,
+                    return Err(LoggingError::InvalidValue(
                         "Syslog writer not configured".to_string(),
                     ));
                 }
@@ -927,14 +930,14 @@ impl Logging {
         )
     }
 
-    pub fn save_config(&self, path: &Path) -> Result<(), Error> {
+    pub fn save_config(&self, path: &Path) -> Result<(), LoggingError> {
         self.config_file.save(path)
     }
 
     // Logging methods
 
     #[inline]
-    fn log<S: Into<String>>(&self, level: u8, message: S) -> Result<(), Error> {
+    fn log<S: Into<String>>(&self, level: u8, message: S) -> Result<(), LoggingError> {
         (if self.tname || self.tid {
             let tname = if self.tname {
                 thread::current().name().unwrap_or_default().to_string()
@@ -952,66 +955,71 @@ impl Logging {
             self.tx
                 .send(LoggingTypeEnum::Message((level, message.into())))
         })
-        .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))
+        .map_err(|e| {
+            LoggingError::SendError(format!(
+                "Failed to send {} message: {e:?}",
+                level2str(level)
+            ))
+        })
     }
 
-    pub fn trace<S: Into<String>>(&self, message: S) -> Result<(), Error> {
+    pub fn trace<S: Into<String>>(&self, message: S) -> Result<(), LoggingError> {
         if self.level <= TRACE {
             self.log(TRACE, message)?;
         }
         Ok(())
     }
 
-    pub fn debug<S: Into<String>>(&self, message: S) -> Result<(), Error> {
+    pub fn debug<S: Into<String>>(&self, message: S) -> Result<(), LoggingError> {
         if self.level <= DEBUG {
             self.log(DEBUG, message)?;
         }
         Ok(())
     }
 
-    pub fn info<S: Into<String>>(&self, message: S) -> Result<(), Error> {
+    pub fn info<S: Into<String>>(&self, message: S) -> Result<(), LoggingError> {
         if self.level <= INFO {
             self.log(INFO, message)?;
         }
         Ok(())
     }
 
-    pub fn success<S: Into<String>>(&self, message: S) -> Result<(), Error> {
+    pub fn success<S: Into<String>>(&self, message: S) -> Result<(), LoggingError> {
         if self.level <= SUCCESS {
             self.log(SUCCESS, message)?;
         }
         Ok(())
     }
 
-    pub fn warning<S: Into<String>>(&self, message: S) -> Result<(), Error> {
+    pub fn warning<S: Into<String>>(&self, message: S) -> Result<(), LoggingError> {
         if self.level <= WARNING {
             self.log(WARNING, message)?;
         }
         Ok(())
     }
 
-    pub fn error<S: Into<String>>(&self, message: S) -> Result<(), Error> {
+    pub fn error<S: Into<String>>(&self, message: S) -> Result<(), LoggingError> {
         if self.level <= ERROR {
             self.log(ERROR, message)?;
         }
         Ok(())
     }
 
-    pub fn critical<S: Into<String>>(&self, message: S) -> Result<(), Error> {
+    pub fn critical<S: Into<String>>(&self, message: S) -> Result<(), LoggingError> {
         if self.level <= CRITICAL {
             self.log(CRITICAL, message)?;
         }
         Ok(())
     }
 
-    pub fn fatal<S: Into<String>>(&self, message: S) -> Result<(), Error> {
+    pub fn fatal<S: Into<String>>(&self, message: S) -> Result<(), LoggingError> {
         if self.level <= FATAL {
             self.log(FATAL, message)?;
         }
         Ok(())
     }
 
-    pub fn exception<S: Into<String>>(&self, message: S) -> Result<(), Error> {
+    pub fn exception<S: Into<String>>(&self, message: S) -> Result<(), LoggingError> {
         if self.level <= EXCEPTION {
             self.log(EXCEPTION, message)?;
         }

@@ -1,14 +1,10 @@
-use std::{
-    fmt,
-    io::{Error, ErrorKind},
-    path::PathBuf,
-};
+use std::{fmt, path::PathBuf};
 
 use once_cell::sync::Lazy;
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use ring::aead::{self, BoundKey, SealingKey};
 
-use crate::{ClientWriterConfig, ServerConfig};
+use crate::{ClientWriterConfig, LoggingError, ServerConfig};
 
 use super::{EncryptionMethod, NonceGenerator};
 
@@ -33,7 +29,7 @@ impl NetConfig {
         address: String,
         port: u16,
         key: EncryptionMethod,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, LoggingError> {
         let mut config = Self {
             level,
             address,
@@ -48,13 +44,14 @@ impl NetConfig {
         Ok(config)
     }
 
-    pub fn set_encryption(&mut self, key: EncryptionMethod) -> Result<(), Error> {
+    pub fn set_encryption(&mut self, key: EncryptionMethod) -> Result<(), LoggingError> {
         self.key = key.clone();
         match &key {
-            EncryptionMethod::AES(key) => {
+            EncryptionMethod::AES(key_vec) => {
                 self.sk = Some(aead::SealingKey::new(
-                    aead::UnboundKey::new(&aead::AES_256_GCM, key)
-                        .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?,
+                    aead::UnboundKey::new(&aead::AES_256_GCM, key_vec).map_err(|e| {
+                        LoggingError::InvalidEncryption("NetConfig".to_string(), key, e.to_string())
+                    })?,
                     NonceGenerator::new(),
                 ));
             }

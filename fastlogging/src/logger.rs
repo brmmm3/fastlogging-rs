@@ -1,13 +1,10 @@
-use std::{
-    io::{Error, ErrorKind},
-    thread,
-};
+use std::thread;
 
 use flume::Sender;
 
 use crate::{
     def::{LoggingTypeEnum, CRITICAL, DEBUG, ERROR, EXCEPTION, FATAL, INFO, WARNING},
-    SUCCESS, TRACE,
+    LoggingError, SUCCESS, TRACE,
 };
 
 #[repr(C)]
@@ -60,7 +57,7 @@ impl Logger {
     // Logging calls
 
     #[inline]
-    fn log<S: Into<String>>(&self, level: u8, message: S) -> Result<(), Error> {
+    fn log<S: Into<String>>(&self, level: u8, message: S) -> Result<(), LoggingError> {
         if let Some(ref tx) = self.tx {
             let message = format!("{}: {}", self.domain, message.into());
             return (if self.tname || self.tid {
@@ -74,15 +71,16 @@ impl Logger {
             } else {
                 tx.send(LoggingTypeEnum::Message((level, message)))
             })
-            .map_err(|e| Error::new(ErrorKind::Other, e.to_string()));
+            .map_err(|e| {
+                LoggingError::SendError(format!("Failed to send message: {}", e.to_string()))
+            });
         }
-        Err(Error::new(
-            ErrorKind::NotConnected,
-            "Logger not registered at Logging instance. Call add_logger first.",
+        Err(LoggingError::ConfigError(
+            "Logger not registered at Logging instance. Call add_logger first.".to_string(),
         ))
     }
 
-    pub fn trace<S: Into<String>>(&self, message: S) -> Result<(), Error> {
+    pub fn trace<S: Into<String>>(&self, message: S) -> Result<(), LoggingError> {
         if self.level <= TRACE {
             self.log(TRACE, message)
         } else {
@@ -90,7 +88,7 @@ impl Logger {
         }
     }
 
-    pub fn debug<S: Into<String>>(&self, message: S) -> Result<(), Error> {
+    pub fn debug<S: Into<String>>(&self, message: S) -> Result<(), LoggingError> {
         if self.level <= DEBUG {
             self.log(DEBUG, message)
         } else {
@@ -98,7 +96,7 @@ impl Logger {
         }
     }
 
-    pub fn info<S: Into<String>>(&self, message: S) -> Result<(), Error> {
+    pub fn info<S: Into<String>>(&self, message: S) -> Result<(), LoggingError> {
         if self.level <= INFO {
             self.log(INFO, message)
         } else {
@@ -106,7 +104,7 @@ impl Logger {
         }
     }
 
-    pub fn success<S: Into<String>>(&self, message: S) -> Result<(), Error> {
+    pub fn success<S: Into<String>>(&self, message: S) -> Result<(), LoggingError> {
         if self.level <= SUCCESS {
             self.log(SUCCESS, message)
         } else {
@@ -114,7 +112,7 @@ impl Logger {
         }
     }
 
-    pub fn warning<S: Into<String>>(&self, message: S) -> Result<(), Error> {
+    pub fn warning<S: Into<String>>(&self, message: S) -> Result<(), LoggingError> {
         if self.level <= WARNING {
             self.log(WARNING, message)
         } else {
@@ -122,7 +120,7 @@ impl Logger {
         }
     }
 
-    pub fn error<S: Into<String>>(&self, message: S) -> Result<(), Error> {
+    pub fn error<S: Into<String>>(&self, message: S) -> Result<(), LoggingError> {
         if self.level <= ERROR {
             self.log(ERROR, message)
         } else {
@@ -130,7 +128,7 @@ impl Logger {
         }
     }
 
-    pub fn critical<S: Into<String>>(&self, message: S) -> Result<(), Error> {
+    pub fn critical<S: Into<String>>(&self, message: S) -> Result<(), LoggingError> {
         if self.level <= CRITICAL {
             self.log(CRITICAL, message)
         } else {
@@ -138,7 +136,7 @@ impl Logger {
         }
     }
 
-    pub fn fatal<S: Into<String>>(&self, message: S) -> Result<(), Error> {
+    pub fn fatal<S: Into<String>>(&self, message: S) -> Result<(), LoggingError> {
         if self.level <= FATAL {
             self.log(FATAL, message)
         } else {
@@ -146,7 +144,7 @@ impl Logger {
         }
     }
 
-    pub fn exception<S: Into<String>>(&self, message: S) -> Result<(), Error> {
+    pub fn exception<S: Into<String>>(&self, message: S) -> Result<(), LoggingError> {
         if self.level <= EXCEPTION {
             self.log(EXCEPTION, message)
         } else {

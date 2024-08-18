@@ -2,10 +2,7 @@
 extern crate serde_derive;
 
 mod def;
-use std::{
-    io::Error,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 
 pub use def::*;
 mod config;
@@ -38,11 +35,11 @@ mod windows;
 #[cfg(target_family = "windows")]
 pub use windows::getppid;
 
-pub fn shutdown(now: bool) -> Result<(), Error> {
+pub fn shutdown(now: bool) -> Result<(), LoggingError> {
     ROOT_LOGGER.lock().unwrap().shutdown(now)
 }
 
-pub fn set_level(writer: &WriterTypeEnum, level: u8) -> Result<(), Error> {
+pub fn set_level(writer: &WriterTypeEnum, level: u8) -> Result<(), LoggingError> {
     ROOT_LOGGER.lock().unwrap().set_level(writer, level)
 }
 
@@ -66,11 +63,11 @@ pub fn remove_logger(logger: &mut Logger) {
     ROOT_LOGGER.lock().unwrap().remove_logger(logger)
 }
 
-pub fn add_writer(writer: &WriterConfigEnum) -> Result<WriterTypeEnum, Error> {
+pub fn add_writer(writer: &WriterConfigEnum) -> Result<WriterTypeEnum, LoggingError> {
     ROOT_LOGGER.lock().unwrap().add_writer(writer)
 }
 
-pub fn remove_writer(writer: &WriterTypeEnum) -> Result<(), Error> {
+pub fn remove_writer(writer: &WriterTypeEnum) -> Result<(), LoggingError> {
     ROOT_LOGGER.lock().unwrap().remove_writer(writer)
 }
 
@@ -80,24 +77,24 @@ pub fn sync(
     client: bool,
     syslog: bool,
     timeout: f64,
-) -> Result<(), Error> {
+) -> Result<(), LoggingError> {
     ROOT_LOGGER
         .lock()
         .unwrap()
         .sync(console, file, client, syslog, timeout)
 }
 
-pub fn sync_all(timeout: f64) -> Result<(), Error> {
+pub fn sync_all(timeout: f64) -> Result<(), LoggingError> {
     ROOT_LOGGER.lock().unwrap().sync_all(timeout)
 }
 
-pub fn rotate(path: Option<PathBuf>) -> Result<(), Error> {
+pub fn rotate(path: Option<PathBuf>) -> Result<(), LoggingError> {
     ROOT_LOGGER.lock().unwrap().rotate(path)
 }
 
 // Network
 
-pub fn set_encryption(writer: WriterTypeEnum, key: EncryptionMethod) -> Result<(), Error> {
+pub fn set_encryption(writer: WriterTypeEnum, key: EncryptionMethod) -> Result<(), LoggingError> {
     ROOT_LOGGER.lock().unwrap().set_encryption(writer, key)
 }
 
@@ -115,7 +112,7 @@ pub fn set_debug(debug: u8) {
     }
 }
 
-pub fn get_config(writer: &WriterTypeEnum) -> Result<WriterConfigEnum, Error> {
+pub fn get_config(writer: &WriterTypeEnum) -> Result<WriterConfigEnum, LoggingError> {
     ROOT_LOGGER.lock().unwrap().get_config(writer)
 }
 
@@ -131,7 +128,7 @@ pub fn get_config_string() -> String {
     ROOT_LOGGER.lock().unwrap().get_config_string()
 }
 
-pub fn save_config(path: &Path) -> Result<(), Error> {
+pub fn save_config(path: &Path) -> Result<(), LoggingError> {
     ROOT_LOGGER.lock().unwrap().save_config(path)
 }
 
@@ -159,38 +156,38 @@ pub fn get_parent_pid_server_address() -> Option<(u32, ClientWriterConfig)> {
 
 // Logging methods
 
-pub fn trace<S: Into<String>>(message: S) -> Result<(), Error> {
+pub fn trace<S: Into<String>>(message: S) -> Result<(), LoggingError> {
     ROOT_LOGGER.lock().unwrap().trace(message)
 }
 
-pub fn debug<S: Into<String>>(message: S) -> Result<(), Error> {
+pub fn debug<S: Into<String>>(message: S) -> Result<(), LoggingError> {
     ROOT_LOGGER.lock().unwrap().debug(message)
 }
 
-pub fn info<S: Into<String>>(message: S) -> Result<(), Error> {
+pub fn info<S: Into<String>>(message: S) -> Result<(), LoggingError> {
     ROOT_LOGGER.lock().unwrap().info(message)
 }
 
-pub fn success<S: Into<String>>(message: S) -> Result<(), Error> {
+pub fn success<S: Into<String>>(message: S) -> Result<(), LoggingError> {
     ROOT_LOGGER.lock().unwrap().success(message)
 }
 
-pub fn warning<S: Into<String>>(message: S) -> Result<(), Error> {
+pub fn warning<S: Into<String>>(message: S) -> Result<(), LoggingError> {
     ROOT_LOGGER.lock().unwrap().warning(message)
 }
 
-pub fn error<S: Into<String>>(message: S) -> Result<(), Error> {
+pub fn error<S: Into<String>>(message: S) -> Result<(), LoggingError> {
     ROOT_LOGGER.lock().unwrap().error(message)
 }
 
-pub fn critical<S: Into<String>>(message: S) -> Result<(), Error> {
+pub fn critical<S: Into<String>>(message: S) -> Result<(), LoggingError> {
     ROOT_LOGGER.lock().unwrap().critical(message)
 }
 
-pub fn fatal<S: Into<String>>(message: S) -> Result<(), Error> {
+pub fn fatal<S: Into<String>>(message: S) -> Result<(), LoggingError> {
     ROOT_LOGGER.lock().unwrap().fatal(message)
 }
 
-pub fn exception<S: Into<String>>(message: S) -> Result<(), Error> {
+pub fn exception<S: Into<String>>(message: S) -> Result<(), LoggingError> {
     ROOT_LOGGER.lock().unwrap().exception(message)
 }

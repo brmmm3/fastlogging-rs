@@ -1,12 +1,12 @@
-use std::{io::Error, thread, time::Duration};
+use std::{thread, time::Duration};
 
 use fastlogging::{
     ClientWriterConfig, ConsoleWriterConfig, EncryptionMethod, FileWriterConfig, Logging,
-    ServerConfig, DEBUG,
+    LoggingError, ServerConfig, DEBUG,
 };
 use tempdir::TempDir;
 
-fn main() -> Result<(), Error> {
+fn main() -> Result<(), LoggingError> {
     let temp_dir = TempDir::new("fastlogging").unwrap();
     let log_file = temp_dir.path().join("file.log");
     let console_writer = ConsoleWriterConfig::new(DEBUG, true);

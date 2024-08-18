@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
+use zip::result::ZipError;
 
-use crate::{console::ConsoleTypeEnum, ClientTypeEnum, LoggingTypeEnum, SyslogTypeEnum};
+use crate::{
+    console::ConsoleTypeEnum, ClientTypeEnum, EncryptionMethod, LoggingTypeEnum, SyslogTypeEnum,
+};
 
 #[derive(Debug, Clone, thiserror::Error, Deserialize, Serialize)]
 pub enum LoggingError {
@@ -20,8 +23,26 @@ pub enum LoggingError {
     #[error("{0}")]
     SendError(String),
 
+    #[error("{0}: Failed to send {1} command: {2}")]
+    SendCmdError(String, String, String),
+
+    #[error("{0}: Failed to receive {1} answer: {2}")]
+    RecvAswError(String, String, String),
+
     #[error("{0}")]
     InvalidValue(String),
+
+    #[error("{0}: Invalid encryption {1:?}: {2}")]
+    InvalidEncryption(String, EncryptionMethod, String),
+
+    #[error("{0}: {1}")]
+    JoinError(String, String),
+
+    #[error("{0}")]
+    ConfigError(String),
+
+    #[error("{0}")]
+    ArchiveError(String),
 }
 
 impl From<std::io::Error> for LoggingError {
@@ -30,6 +51,12 @@ impl From<std::io::Error> for LoggingError {
             kind: error.kind().to_string(),
             message: error.to_string(),
         }
+    }
+}
+
+impl From<ZipError> for LoggingError {
+    fn from(error: ZipError) -> Self {
+        LoggingError::ArchiveError(error.to_string())
     }
 }
 
