@@ -1,3 +1,5 @@
+use std::io;
+
 use serde::{Deserialize, Serialize};
 use zip::result::ZipError;
 
@@ -71,10 +73,14 @@ impl LoggingError {
     }
 }
 
-impl From<std::io::Error> for LoggingError {
-    fn from(error: std::io::Error) -> Self {
+impl From<io::Error> for LoggingError {
+    fn from(error: io::Error) -> Self {
+        let kind = match error.kind() {
+            io::ErrorKind::NotFound => "NotFound".to_string(),
+            _ => error.kind().to_string(),
+        };
         LoggingError::Io {
-            kind: error.kind().to_string(),
+            kind,
             message: error.to_string(),
         }
     }
