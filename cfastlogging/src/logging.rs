@@ -52,6 +52,14 @@ pub unsafe extern "C" fn ext_config_new(
 ///
 /// Create new logging instance.
 #[no_mangle]
+pub unsafe extern "C" fn logging_init() -> *mut Logging {
+    Box::into_raw(Box::new(fastlogging::logging_init().unwrap()))
+}
+
+/// # Safety
+///
+/// Create new logging instance.
+#[no_mangle]
 pub unsafe extern "C" fn logging_new(
     level: c_char, // Global log level
     domain: *const c_char,
@@ -114,7 +122,7 @@ pub unsafe extern "C" fn logging_new(
 pub unsafe extern "C" fn logging_shutdown(logging: &mut Logging, now: u8) -> isize {
     let result = if let Err(err) = logging.shutdown(now != 0) {
         eprintln!("logging_shutdown failed: {err:?}");
-        err.raw_os_error().unwrap_or(nix::Error::EFAULT as i32) as isize
+        err.as_int() as isize
     } else {
         0
     };
@@ -136,7 +144,7 @@ pub unsafe extern "C" fn logging_set_level(
     let writer = *Box::from_raw(writer);
     if let Err(err) = logging.set_level(&writer, level) {
         eprintln!("logging_set_level failed: {err:?}");
-        err.raw_os_error().unwrap_or(nix::Error::EFAULT as i32) as isize
+        err.as_int() as isize
     } else {
         0
     }
@@ -147,7 +155,7 @@ pub unsafe extern "C" fn logging_set_level(
 /// Set logging domain.
 #[no_mangle]
 pub unsafe extern "C" fn logging_set_domain(logging: &mut Logging, domain: *const c_char) {
-    logging.set_domain(char2string(domain));
+    logging.set_domain(&char2string(domain));
 }
 
 /// # Safety
@@ -156,11 +164,11 @@ pub unsafe extern "C" fn logging_set_domain(logging: &mut Logging, domain: *cons
 #[no_mangle]
 pub unsafe extern "C" fn logging_set_level2sym(logging: &mut Logging, level2sym: u8) {
     logging.set_level2sym(if level2sym == 0 {
-        LevelSyms::Sym
+        &LevelSyms::Sym
     } else if level2sym == 1 {
-        LevelSyms::Short
+        &LevelSyms::Short
     } else {
-        LevelSyms::Str
+        &LevelSyms::Str
     });
 }
 
@@ -200,7 +208,7 @@ pub unsafe extern "C" fn logging_add_writer(
         Ok(r) => Box::into_raw(Box::new(r)) as isize,
         Err(err) => {
             eprintln!("logging_add_writer failed: {err:?}");
-            err.raw_os_error().unwrap_or(nix::Error::EFAULT as i32) as isize
+            err.as_int() as isize
         }
     }
 }
@@ -215,7 +223,7 @@ pub unsafe extern "C" fn logging_remove_writer(
 ) -> isize {
     if let Err(err) = logging.remove_writer(writer) {
         eprintln!("logging_remove_writer failed: {err:?}");
-        err.raw_os_error().unwrap_or(nix::Error::EFAULT as i32) as isize
+        err.as_int() as isize
     } else {
         0
     }
@@ -235,7 +243,7 @@ pub unsafe extern "C" fn logging_sync(
 ) -> isize {
     if let Err(err) = logging.sync(console != 0, file != 0, client != 0, syslog != 0, timeout) {
         eprintln!("logging_sync failed: {err:?}");
-        err.raw_os_error().unwrap_or(nix::Error::EFAULT as i32) as isize
+        err.as_int() as isize
     } else {
         0
     }
@@ -248,7 +256,7 @@ pub unsafe extern "C" fn logging_sync(
 pub unsafe extern "C" fn logging_sync_all(logging: &Logging, timeout: c_double) -> isize {
     if let Err(err) = logging.sync_all(timeout) {
         eprintln!("logging_sync_all failed: {err:?}");
-        err.raw_os_error().unwrap_or(nix::Error::EFAULT as i32) as isize
+        err.as_int() as isize
     } else {
         0
     }
@@ -268,7 +276,7 @@ pub unsafe extern "C" fn logging_rotate(logging: &Logging, path: *mut PathBuf) -
     };
     if let Err(err) = logging.rotate(path) {
         eprintln!("logging_rotate failed: {err:?}");
-        err.raw_os_error().unwrap_or(nix::Error::EFAULT as i32) as isize
+        err.as_int() as isize
     } else {
         0
     }
@@ -303,7 +311,7 @@ pub unsafe extern "C" fn logging_set_encryption(
     };
     if let Err(err) = logging.set_encryption(writer, key) {
         eprintln!("logging_set_encryption failed: {err:?}");
-        err.raw_os_error().unwrap_or(nix::Error::EFAULT as i32) as isize
+        err.as_int() as isize
     } else {
         0
     }
@@ -354,12 +362,10 @@ pub unsafe extern "C" fn logging_get_server_config(
 ///
 /// Get server configuration.
 #[no_mangle]
-pub unsafe extern "C" fn logging_get_server_address(
-    logging: &Logging,
-    address: *const c_char,
-) -> *const char {
-    if let Some(config) = logging.get_server_config(&char2string(address)) {
-        CString::new(format!("{}:{}", config.address, config.port))
+pub unsafe extern "C" fn logging_get_server_address(logging: &Logging) -> *const char {
+    let addresses = logging.get_server_addresses();
+    if !addresses.is_empty() {
+        CString::new(addresses[0].clone())
             .expect("Error: CString::new()")
             .into_raw() as *const char
     } else {
@@ -390,7 +396,7 @@ pub unsafe extern "C" fn logging_get_config_string(logging: &Logging) -> *const 
 pub unsafe extern "C" fn logging_save_config(logging: &Logging, path: *const c_char) -> isize {
     if let Err(err) = logging.save_config(Path::new(&char2string(path))) {
         eprintln!("logging_get_server_config failed: {err:?}");
-        err.raw_os_error().unwrap_or(nix::Error::EFAULT as i32) as isize
+        err.as_int() as isize
     } else {
         0
     }
@@ -405,7 +411,7 @@ pub unsafe extern "C" fn logging_save_config(logging: &Logging, path: *const c_c
 pub unsafe extern "C" fn logging_trace(logging: &Logging, message: *const c_char) -> isize {
     if let Err(err) = logging.trace(char2string(message)) {
         eprintln!("logging_trace failed: {err:?}");
-        err.raw_os_error().unwrap_or(nix::Error::EPIPE as i32) as isize
+        err.as_int() as isize
     } else {
         0
     }
@@ -418,7 +424,7 @@ pub unsafe extern "C" fn logging_trace(logging: &Logging, message: *const c_char
 pub unsafe extern "C" fn logging_debug(logging: &Logging, message: *const c_char) -> isize {
     if let Err(err) = logging.debug(char2string(message)) {
         eprintln!("logging_debug failed: {err:?}");
-        err.raw_os_error().unwrap_or(nix::Error::EPIPE as i32) as isize
+        err.as_int() as isize
     } else {
         0
     }
@@ -431,7 +437,7 @@ pub unsafe extern "C" fn logging_debug(logging: &Logging, message: *const c_char
 pub unsafe extern "C" fn logging_info(logging: &Logging, message: *const c_char) -> isize {
     if let Err(err) = logging.info(char2string(message)) {
         eprintln!("logging_info failed: {err:?}");
-        err.raw_os_error().unwrap_or(nix::Error::EPIPE as i32) as isize
+        err.as_int() as isize
     } else {
         0
     }
@@ -444,7 +450,7 @@ pub unsafe extern "C" fn logging_info(logging: &Logging, message: *const c_char)
 pub unsafe extern "C" fn logging_success(logging: &Logging, message: *const c_char) -> isize {
     if let Err(err) = logging.success(char2string(message)) {
         eprintln!("logging_success failed: {err:?}");
-        err.raw_os_error().unwrap_or(nix::Error::EPIPE as i32) as isize
+        err.as_int() as isize
     } else {
         0
     }
@@ -457,7 +463,7 @@ pub unsafe extern "C" fn logging_success(logging: &Logging, message: *const c_ch
 pub unsafe extern "C" fn logging_warning(logging: &Logging, message: *const c_char) -> isize {
     if let Err(err) = logging.warning(char2string(message)) {
         eprintln!("logging_warning failed: {err:?}");
-        err.raw_os_error().unwrap_or(nix::Error::EPIPE as i32) as isize
+        err.as_int() as isize
     } else {
         0
     }
@@ -470,7 +476,7 @@ pub unsafe extern "C" fn logging_warning(logging: &Logging, message: *const c_ch
 pub unsafe extern "C" fn logging_error(logging: &Logging, message: *const c_char) -> isize {
     if let Err(err) = logging.error(char2string(message)) {
         eprintln!("logging_error failed: {err:?}");
-        err.raw_os_error().unwrap_or(nix::Error::EPIPE as i32) as isize
+        err.as_int() as isize
     } else {
         0
     }
@@ -483,7 +489,7 @@ pub unsafe extern "C" fn logging_error(logging: &Logging, message: *const c_char
 pub unsafe extern "C" fn logging_critical(logging: &Logging, message: *const c_char) -> isize {
     if let Err(err) = logging.critical(char2string(message)) {
         eprintln!("logging_critical failed: {err:?}");
-        err.raw_os_error().unwrap_or(nix::Error::EPIPE as i32) as isize
+        err.as_int() as isize
     } else {
         0
     }
@@ -496,7 +502,7 @@ pub unsafe extern "C" fn logging_critical(logging: &Logging, message: *const c_c
 pub unsafe extern "C" fn logging_fatal(logging: &Logging, message: *const c_char) -> isize {
     if let Err(err) = logging.fatal(char2string(message)) {
         eprintln!("logging_fatal failed: {err:?}");
-        err.raw_os_error().unwrap_or(nix::Error::EPIPE as i32) as isize
+        err.as_int() as isize
     } else {
         0
     }
@@ -509,7 +515,7 @@ pub unsafe extern "C" fn logging_fatal(logging: &Logging, message: *const c_char
 pub unsafe extern "C" fn logging_exception(logging: &Logging, message: *const c_char) -> isize {
     if let Err(err) = logging.exception(char2string(message)) {
         eprintln!("logging_exception failed: {err:?}");
-        err.raw_os_error().unwrap_or(nix::Error::EPIPE as i32) as isize
+        err.as_int() as isize
     } else {
         0
     }

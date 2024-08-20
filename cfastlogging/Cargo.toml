@@ -1,6 +1,6 @@
 [package]
 name = "cfastlogging"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 authors = ["Martin Bammer <mrbm74@gmail.com>"]
 license = "MIT OR Apache-2.0"
@@ -25,4 +25,4 @@ crate-type = ["rlib", "cdylib", "staticlib"]
 [dependencies]
 nix = "0.29"
 zip = { version = "2.1", default-features = false, features = ["deflate"] }
-fastlogging = { path = "../fastlogging", version = "0.2.0" }
+fastlogging = { path = "../fastlogging", version = "0.3.0" }

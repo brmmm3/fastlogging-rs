@@ -66,7 +66,7 @@ pub unsafe extern "C" fn logger_trace(logger: &Logger, message: *const c_char) -
     let c_str = unsafe { CStr::from_ptr(message) };
     if let Err(err) = logger.trace(c_str.to_str().unwrap().to_string()) {
         eprintln!("logger_trace failed: {err:?}");
-        err.raw_os_error().unwrap_or(nix::Error::EPIPE as i32) as isize
+        err.as_int() as isize
     } else {
         0
     }
@@ -80,7 +80,7 @@ pub unsafe extern "C" fn logger_debug(logger: &Logger, message: *const c_char) -
     let c_str = unsafe { CStr::from_ptr(message) };
     if let Err(err) = logger.debug(c_str.to_str().unwrap().to_string()) {
         eprintln!("logger_debug failed: {err:?}");
-        err.raw_os_error().unwrap_or(nix::Error::EPIPE as i32) as isize
+        err.as_int() as isize
     } else {
         0
     }
@@ -94,7 +94,7 @@ pub unsafe extern "C" fn logger_info(logger: &Logger, message: *const c_char) ->
     let c_str = unsafe { CStr::from_ptr(message) };
     if let Err(err) = logger.info(c_str.to_str().unwrap().to_string()) {
         eprintln!("logger_info failed: {err:?}");
-        err.raw_os_error().unwrap_or(nix::Error::EPIPE as i32) as isize
+        err.as_int() as isize
     } else {
         0
     }
@@ -108,7 +108,7 @@ pub unsafe extern "C" fn logger_success(logger: &Logger, message: *const c_char)
     let c_str = unsafe { CStr::from_ptr(message) };
     if let Err(err) = logger.success(c_str.to_str().unwrap().to_string()) {
         eprintln!("logger_success failed: {err:?}");
-        err.raw_os_error().unwrap_or(nix::Error::EPIPE as i32) as isize
+        err.as_int() as isize
     } else {
         0
     }
@@ -122,7 +122,7 @@ pub unsafe extern "C" fn logger_warning(logger: &Logger, message: *const c_char)
     let c_str = unsafe { CStr::from_ptr(message) };
     if let Err(err) = logger.warning(c_str.to_str().unwrap().to_string()) {
         eprintln!("logger_warning failed: {err:?}");
-        err.raw_os_error().unwrap_or(nix::Error::EPIPE as i32) as isize
+        err.as_int() as isize
     } else {
         0
     }
@@ -136,7 +136,7 @@ pub unsafe extern "C" fn logger_error(logger: &Logger, message: *const c_char) -
     let c_str = unsafe { CStr::from_ptr(message) };
     if let Err(err) = logger.error(c_str.to_str().unwrap().to_string()) {
         eprintln!("logger_error failed: {err:?}");
-        err.raw_os_error().unwrap_or(nix::Error::EPIPE as i32) as isize
+        err.as_int() as isize
     } else {
         0
     }
@@ -150,7 +150,7 @@ pub unsafe extern "C" fn logger_critical(logger: &Logger, message: *const c_char
     let c_str = unsafe { CStr::from_ptr(message) };
     if let Err(err) = logger.critical(c_str.to_str().unwrap().to_string()) {
         eprintln!("logger_critical failed: {err:?}");
-        err.raw_os_error().unwrap_or(nix::Error::EPIPE as i32) as isize
+        err.as_int() as isize
     } else {
         0
     }
@@ -164,7 +164,7 @@ pub unsafe extern "C" fn logger_fatal(logger: &Logger, message: *const c_char) -
     let c_str = unsafe { CStr::from_ptr(message) };
     if let Err(err) = logger.fatal(c_str.to_str().unwrap().to_string()) {
         eprintln!("logger_fatal failed: {err:?}");
-        err.raw_os_error().unwrap_or(nix::Error::EPIPE as i32) as isize
+        err.as_int() as isize
     } else {
         0
     }
@@ -178,7 +178,7 @@ pub unsafe extern "C" fn logger_exception(logger: &Logger, message: *const c_cha
     let c_str = unsafe { CStr::from_ptr(message) };
     if let Err(err) = logger.exception(c_str.to_str().unwrap().to_string()) {
         eprintln!("logger_exception failed: {err:?}");
-        err.raw_os_error().unwrap_or(nix::Error::EPIPE as i32) as isize
+        err.as_int() as isize
     } else {
         0
     }
