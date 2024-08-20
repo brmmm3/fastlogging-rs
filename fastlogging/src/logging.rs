@@ -863,7 +863,6 @@ impl Logging {
     pub fn get_server_addresses(&self) -> Vec<String> {
         let config = self.instance.lock().unwrap();
         let addresses = config.servers.keys().map(|k| k.to_owned()).collect();
-        //println!("get_server_addresses: addresses={addresses:?}");
         addresses
     }
 
@@ -874,13 +873,11 @@ impl Logging {
             .values()
             .map(|v| v.config.lock().unwrap().port)
             .collect();
-        //println!("get_server_ports: ports={ports:?}");
         ports
     }
 
     pub fn get_server_auth_key(&self) -> EncryptionMethod {
         let key = EncryptionMethod::AuthKey(AUTH_KEY.to_vec());
-        //println!("get_server_auth_key: key={key:?}");
         key
     }
 
