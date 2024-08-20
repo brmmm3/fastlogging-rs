@@ -628,7 +628,7 @@ impl Logging {
                 WriterTypeEnum::Server(address)
             }
             WriterConfigEnum::Syslog(cfg) => {
-                config.syslog = Some(SyslogWriter::new(cfg.to_owned(), self.stop.clone())?);
+                config.syslog = Some(SyslogWriter::new(cfg.clone(), self.stop.clone())?);
                 WriterTypeEnum::Syslog
             }
         })

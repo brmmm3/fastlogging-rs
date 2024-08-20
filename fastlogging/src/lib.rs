@@ -17,19 +17,25 @@ pub use net::{
 };
 mod console;
 pub use console::{ConsoleWriter, ConsoleWriterConfig};
-mod syslog;
-use root::PARENT_LOGGER_ADDRESS;
-pub use syslog::{SyslogTypeEnum, SyslogWriter, SyslogWriterConfig};
 mod root;
+use root::PARENT_LOGGER_ADDRESS;
 pub use root::ROOT_LOGGER;
 mod logging;
 pub use logging::Logging;
 mod logger;
 pub use logger::Logger;
 #[cfg(target_family = "unix")]
+mod syslog;
+#[cfg(target_family = "unix")]
+pub use syslog::{SyslogTypeEnum, SyslogWriter, SyslogWriterConfig};
+#[cfg(target_family = "unix")]
 mod unix;
 #[cfg(target_family = "unix")]
 pub use unix::getppid;
+#[cfg(target_family = "windows")]
+mod eventlog;
+#[cfg(target_family = "windows")]
+pub use eventlog::{SyslogTypeEnum, SyslogWriter, SyslogWriterConfig};
 #[cfg(target_family = "windows")]
 mod windows;
 #[cfg(target_family = "windows")]

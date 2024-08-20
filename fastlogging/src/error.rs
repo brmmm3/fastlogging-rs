@@ -60,8 +60,16 @@ impl From<ZipError> for LoggingError {
     }
 }
 
+#[cfg(target_family = "unix")]
 impl From<syslog::Error> for LoggingError {
     fn from(error: syslog::Error) -> Self {
+        LoggingError::SyslogError(error.to_string())
+    }
+}
+
+#[cfg(target_family = "windows")]
+impl From<eventlog::Error> for LoggingError {
+    fn from(error: eventlog::Error) -> Self {
         LoggingError::SyslogError(error.to_string())
     }
 }

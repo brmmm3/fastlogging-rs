@@ -27,7 +27,7 @@ pub fn getppid() -> u32 {
         th32ParentProcessID: 0,
         pcPriClassBase: 0,
         dwFlags: 0,
-        szExeFile: [0u8; 260],
+        szExeFile: [0i8; 260],
     };
     if !unsafe { Process32First(h_snapshot, &mut pe32) != 0 } {
         return 0;
