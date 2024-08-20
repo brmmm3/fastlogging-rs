@@ -41,6 +41,21 @@ mod windows;
 #[cfg(target_family = "windows")]
 pub use windows::getppid;
 
+pub fn logging_init() -> Result<Logging, LoggingError> {
+    let console = ConsoleWriterConfig::new(TRACE, false);
+    Logging::new(
+        None,
+        None,
+        None,
+        Some(console),
+        None,
+        None,
+        None,
+        None,
+        None,
+    )
+}
+
 pub fn shutdown(now: bool) -> Result<(), LoggingError> {
     ROOT_LOGGER.lock().unwrap().shutdown(now)
 }
