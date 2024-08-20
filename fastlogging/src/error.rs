@@ -5,6 +5,10 @@ use crate::{
     console::ConsoleTypeEnum, ClientTypeEnum, EncryptionMethod, LoggingTypeEnum, SyslogTypeEnum,
 };
 
+pub const EIO: i32 = 5;
+pub const EINVAL: i32 = 22;
+pub const EFAIL: i32 = 100;
+
 #[derive(Debug, Clone, thiserror::Error, Deserialize, Serialize)]
 pub enum LoggingError {
     #[error("I/O error ({kind}): {message}")]
@@ -43,6 +47,28 @@ pub enum LoggingError {
 
     #[error("{0}")]
     ArchiveError(String),
+}
+
+impl LoggingError {
+    pub fn as_int(&self) -> i32 {
+        match self {
+            LoggingError::Io {
+                kind: _,
+                message: _,
+            } => EIO,
+            LoggingError::Utf8Error(_) => EINVAL,
+            LoggingError::SyslogError(_) => EFAIL,
+            LoggingError::RecvError(_) => EFAIL,
+            LoggingError::SendError(_) => EFAIL,
+            LoggingError::SendCmdError(_, _, _) => EFAIL,
+            LoggingError::RecvAswError(_, _, _) => EFAIL,
+            LoggingError::InvalidValue(_) => EINVAL,
+            LoggingError::InvalidEncryption(_, _, _) => EINVAL,
+            LoggingError::JoinError(_, _) => EFAIL,
+            LoggingError::ConfigError(_) => EINVAL,
+            LoggingError::ArchiveError(_) => EFAIL,
+        }
+    }
 }
 
 impl From<std::io::Error> for LoggingError {
