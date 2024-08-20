@@ -136,7 +136,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingSetDomain(
     logging: &mut Logging,
     domain: JString,
 ) -> jint {
-    logging.set_domain(get_string!(env, domain));
+    logging.set_domain(&get_string!(env, domain));
     0
 }
 
@@ -150,7 +150,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingSetLevel2Sym(
     logging: &mut Logging,
     level2sym: &mut LevelSyms,
 ) {
-    logging.set_level2sym(level2sym.to_owned());
+    logging.set_level2sym(level2sym);
 }
 
 /// # Safety
