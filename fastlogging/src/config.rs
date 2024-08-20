@@ -392,15 +392,13 @@ impl ConfigFile {
         let mut servers = HashMap::new();
         if let Some(config) = server {
             self.config.server = Some(config.clone());
-            servers.insert(
-                config.address.clone(),
-                LoggingServer::new(config, tx.clone(), stop.clone())?,
-            );
+            let server = LoggingServer::new(config, tx.clone(), stop.clone())?;
+            let address = server.config.lock().unwrap().get_address();
+            servers.insert(address, server);
         } else if let Some(ref config) = self.config.server {
-            servers.insert(
-                config.address.clone(),
-                LoggingServer::new(config.to_owned(), tx.clone(), stop.clone())?,
-            );
+            let server = LoggingServer::new(config.to_owned(), tx.clone(), stop.clone())?;
+            let address = server.config.lock().unwrap().get_address();
+            servers.insert(address, server);
         };
         let mut config = LoggingInstance {
             level,
