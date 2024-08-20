@@ -21,7 +21,6 @@ include = [
 [dependencies]
 thiserror = "1.0"
 gethostname = "0.5"
-syslog = "7.0"
 flume = "0.11"
 chrono = "0.4"
 num_cpus = "1.16"
@@ -49,6 +48,13 @@ windows-sys = { version = "0.59", features = [
     "Win32_System_Diagnostics",
     "Win32_System_Diagnostics_ToolHelp",
 ] }
+
+[target.'cfg(unix)'.dependencies]
+syslog = "7.0"
+
+[target.'cfg(windows)'.dependencies]
+log = { version = "0.4", features = ["std"] }
+eventlog = "0.2"
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
