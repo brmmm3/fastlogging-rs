@@ -1,8 +1,7 @@
 use std::cmp;
-use std::io::Error;
 use std::path::PathBuf;
 
-use pyo3::exceptions::{PyException, PyTypeError};
+use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
 
 use fastlogging::{
@@ -15,6 +14,7 @@ use crate::def::{
     LevelSyms, RootConfig, ServerConfig, SyslogWriterConfig, WriterConfigEnum, WriterTypeEnum,
 };
 use crate::logger::Logger;
+use crate::LoggingError;
 
 #[pyclass]
 #[derive(Debug)]
@@ -67,15 +67,14 @@ impl Logging {
         connect: Option<&Bound<'_, ClientWriterConfig>>, // If config is defined start ClientWriter
         syslog: Option<u8>,                       // If log level is defined start SyslogLogging
         config: Option<PathBuf>,                  // Optional configuration file
-    ) -> Result<Self, Error> {
-        let (getframe, format_exc) =
-            Python::with_gil(|py| -> Result<(Py<PyAny>, Py<PyAny>), Error> {
-                let sys = py.import_bound("sys")?;
-                let getframe = sys.getattr("_getframe")?;
-                let traceback = py.import_bound("traceback")?;
-                let format_exc = traceback.getattr("format_exc")?;
-                Ok((getframe.into(), format_exc.into()))
-            })?;
+    ) -> PyResult<Self> {
+        let (getframe, format_exc) = Python::with_gil(|py| -> PyResult<(Py<PyAny>, Py<PyAny>)> {
+            let sys = py.import_bound("sys")?;
+            let getframe = sys.getattr("_getframe")?;
+            let traceback = py.import_bound("traceback")?;
+            let format_exc = traceback.getattr("format_exc")?;
+            Ok((getframe.into(), format_exc.into()))
+        })?;
         let indent = match indent {
             Some((offset, mut inc, mut max)) => {
                 inc = cmp::min(inc, 8);
@@ -99,7 +98,8 @@ impl Logging {
                 connect.map(|v| v.borrow().0.clone()),
                 syslog,
                 config,
-            )?,
+            )
+            .map_err(|e| PyException::new_err(e.to_string()))?,
             indent,
             getframe,
             format_exc,
@@ -107,17 +107,13 @@ impl Logging {
     }
 
     #[pyo3(signature=(now=None,))]
-    pub fn shutdown(&mut self, now: Option<bool>) -> PyResult<()> {
-        self.instance
-            .shutdown(now.unwrap_or_default())
-            .map_err(PyException::new_err)
+    pub fn shutdown(&mut self, now: Option<bool>) -> Result<(), LoggingError> {
+        Ok(self.instance.shutdown(now.unwrap_or_default())?)
     }
 
-    pub fn set_level(&mut self, writer: WriterTypeEnum, level: u8) -> PyResult<()> {
+    pub fn set_level(&mut self, writer: WriterTypeEnum, level: u8) -> Result<(), LoggingError> {
         let writer: fastlogging::WriterTypeEnum = writer.into();
-        self.instance
-            .set_level(&writer, level)
-            .map_err(PyException::new_err)
+        Ok(self.instance.set_level(&writer, level)?)
     }
 
     pub fn set_domain(&mut self, domain: String) {
@@ -132,7 +128,11 @@ impl Logging {
         self.instance.set_ext_config(&ext_config.borrow().0)
     }
 
-    pub fn add_writer(&mut self, writer: PyObject, py: Python) -> PyResult<WriterTypeEnum> {
+    pub fn add_writer(
+        &mut self,
+        writer: PyObject,
+        py: Python,
+    ) -> Result<WriterTypeEnum, LoggingError> {
         let writer = if let Ok(writer) = writer.extract::<RootConfig>(py) {
             fastlogging::WriterConfigEnum::Root(writer.0)
         } else if let Ok(writer) = writer.extract::<ConsoleWriterConfig>(py) {
@@ -146,19 +146,15 @@ impl Logging {
         } else if let Ok(writer) = writer.extract::<SyslogWriterConfig>(py) {
             fastlogging::WriterConfigEnum::Syslog(writer.0)
         } else {
-            return Err(PyTypeError::new_err("writer has invalid argument type"));
+            return Err(LoggingError(fastlogging::LoggingError::InvalidValue(
+                "writer has invalid argument type".to_string(),
+            )));
         };
-        Ok(self
-            .instance
-            .add_writer(&writer)
-            .map_err(PyException::new_err)?
-            .into())
+        Ok(self.instance.add_writer(&writer)?.into())
     }
 
-    pub fn remove_writer(&mut self, writer: WriterTypeEnum) -> PyResult<()> {
-        self.instance
-            .remove_writer(&(writer.into()))
-            .map_err(PyException::new_err)
+    pub fn remove_writer(&mut self, writer: WriterTypeEnum) -> Result<(), LoggingError> {
+        Ok(self.instance.remove_writer(&(writer.into()))?)
     }
 
     pub fn add_logger(&mut self, logger: Py<Logger>, py: Python) {
@@ -179,30 +175,28 @@ impl Logging {
         client: Option<bool>,
         syslog: Option<bool>,
         timeout: Option<f64>,
-    ) -> PyResult<()> {
-        self.instance
-            .sync(
-                console.unwrap_or_default(),
-                file.unwrap_or_default(),
-                client.unwrap_or_default(),
-                syslog.unwrap_or_default(),
-                timeout.unwrap_or(1.0),
-            )
-            .map_err(PyException::new_err)
+    ) -> Result<(), LoggingError> {
+        Ok(self.instance.sync(
+            console.unwrap_or_default(),
+            file.unwrap_or_default(),
+            client.unwrap_or_default(),
+            syslog.unwrap_or_default(),
+            timeout.unwrap_or(1.0),
+        )?)
     }
 
     #[pyo3(signature=(timeout=None))]
-    pub fn sync_all(&self, timeout: Option<f64>) -> PyResult<()> {
-        self.instance
-            .sync(true, true, true, true, timeout.unwrap_or(1.0))
-            .map_err(PyException::new_err)
+    pub fn sync_all(&self, timeout: Option<f64>) -> Result<(), LoggingError> {
+        Ok(self
+            .instance
+            .sync(true, true, true, true, timeout.unwrap_or(1.0))?)
     }
 
     // File logger
 
     #[pyo3(signature=(path=None))]
-    pub fn rotate(&self, path: Option<PathBuf>) -> PyResult<()> {
-        self.instance.rotate(path).map_err(PyException::new_err)
+    pub fn rotate(&self, path: Option<PathBuf>) -> Result<(), LoggingError> {
+        Ok(self.instance.rotate(path)?)
     }
 
     // Network
@@ -211,10 +205,8 @@ impl Logging {
         &mut self,
         writer: WriterTypeEnum,
         key: EncryptionMethod,
-    ) -> PyResult<()> {
-        self.instance
-            .set_encryption(writer.into(), key.into())
-            .map_err(PyException::new_err)
+    ) -> Result<(), LoggingError> {
+        Ok(self.instance.set_encryption(writer.into(), key.into())?)
     }
 
     // Config
@@ -223,11 +215,11 @@ impl Logging {
         self.instance.set_debug(debug);
     }
 
-    pub fn get_config(&self, writer: WriterTypeEnum) -> PyResult<WriterConfigEnum> {
-        self.instance
+    pub fn get_config(&self, writer: WriterTypeEnum) -> Result<WriterConfigEnum, LoggingError> {
+        Ok(self
+            .instance
             .get_config(&(writer.into()))
-            .map(|c| c.into())
-            .map_err(PyException::new_err)
+            .map(|c| c.into())?)
     }
 
     pub fn get_server_config(&self, address: String) -> Option<ServerConfig> {
@@ -260,10 +252,8 @@ impl Logging {
         self.instance.get_config_string()
     }
 
-    pub fn save_config(&self, path: PathBuf) -> PyResult<()> {
-        self.instance
-            .save_config(&path)
-            .map_err(PyException::new_err)
+    pub fn save_config(&self, path: PathBuf) -> Result<(), LoggingError> {
+        Ok(self.instance.save_config(&path)?)
     }
 
     // Logging methods
@@ -272,7 +262,7 @@ impl Logging {
         if self.instance.level <= TRACE {
             self.instance
                 .trace(self.do_indent(obj)?)
-                .map_err(PyException::new_err)
+                .map_err(|e| PyException::new_err(e.to_string()))
         } else {
             Ok(())
         }
@@ -282,7 +272,7 @@ impl Logging {
         if self.instance.level <= DEBUG {
             self.instance
                 .debug(self.do_indent(obj)?)
-                .map_err(PyException::new_err)
+                .map_err(|e| PyException::new_err(e.to_string()))
         } else {
             Ok(())
         }
@@ -292,7 +282,7 @@ impl Logging {
         if self.instance.level <= INFO {
             self.instance
                 .info(self.do_indent(obj)?)
-                .map_err(PyException::new_err)
+                .map_err(|e| PyException::new_err(e.to_string()))
         } else {
             Ok(())
         }
@@ -302,7 +292,7 @@ impl Logging {
         if self.instance.level <= SUCCESS {
             self.instance
                 .success(self.do_indent(obj)?)
-                .map_err(PyException::new_err)
+                .map_err(|e| PyException::new_err(e.to_string()))
         } else {
             Ok(())
         }
@@ -312,7 +302,7 @@ impl Logging {
         if self.instance.level <= WARNING {
             self.instance
                 .warning(self.do_indent(obj)?)
-                .map_err(PyException::new_err)
+                .map_err(|e| PyException::new_err(e.to_string()))
         } else {
             Ok(())
         }
@@ -322,7 +312,7 @@ impl Logging {
         if self.instance.level <= ERROR {
             self.instance
                 .error(self.do_indent(obj)?)
-                .map_err(PyException::new_err)
+                .map_err(|e| PyException::new_err(e.to_string()))
         } else {
             Ok(())
         }
@@ -332,7 +322,7 @@ impl Logging {
         if self.instance.level <= CRITICAL {
             self.instance
                 .critical(self.do_indent(obj)?)
-                .map_err(PyException::new_err)
+                .map_err(|e| PyException::new_err(e.to_string()))
         } else {
             Ok(())
         }
@@ -342,7 +332,7 @@ impl Logging {
         if self.instance.level <= FATAL {
             self.instance
                 .fatal(self.do_indent(obj)?)
-                .map_err(PyException::new_err)
+                .map_err(|e| PyException::new_err(e.to_string()))
         } else {
             Ok(())
         }
@@ -355,14 +345,14 @@ impl Logging {
                 let tb: String = self.format_exc.call0(py)?.extract(py)?;
                 self.instance
                     .exception(format!("{message}\n{tb}"))
-                    .map_err(PyException::new_err)
+                    .map_err(|e| PyException::new_err(e.to_string()))
             })
         } else {
             Ok(())
         }
     }
 
-    pub fn __setstate__(&mut self, state: Bound<'_, PyBytes>) -> PyResult<()> {
+    pub fn __setstate__(&mut self, state: Bound<'_, PyBytes>) -> Result<(), LoggingError> {
         println!("__setstate__");
         let data: &[u8] = state.as_bytes();
         let config = LoggingConfig::from_json_vec(data);
@@ -370,7 +360,7 @@ impl Logging {
         Ok(())
     }
 
-    pub fn __getstate__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyBytes>> {
+    pub fn __getstate__<'py>(&self, py: Python<'py>) -> Result<Bound<'py, PyBytes>, LoggingError> {
         println!("__getstate__");
         let config = self
             .instance
@@ -378,12 +368,14 @@ impl Logging {
             .lock()
             .unwrap()
             .get_config()
-            .to_json_vec()
-            .map_err(PyException::new_err)?;
+            .to_json_vec()?;
         Ok(PyBytes::new_bound(py, &config))
     }
 
-    pub fn __getnewargs__<'py>(&self, py: Python<'py>) -> PyResult<(Bound<'py, PyBytes>,)> {
+    pub fn __getnewargs__<'py>(
+        &self,
+        py: Python<'py>,
+    ) -> Result<(Bound<'py, PyBytes>,), LoggingError> {
         println!("__getnewargs__");
         let config = self
             .instance
@@ -391,8 +383,7 @@ impl Logging {
             .lock()
             .unwrap()
             .get_config()
-            .to_json_vec()
-            .map_err(PyException::new_err)?;
+            .to_json_vec()?;
         Ok((PyBytes::new_bound(py, &config),))
     }
 

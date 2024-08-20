@@ -1,4 +1,4 @@
-use std::{cmp, io::Error};
+use std::cmp;
 
 use fastlogging::{CRITICAL, DEBUG, ERROR, EXCEPTION, FATAL, INFO, SUCCESS, TRACE, WARNING};
 use pyo3::{exceptions::PyException, prelude::*};
@@ -49,15 +49,14 @@ impl Logger {
         indent: Option<(usize, usize, usize)>,
         tname: Option<bool>,
         tid: Option<bool>,
-    ) -> Result<Self, Error> {
-        let (getframe, format_exc) =
-            Python::with_gil(|py| -> Result<(Py<PyAny>, Py<PyAny>), Error> {
-                let sys = py.import_bound("sys")?;
-                let getframe = sys.getattr("_getframe")?;
-                let traceback = py.import_bound("traceback")?;
-                let format_exc = traceback.getattr("format_exc")?;
-                Ok((getframe.into(), format_exc.into()))
-            })?;
+    ) -> PyResult<Self> {
+        let (getframe, format_exc) = Python::with_gil(|py| -> PyResult<(Py<PyAny>, Py<PyAny>)> {
+            let sys = py.import_bound("sys")?;
+            let getframe = sys.getattr("_getframe")?;
+            let traceback = py.import_bound("traceback")?;
+            let format_exc = traceback.getattr("format_exc")?;
+            Ok((getframe.into(), format_exc.into()))
+        })?;
         let indent = match indent {
             Some((offset, mut inc, mut max)) => {
                 inc = cmp::min(inc, 8);
@@ -101,7 +100,7 @@ impl Logger {
         if self.instance.level() <= TRACE {
             self.instance
                 .trace(self.do_indent(obj)?)
-                .map_err(PyException::new_err)
+                .map_err(|e| PyException::new_err(e.to_string()))
         } else {
             Ok(())
         }
@@ -111,7 +110,7 @@ impl Logger {
         if self.instance.level() <= DEBUG {
             self.instance
                 .debug(self.do_indent(obj)?)
-                .map_err(PyException::new_err)
+                .map_err(|e| PyException::new_err(e.to_string()))
         } else {
             Ok(())
         }
@@ -121,7 +120,7 @@ impl Logger {
         if self.instance.level() <= INFO {
             self.instance
                 .info(self.do_indent(obj)?)
-                .map_err(PyException::new_err)
+                .map_err(|e| PyException::new_err(e.to_string()))
         } else {
             Ok(())
         }
@@ -131,7 +130,7 @@ impl Logger {
         if self.instance.level() <= SUCCESS {
             self.instance
                 .success(self.do_indent(obj)?)
-                .map_err(PyException::new_err)
+                .map_err(|e| PyException::new_err(e.to_string()))
         } else {
             Ok(())
         }
@@ -141,7 +140,7 @@ impl Logger {
         if self.instance.level() <= WARNING {
             self.instance
                 .warning(self.do_indent(obj)?)
-                .map_err(PyException::new_err)
+                .map_err(|e| PyException::new_err(e.to_string()))
         } else {
             Ok(())
         }
@@ -151,7 +150,7 @@ impl Logger {
         if self.instance.level() <= ERROR {
             self.instance
                 .error(self.do_indent(obj)?)
-                .map_err(PyException::new_err)
+                .map_err(|e| PyException::new_err(e.to_string()))
         } else {
             Ok(())
         }
@@ -161,7 +160,7 @@ impl Logger {
         if self.instance.level() <= CRITICAL {
             self.instance
                 .critical(self.do_indent(obj)?)
-                .map_err(PyException::new_err)
+                .map_err(|e| PyException::new_err(e.to_string()))
         } else {
             Ok(())
         }
@@ -171,7 +170,7 @@ impl Logger {
         if self.instance.level() <= FATAL {
             self.instance
                 .fatal(self.do_indent(obj)?)
-                .map_err(PyException::new_err)
+                .map_err(|e| PyException::new_err(e.to_string()))
         } else {
             Ok(())
         }
@@ -184,7 +183,7 @@ impl Logger {
                 let tb: String = self.format_exc.call0(py)?.extract(py)?;
                 self.instance
                     .exception(format!("{message}\n{tb}"))
-                    .map_err(PyException::new_err)
+                    .map_err(|e| PyException::new_err(e.to_string()))
             })
         } else {
             Ok(())

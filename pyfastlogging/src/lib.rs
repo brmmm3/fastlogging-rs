@@ -1,23 +1,25 @@
 use std::path::PathBuf;
 
-use pyo3::prelude::*;
+use pyo3::{exceptions::PyException, prelude::*};
 
 mod def;
 pub use def::{
     ClientWriterConfig, ConsoleWriterConfig, EncryptionMethod, FileWriterConfig, ServerConfig,
     WriterConfigEnum, WriterTypeEnum,
 };
+mod error;
+pub use error::LoggingError;
 mod logger;
 mod logging;
 
 #[pyfunction]
 #[pyo3(signature=(now=None,))]
-fn shutdown(now: Option<bool>) -> PyResult<()> {
+fn shutdown(now: Option<bool>) -> Result<(), LoggingError> {
     Ok(fastlogging::shutdown(now.unwrap_or_default())?)
 }
 
 #[pyfunction]
-fn set_level(writer: WriterTypeEnum, level: u8) -> PyResult<()> {
+fn set_level(writer: WriterTypeEnum, level: u8) -> Result<(), LoggingError> {
     Ok(fastlogging::set_level(&writer.into(), level)?)
 }
 
@@ -52,11 +54,13 @@ fn add_writer(writer: PyObject, py: Python) -> PyResult<WriterTypeEnum> {
         .downcast_bound::<WriterConfigEnum>(py)?
         .borrow()
         .clone();
-    Ok(fastlogging::add_writer(&mut config.into())?.into())
+    Ok(fastlogging::add_writer(&mut config.into())
+        .map_err(|e| PyException::new_err(e.to_string()))?
+        .into())
 }
 
 #[pyfunction]
-fn remove_writer(writer: WriterTypeEnum) -> PyResult<()> {
+fn remove_writer(writer: WriterTypeEnum) -> Result<(), LoggingError> {
     Ok(fastlogging::remove_writer(&writer.into())?)
 }
 
@@ -68,7 +72,7 @@ fn sync(
     client: Option<bool>,
     syslog: Option<bool>,
     timeout: Option<f64>,
-) -> PyResult<()> {
+) -> Result<(), LoggingError> {
     Ok(fastlogging::sync(
         console.unwrap_or_default(),
         file.unwrap_or_default(),
@@ -80,20 +84,20 @@ fn sync(
 
 #[pyfunction]
 #[pyo3(signature=(timeout=None))]
-fn sync_all(timeout: Option<f64>) -> PyResult<()> {
+fn sync_all(timeout: Option<f64>) -> Result<(), LoggingError> {
     Ok(fastlogging::sync_all(timeout.unwrap_or_default())?)
 }
 
 #[pyfunction]
 #[pyo3(signature=(path=None))]
-fn rotate(path: Option<PathBuf>) -> PyResult<()> {
+fn rotate(path: Option<PathBuf>) -> Result<(), LoggingError> {
     Ok(fastlogging::rotate(path)?)
 }
 
 // Network
 
 #[pyfunction]
-fn set_encryption(writer: WriterTypeEnum, key: EncryptionMethod) -> PyResult<()> {
+fn set_encryption(writer: WriterTypeEnum, key: EncryptionMethod) -> Result<(), LoggingError> {
     Ok(fastlogging::set_encryption(writer.into(), key.into())?)
 }
 
@@ -105,7 +109,7 @@ pub fn set_debug(debug: u8) {
 }
 
 #[pyfunction]
-fn get_config(writer: WriterTypeEnum) -> PyResult<WriterConfigEnum> {
+fn get_config(writer: WriterTypeEnum) -> Result<WriterConfigEnum, LoggingError> {
     Ok(fastlogging::get_config(&writer.into())?.into())
 }
 
@@ -125,7 +129,7 @@ fn get_config_string() -> String {
 }
 
 #[pyfunction]
-fn save_config(path: PathBuf) -> PyResult<()> {
+fn save_config(path: PathBuf) -> Result<(), LoggingError> {
     Ok(fastlogging::save_config(&path)?)
 }
 
@@ -147,52 +151,53 @@ pub fn get_parent_pid_server_address() -> Option<(u32, ClientWriterConfig)> {
 // Logging methods
 
 #[pyfunction]
-fn trace(obj: PyObject) -> PyResult<()> {
+fn trace(obj: PyObject) -> Result<(), LoggingError> {
     Ok(fastlogging::trace(obj.to_string())?)
 }
 
 #[pyfunction]
-fn debug(obj: PyObject) -> PyResult<()> {
+fn debug(obj: PyObject) -> Result<(), LoggingError> {
     Ok(fastlogging::debug(obj.to_string())?)
 }
 
 #[pyfunction]
-fn info(obj: PyObject) -> PyResult<()> {
+fn info(obj: PyObject) -> Result<(), LoggingError> {
     Ok(fastlogging::info(obj.to_string())?)
 }
 
 #[pyfunction]
-fn success(obj: PyObject) -> PyResult<()> {
+fn success(obj: PyObject) -> Result<(), LoggingError> {
     Ok(fastlogging::success(obj.to_string())?)
 }
 
 #[pyfunction]
-fn warning(obj: PyObject) -> PyResult<()> {
+fn warning(obj: PyObject) -> Result<(), LoggingError> {
     Ok(fastlogging::warning(obj.to_string())?)
 }
 
 #[pyfunction]
-fn error(obj: PyObject) -> PyResult<()> {
+#[pyo3(name = "error")]
+fn error_func(obj: PyObject) -> Result<(), LoggingError> {
     Ok(fastlogging::error(obj.to_string())?)
 }
 
 #[pyfunction]
-fn critical(obj: PyObject) -> PyResult<()> {
+fn critical(obj: PyObject) -> Result<(), LoggingError> {
     Ok(fastlogging::critical(obj.to_string())?)
 }
 
 #[pyfunction]
-fn fatal(obj: PyObject) -> PyResult<()> {
+fn fatal(obj: PyObject) -> Result<(), LoggingError> {
     Ok(fastlogging::fatal(obj.to_string())?)
 }
 
 #[pyfunction]
-fn exception(obj: PyObject) -> PyResult<()> {
+fn exception(obj: PyObject) -> Result<(), LoggingError> {
     Ok(fastlogging::exception(obj.to_string())?)
 }
 
 #[pyfunction]
-fn shutdown_at_exit() -> PyResult<()> {
+fn shutdown_at_exit() -> Result<(), LoggingError> {
     Ok(fastlogging::shutdown(false)?)
 }
 
@@ -251,7 +256,7 @@ fn init(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(info, m)?)?;
     m.add_function(wrap_pyfunction!(success, m)?)?;
     m.add_function(wrap_pyfunction!(warning, m)?)?;
-    m.add_function(wrap_pyfunction!(error, m)?)?;
+    m.add_function(wrap_pyfunction!(error_func, m)?)?;
     m.add_function(wrap_pyfunction!(critical, m)?)?;
     m.add_function(wrap_pyfunction!(fatal, m)?)?;
     m.add_function(wrap_pyfunction!(exception, m)?)?;

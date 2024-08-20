@@ -3,6 +3,8 @@ use std::time::{Duration, SystemTime};
 
 use pyo3::{exceptions::PyValueError, prelude::*};
 
+use crate::LoggingError;
+
 #[pyclass(eq, eq_int)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Level2Sym {
@@ -328,7 +330,7 @@ impl FileWriterConfig {
         timeout: Option<Duration>,
         time: Option<SystemTime>,
         compression: Option<CompressionMethodEnum>,
-    ) -> PyResult<Self> {
+    ) -> Result<Self, LoggingError> {
         Ok(Self(fastlogging::FileWriterConfig::new(
             level,
             path,
