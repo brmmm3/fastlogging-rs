@@ -339,9 +339,8 @@ impl FileWriter {
             .send(FileTypeEnum::Message((level, message)))
             .map_err(|e| {
                 LoggingError::SendError(format!(
-                    "FileWriter::send: Failed to send {} message: {}",
-                    level2str(level),
-                    e.to_string()
+                    "FileWriter::send: Failed to send {} message: {e}",
+                    level2str(level)
                 ))
             })
     }

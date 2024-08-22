@@ -77,9 +77,7 @@ fn read(
         };
         bytes_read += cnt;
         if cnt == 0 {
-            if let Err(err) = stream.peer_addr() {
-                return Err(err);
-            }
+            stream.peer_addr()?;
             thread::sleep(Duration::from_millis(10));
         }
         if bytes_read >= read_max {

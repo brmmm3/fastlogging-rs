@@ -92,7 +92,7 @@ pub static ROOT_LOGGER: Lazy<Mutex<Logging>> = Lazy::new(|| {
         println!("* {} setup_logging BEGIN", process::id());
         // Check if parent process with fastlogging instance exists.
         let mut logging = create_default_logger(None);
-        if let Some(server) = logging.get_server_configs().get(0) {
+        if let Some(server) = logging.get_server_configs().first() {
             let port_file = get_port_file(process::id());
             // Server config above is just a copy. So we need to access the original directly.
             logging

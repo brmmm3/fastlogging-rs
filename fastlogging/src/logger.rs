@@ -71,9 +71,7 @@ impl Logger {
             } else {
                 tx.send(LoggingTypeEnum::Message((level, message)))
             })
-            .map_err(|e| {
-                LoggingError::SendError(format!("Failed to send message: {}", e.to_string()))
-            });
+            .map_err(|e| LoggingError::SendError(format!("Failed to send message: {e}")));
         }
         Err(LoggingError::ConfigError(
             "Logger not registered at Logging instance. Call add_logger first.".to_string(),

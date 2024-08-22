@@ -703,14 +703,10 @@ impl Logging {
             .send(LoggingTypeEnum::Sync((
                 console, file, client, syslog, timeout,
             )))
-            .map_err(|e| {
-                LoggingError::SendError(format!("Failed to send SYNC command: {}", e.to_string()))
-            })?;
+            .map_err(|e| LoggingError::SendError(format!("Failed to send SYNC command: {e}")))?;
         self.sync_rx
             .recv_timeout(Duration::from_secs_f64(timeout))
-            .map_err(|e| {
-                LoggingError::RecvError(format!("Failed to receive SYNC answer: {e:?}"))
-            })?;
+            .map_err(|e| LoggingError::RecvError(format!("Failed to receive SYNC answer: {e}")))?;
         Ok(())
     }
 
@@ -877,8 +873,7 @@ impl Logging {
     }
 
     pub fn get_server_auth_key(&self) -> EncryptionMethod {
-        let key = EncryptionMethod::AuthKey(AUTH_KEY.to_vec());
-        key
+        EncryptionMethod::AuthKey(AUTH_KEY.to_vec())
     }
 
     pub fn get_config_string(&self) -> String {
