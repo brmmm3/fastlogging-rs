@@ -1,12 +1,12 @@
 use std::path::PathBuf;
 
+use config::{CallbackWriterConfig, ExtConfig};
 use pyo3::{exceptions::PyException, prelude::*};
 
 mod def;
-pub use def::{
-    ClientWriterConfig, ConsoleWriterConfig, EncryptionMethod, FileWriterConfig, ServerConfig,
-    WriterConfigEnum, WriterTypeEnum,
-};
+pub use def::{EncryptionMethod, LevelSyms, WriterConfigEnum, WriterTypeEnum};
+mod config;
+pub use config::{ClientWriterConfig, ConsoleWriterConfig, FileWriterConfig, ServerConfig};
 mod error;
 pub use error::LoggingError;
 mod logger;
@@ -29,12 +29,12 @@ fn set_domain(domain: String) {
 }
 
 #[pyfunction]
-fn set_level2sym(level2sym: &Bound<'_, def::LevelSyms>) {
+fn set_level2sym(level2sym: &Bound<'_, LevelSyms>) {
     fastlogging::set_level2sym(&level2sym.borrow().0)
 }
 
 #[pyfunction]
-fn set_ext_config(ext_config: &Bound<'_, def::ExtConfig>) {
+fn set_ext_config(ext_config: &Bound<'_, ExtConfig>) {
     fastlogging::set_ext_config(&ext_config.borrow().0)
 }
 
@@ -65,12 +65,13 @@ fn remove_writer(writer: WriterTypeEnum) -> Result<(), LoggingError> {
 }
 
 #[pyfunction]
-#[pyo3(signature=(console=None, file=None, client=None, syslog=None, timeout=None))]
+#[pyo3(signature=(console=None, file=None, client=None, syslog=None, callback=None, timeout=None))]
 fn sync(
     console: Option<bool>,
     file: Option<bool>,
     client: Option<bool>,
     syslog: Option<bool>,
+    callback: Option<bool>,
     timeout: Option<f64>,
 ) -> Result<(), LoggingError> {
     Ok(fastlogging::sync(
@@ -78,6 +79,7 @@ fn sync(
         file.unwrap_or_default(),
         client.unwrap_or_default(),
         syslog.unwrap_or_default(),
+        callback.unwrap_or_default(),
         timeout.unwrap_or(1.0),
     )?)
 }
@@ -222,11 +224,12 @@ fn init(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<def::CompressionMethodEnum>()?;
     m.add_class::<def::EncryptionMethod>()?;
     m.add_class::<def::WriterTypeEnum>()?;
-    m.add_class::<def::ExtConfig>()?;
-    m.add_class::<def::ConsoleWriterConfig>()?;
-    m.add_class::<def::FileWriterConfig>()?;
-    m.add_class::<def::ServerConfig>()?;
-    m.add_class::<def::ClientWriterConfig>()?;
+    m.add_class::<ExtConfig>()?;
+    m.add_class::<ConsoleWriterConfig>()?;
+    m.add_class::<FileWriterConfig>()?;
+    m.add_class::<ServerConfig>()?;
+    m.add_class::<ClientWriterConfig>()?;
+    m.add_class::<CallbackWriterConfig>()?;
     m.add_class::<logging::Logging>()?;
     m.add_class::<logger::Logger>()?;
     m.add_function(wrap_pyfunction!(shutdown, m)?)?;

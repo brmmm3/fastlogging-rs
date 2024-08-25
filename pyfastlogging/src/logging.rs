@@ -9,10 +9,11 @@ use fastlogging::{
 };
 use pyo3::types::PyBytes;
 
-use crate::def::{
-    ClientWriterConfig, ConsoleWriterConfig, EncryptionMethod, ExtConfig, FileWriterConfig,
-    LevelSyms, RootConfig, ServerConfig, SyslogWriterConfig, WriterConfigEnum, WriterTypeEnum,
+use crate::config::{
+    CallbackWriterConfig, ClientWriterConfig, ConsoleWriterConfig, ExtConfig, FileWriterConfig,
+    RootConfig, ServerConfig, SyslogWriterConfig,
 };
+use crate::def::{EncryptionMethod, LevelSyms, WriterConfigEnum, WriterTypeEnum};
 use crate::logger::Logger;
 use crate::LoggingError;
 
@@ -145,6 +146,8 @@ impl Logging {
             fastlogging::WriterConfigEnum::Server(writer.0)
         } else if let Ok(writer) = writer.extract::<SyslogWriterConfig>(py) {
             fastlogging::WriterConfigEnum::Syslog(writer.0)
+        } else if let Ok(writer) = writer.extract::<CallbackWriterConfig>(py) {
+            fastlogging::WriterConfigEnum::Callback(writer.0)
         } else {
             return Err(LoggingError(fastlogging::LoggingError::InvalidValue(
                 "writer has invalid argument type".to_string(),
@@ -167,13 +170,14 @@ impl Logging {
             .remove_logger(&mut logger.borrow_mut(py).instance)
     }
 
-    #[pyo3(signature=(console=None, file=None, client=None, syslog=None, timeout=None))]
+    #[pyo3(signature=(console=None, file=None, client=None, syslog=None, callback=None, timeout=None))]
     pub fn sync(
         &self,
         console: Option<bool>,
         file: Option<bool>,
         client: Option<bool>,
         syslog: Option<bool>,
+        callback: Option<bool>,
         timeout: Option<f64>,
     ) -> Result<(), LoggingError> {
         Ok(self.instance.sync(
@@ -181,15 +185,14 @@ impl Logging {
             file.unwrap_or_default(),
             client.unwrap_or_default(),
             syslog.unwrap_or_default(),
+            callback.unwrap_or_default(),
             timeout.unwrap_or(1.0),
         )?)
     }
 
     #[pyo3(signature=(timeout=None))]
     pub fn sync_all(&self, timeout: Option<f64>) -> Result<(), LoggingError> {
-        Ok(self
-            .instance
-            .sync(true, true, true, true, timeout.unwrap_or(1.0))?)
+        Ok(self.instance.sync_all(timeout.unwrap_or(1.0))?)
     }
 
     // File logger

@@ -3,11 +3,12 @@ import time
 
 import fastlogging_rs as fl
 
-fl.set_debug(3)
+# fl.set_debug(3)
 
 
 def run_parent():
     print("# Run parent.")
+    fl.set_domain(f"parent")
     fl.debug("Debug Message from parent")
     fl.info("Info Message from parent")
     fl.warning("Warning Message from parent")
@@ -19,6 +20,7 @@ def run_parent():
 def run_child(ppid: int):
     pid = os.getpid()
     print(f"# Run child with pid {pid}. Parent has pid {ppid}.")
+    fl.set_domain(f"child{pid}")
     fl.debug(f"Debug Message from child {pid}")
     fl.info(f"Info Message from child {pid}")
     fl.warning(f"Warning Message from child {pid}")
