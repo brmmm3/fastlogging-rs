@@ -9,20 +9,24 @@ use std::{
 };
 
 use flume::{bounded, Receiver, SendError, Sender};
+use regex::Regex;
 use syslog::{Facility, Formatter3164};
 
 use crate::{LoggingError, CRITICAL, DEBUG, ERROR, EXCEPTION, INFO, SUCCESS, WARNING};
 
 #[derive(Debug)]
 pub enum SyslogTypeEnum {
-    Message((u8, String)), // level, message
-    Sync(f64),             // timeout
+    Message((u8, String, String)), // level, domain, message
+    Sync(f64),                     // timeout
     Stop,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SyslogWriterConfig {
-    pub level: u8, // Log level
+    pub(crate) enabled: bool,
+    pub(crate) level: u8, // Log level
+    pub(crate) domain_filter: Option<String>,
+    pub(crate) message_filter: Option<String>,
     #[serde(skip_serializing, skip_deserializing)]
     formatter: Formatter3164,
 }
@@ -30,7 +34,10 @@ pub struct SyslogWriterConfig {
 impl SyslogWriterConfig {
     pub fn new<S: Into<String>>(level: u8, hostname: Option<String>, pname: S, pid: u32) -> Self {
         Self {
+            enabled: true,
             level,
+            domain_filter: None,
+            message_filter: None,
             formatter: Formatter3164 {
                 facility: Facility::LOG_USER,
                 hostname,
@@ -64,16 +71,32 @@ fn syslog_writer_thread(
             break;
         }
         match rx.recv()? {
-            SyslogTypeEnum::Message((level, message)) => match level {
-                DEBUG => writer.debug(message)?,
-                INFO => writer.info(message)?,
-                SUCCESS => writer.notice(message)?,
-                WARNING => writer.warning(message)?,
-                ERROR => writer.err(message)?,
-                CRITICAL => writer.crit(message)?,
-                EXCEPTION => writer.alert(message)?,
-                _ => {}
-            },
+            SyslogTypeEnum::Message((level, domain, message)) => {
+                if let Ok(ref config) = config.lock() {
+                    if let Some(ref domain_filter) = config.domain_filter {
+                        let re = Regex::new(domain_filter).unwrap();
+                        if !re.is_match(&domain) {
+                            continue;
+                        }
+                    }
+                    if let Some(ref message_filter) = config.message_filter {
+                        let re = Regex::new(message_filter).unwrap();
+                        if !re.is_match(&domain) {
+                            continue;
+                        }
+                    }
+                }
+                match level {
+                    DEBUG => writer.debug(message)?,
+                    INFO => writer.info(message)?,
+                    SUCCESS => writer.notice(message)?,
+                    WARNING => writer.warning(message)?,
+                    ERROR => writer.err(message)?,
+                    CRITICAL => writer.crit(message)?,
+                    EXCEPTION => writer.alert(message)?,
+                    _ => {}
+                }
+            }
             SyslogTypeEnum::Sync(_) => {
                 sync_tx.send(1)?;
             }
@@ -154,12 +177,46 @@ impl SyslogWriter {
         Ok(())
     }
 
+    pub fn enable(&self) {
+        self.config.lock().unwrap().enabled = true;
+    }
+
+    pub fn disable(&self) {
+        self.config.lock().unwrap().enabled = false;
+    }
+
+    pub fn set_enabled(&self, enabled: bool) {
+        self.config.lock().unwrap().enabled = enabled;
+    }
+
     pub fn set_level(&self, level: u8) {
         self.config.lock().unwrap().level = level;
     }
 
+    pub fn set_domain_filter(&self, domain_filter: Option<String>) -> Result<(), regex::Error> {
+        if let Some(ref message) = domain_filter {
+            Regex::new(message)?;
+        }
+        self.config.lock().unwrap().domain_filter = domain_filter;
+        Ok(())
+    }
+
+    pub fn set_message_filter(&self, message_filter: Option<String>) -> Result<(), regex::Error> {
+        if let Some(ref message) = message_filter {
+            Regex::new(message)?;
+        }
+        self.config.lock().unwrap().message_filter = message_filter;
+        Ok(())
+    }
+
     #[inline]
-    pub fn send(&self, level: u8, message: String) -> Result<(), SendError<SyslogTypeEnum>> {
-        self.tx.send(SyslogTypeEnum::Message((level, message)))
+    pub fn send(
+        &self,
+        level: u8,
+        domain: String,
+        message: String,
+    ) -> Result<(), SendError<SyslogTypeEnum>> {
+        self.tx
+            .send(SyslogTypeEnum::Message((level, domain, message)))
     }
 }

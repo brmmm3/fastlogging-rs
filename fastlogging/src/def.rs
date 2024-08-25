@@ -1,7 +1,8 @@
 use std::{fmt, path::PathBuf};
 
 use crate::{
-    ClientWriterConfig, ConsoleWriterConfig, FileWriterConfig, ServerConfig, SyslogWriterConfig,
+    callback::CallbackWriterConfig, ClientWriterConfig, ConsoleWriterConfig, FileWriterConfig,
+    ServerConfig, SyslogWriterConfig,
 };
 
 // Log-Levels
@@ -106,6 +107,7 @@ pub enum WriterConfigEnum {
     Client(ClientWriterConfig),
     Server(ServerConfig),
     Syslog(SyslogWriterConfig),
+    Callback(CallbackWriterConfig),
 }
 
 impl fmt::Display for WriterConfigEnum {
@@ -122,6 +124,7 @@ pub enum WriterTypeEnum {
     Client(String),
     Server(String),
     Syslog,
+    Callback,
 }
 
 impl fmt::Display for WriterTypeEnum {
@@ -132,10 +135,10 @@ impl fmt::Display for WriterTypeEnum {
 
 #[derive(Debug)]
 pub enum LoggingTypeEnum {
-    Message((u8, String)),                 // level, message
-    MessageRemote((u8, String)),           // level, message
-    MessageExt((u8, String, u32, String)), // level, tname, tid, message
-    Sync((bool, bool, bool, bool, f64)),   // console, file, client, syslog, timeout
+    Message((u8, String, String)),                 // level, domain, message
+    MessageRemote((u8, String, String)),           // level, domain, message
+    MessageExt((u8, String, String, u32, String)), // level, domain, message, tname, tid
+    Sync((bool, bool, bool, bool, bool, f64)),     // console, file, client, syslog, timeout
     Rotate,
     Stop,
 }

@@ -67,9 +67,19 @@ impl Logger {
                     "".to_string()
                 };
                 let tid = if self.tid { thread_id::get() as u32 } else { 0 };
-                tx.send(LoggingTypeEnum::MessageExt((level, message, tid, tname)))
+                tx.send(LoggingTypeEnum::MessageExt((
+                    level,
+                    self.domain.clone(),
+                    message,
+                    tid,
+                    tname,
+                )))
             } else {
-                tx.send(LoggingTypeEnum::Message((level, message)))
+                tx.send(LoggingTypeEnum::Message((
+                    level,
+                    self.domain.clone(),
+                    message,
+                )))
             })
             .map_err(|e| LoggingError::SendError(format!("Failed to send message: {e}")));
         }

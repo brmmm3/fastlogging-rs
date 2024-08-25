@@ -13,14 +13,17 @@ pub static AUTH_KEY: Lazy<Vec<u8>> =
 
 #[derive(Debug)]
 pub struct NetConfig {
-    pub level: u8,
-    pub address: String,
-    pub port: u16,
-    pub key: EncryptionMethod,
-    pub sk: Option<SealingKey<NonceGenerator>>,
-    pub seal: String,
-    pub port_file: Option<PathBuf>,
-    pub debug: u8,
+    pub(crate) enabled: bool,
+    pub(crate) level: u8,
+    pub(crate) domain_filter: Option<String>,
+    pub(crate) message_filter: Option<String>,
+    pub(crate) address: String,
+    pub(crate) port: u16,
+    pub(crate) key: EncryptionMethod,
+    pub(crate) sk: Option<SealingKey<NonceGenerator>>,
+    pub(crate) seal: String,
+    pub(crate) port_file: Option<PathBuf>,
+    pub(crate) debug: u8,
 }
 
 impl NetConfig {
@@ -31,7 +34,10 @@ impl NetConfig {
         key: EncryptionMethod,
     ) -> Result<Self, LoggingError> {
         let mut config = Self {
+            enabled: true,
             level,
+            domain_filter: None,
+            message_filter: None,
             address,
             port,
             key: key.clone(),
@@ -86,7 +92,10 @@ impl NetConfig {
 
     pub fn get_client_config(&self) -> ClientWriterConfig {
         ClientWriterConfig {
+            enabled: self.enabled,
             level: self.level,
+            domain_filter: self.domain_filter.clone(),
+            message_filter: self.message_filter.clone(),
             address: self.address.clone(),
             port: self.port,
             key: self.key.clone(),

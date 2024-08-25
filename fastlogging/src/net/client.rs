@@ -12,6 +12,7 @@ use std::{
 };
 
 use flume::{bounded, Receiver, SendError, Sender};
+use regex::Regex;
 use ring::aead;
 
 use crate::LoggingError;
@@ -20,15 +21,18 @@ use super::{def::NetConfig, EncryptionMethod};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ClientTypeEnum {
-    Message((u8, String)), // level, message
-    Sync,                  // timeout
+    Message((u8, String, String)), // level, domain, message
+    Sync,                          // timeout
     Stop,
 }
 
 #[repr(C)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClientWriterConfig {
+    pub(crate) enabled: bool,
     pub(crate) level: u8,
+    pub(crate) domain_filter: Option<String>,
+    pub(crate) message_filter: Option<String>,
     pub(crate) address: String,
     pub(crate) port: u16,
     pub(crate) key: EncryptionMethod,
@@ -44,7 +48,10 @@ impl ClientWriterConfig {
             0
         };
         Self {
+            enabled: true,
             level,
+            domain_filter: None,
+            message_filter: None,
             address,
             port,
             key,
@@ -82,7 +89,7 @@ fn client_writer_thread(
             process::id()
         );
     }
-    let mut buffer = [0u8; 3];
+    let mut buffer = [0u8; 4];
     {
         let config = config.lock().unwrap();
         if !config.key.is_encrypted() {
@@ -106,7 +113,7 @@ fn client_writer_thread(
             break;
         }
         match rx.recv()? {
-            ClientTypeEnum::Message((level, message)) => {
+            ClientTypeEnum::Message((level, domain, message)) => {
                 if debug > 1 {
                     println!(
                         "{} client_writer_thread SEND MESSAGE {level} {message}",
@@ -118,22 +125,32 @@ fn client_writer_thread(
                     let seal = config.seal.clone();
                     let seal = aead::Aad::from(&seal);
                     if let Some(ref mut sk) = config.sk {
-                        let mut encrypted = message.as_bytes().to_vec();
-                        sk.seal_in_place_append_tag(seal, &mut encrypted)
+                        let mut domain = domain.as_bytes().to_vec();
+                        sk.seal_in_place_append_tag(seal, &mut domain)
                             .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
-                        size = encrypted.len();
+                        let mut message = message.as_bytes().to_vec();
+                        sk.seal_in_place_append_tag(seal, &mut message)
+                            .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+                        size = message.len();
                         buffer[0] = size as u8;
                         buffer[1] = (size >> 8) as u8;
                         buffer[2] = level;
+                        buffer[3] = domain.len() as u8;
                         let _ = stream.write_all(&buffer);
-                        let _ = stream.write_all(&encrypted);
+                        let _ = stream.write_all(&domain);
+                        let _ = stream.write_all(&message);
                     } else {
                         size = message.len();
                         buffer[0] = size as u8;
                         buffer[1] = (size >> 8) as u8;
                         buffer[2] = level;
+                        buffer[3] = domain.len() as u8;
+                        //println!("SEND {buffer:?}");
                         let _ = stream.write_all(&buffer);
+                        let _ = stream.write_all(domain.as_bytes());
+                        //println!("SEND1 {:?}", domain.as_bytes());
                         let _ = stream.write_all(message.as_bytes());
+                        //println!("SEND2 {:?}", message.as_bytes());
                     }
                     stream.flush()?;
                 }
@@ -242,8 +259,36 @@ impl ClientWriter {
         Ok(())
     }
 
+    pub fn enable(&self) {
+        self.config.lock().unwrap().enabled = true;
+    }
+
+    pub fn disable(&self) {
+        self.config.lock().unwrap().enabled = false;
+    }
+
+    pub fn set_enabled(&self, enabled: bool) {
+        self.config.lock().unwrap().enabled = enabled;
+    }
+
     pub fn set_level(&mut self, level: u8) {
         self.config.lock().unwrap().level = level;
+    }
+
+    pub fn set_domain_filter(&self, domain_filter: Option<String>) -> Result<(), regex::Error> {
+        if let Some(ref message) = domain_filter {
+            Regex::new(message)?;
+        }
+        self.config.lock().unwrap().domain_filter = domain_filter;
+        Ok(())
+    }
+
+    pub fn set_message_filter(&self, message_filter: Option<String>) -> Result<(), regex::Error> {
+        if let Some(ref message) = message_filter {
+            Regex::new(message)?;
+        }
+        self.config.lock().unwrap().message_filter = message_filter;
+        Ok(())
     }
 
     pub fn set_encryption(&mut self, key: EncryptionMethod) -> Result<(), LoggingError> {
@@ -257,7 +302,13 @@ impl ClientWriter {
     }
 
     #[inline]
-    pub fn send(&self, level: u8, message: String) -> Result<(), SendError<ClientTypeEnum>> {
-        self.tx.send(ClientTypeEnum::Message((level, message)))
+    pub fn send(
+        &self,
+        level: u8,
+        domain: String,
+        message: String,
+    ) -> Result<(), SendError<ClientTypeEnum>> {
+        self.tx
+            .send(ClientTypeEnum::Message((level, domain, message)))
     }
 }

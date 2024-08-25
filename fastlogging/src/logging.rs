@@ -8,6 +8,7 @@ use std::time::Duration;
 use chrono::Local;
 use flume::{bounded, Receiver, Sender};
 
+use crate::callback::CallbackWriter;
 use crate::config::{ConfigFile, ExtConfig, LoggingInstance};
 use crate::console::{ConsoleWriter, ConsoleWriterConfig};
 use crate::def::{LoggingTypeEnum, CRITICAL, DEBUG, ERROR, EXCEPTION, FATAL, INFO, WARNING};
@@ -26,9 +27,10 @@ fn build_string_message(
     buffer: &mut String,
     config: &MutexGuard<LoggingInstance>,
     level: u8,
+    domain: &str,
+    message: String,
     tname: Option<String>,
     tid: u32,
-    message: String,
 ) {
     buffer.push_str(&Local::now().format("%Y.%m.%d %H:%M:%S").to_string());
     if let Some(ref hostname) = config.hostname {
@@ -60,7 +62,7 @@ fn build_string_message(
         buffer.push(']');
     }
     buffer.push(' ');
-    buffer.push_str(&config.domain);
+    buffer.push_str(domain);
     buffer.push(':');
     buffer.push(' ');
     buffer.push_str(match config.level2sym {
@@ -77,9 +79,10 @@ fn build_json_message(
     buffer: &mut String,
     config: &MutexGuard<LoggingInstance>,
     level: u8,
+    domain: &str,
+    message: String,
     tname: Option<String>,
     tid: u32,
-    message: String,
 ) {
     buffer.push('{');
     buffer.push_str("\"date\":");
@@ -108,7 +111,7 @@ fn build_json_message(
         buffer.push_str(&tid.to_string());
     }
     buffer.push_str(",\"domain\":\"");
-    buffer.push_str(&config.domain);
+    buffer.push_str(domain);
     buffer.push_str("\",\"level\":\"");
     buffer.push_str(match config.level2sym {
         LevelSyms::Sym => level2sym(level),
@@ -125,9 +128,10 @@ fn build_xml_message(
     buffer: &mut String,
     config: &MutexGuard<LoggingInstance>,
     level: u8,
+    domain: &str,
+    message: String,
     tname: Option<String>,
     tid: u32,
-    message: String,
 ) {
     buffer.push_str("<log>");
     buffer.push_str("<date>");
@@ -159,7 +163,7 @@ fn build_xml_message(
         buffer.push_str("</tid>");
     }
     buffer.push_str("<domain>");
-    buffer.push_str(&config.domain);
+    buffer.push_str(domain);
     buffer.push_str("</domain><level>");
     buffer.push_str(match config.level2sym {
         LevelSyms::Sym => level2sym(level),
@@ -183,14 +187,14 @@ fn logging_thread_worker(
             break;
         }
         let mut remote = false;
-        let (level, tname, tid, message) = match rx.recv()? {
-            LoggingTypeEnum::Message((level, message)) => (level, None, 0, message),
-            LoggingTypeEnum::MessageRemote((level, message)) => {
+        let (level, domain, message, tname, tid) = match rx.recv()? {
+            LoggingTypeEnum::Message((level, domain, message)) => (level, domain, message, None, 0),
+            LoggingTypeEnum::MessageRemote((level, domain, message)) => {
                 remote = true;
-                (level, None, 0, message)
+                (level, domain, message, None, 0)
             }
-            LoggingTypeEnum::MessageExt((level, message, tid, tname)) => {
-                (level, Some(tname), tid, message)
+            LoggingTypeEnum::MessageExt((level, domain, message, tid, tname)) => {
+                (level, domain, message, Some(tname), tid)
             }
             LoggingTypeEnum::Rotate => {
                 let debug = config.lock().unwrap().debug;
@@ -205,52 +209,60 @@ fn logging_thread_worker(
                 }
                 continue;
             }
-            LoggingTypeEnum::Sync((console, file, client, syslog, timeout)) => {
+            LoggingTypeEnum::Sync((console, file, client, syslog, callback, timeout)) => {
                 let mut config = config.lock().unwrap();
                 let debug = config.debug;
                 if debug > 0 {
                     println!("{} logging_thread_worker: SYNC", process::id());
                 }
                 if console {
-                    if let Some(ref mut console) = config.console {
+                    if let Some(ref mut writer) = config.console {
                         if debug > 0 {
                             println!("{} logging_thread_worker: SYNC->CONSOLE", process::id());
                         }
-                        console.sync(timeout)?;
+                        writer.sync(timeout)?;
                     }
                 }
                 if file {
-                    for file in config.files.values() {
+                    for writer in config.files.values() {
                         if debug > 0 {
                             println!(
                                 "{} logging_thread_worker: SYNC->FILE {:?}",
                                 process::id(),
-                                file.config.lock().unwrap().path
+                                writer.config.lock().unwrap().path
                             );
                         }
-                        file.sync(timeout)?;
+                        writer.sync(timeout)?;
                     }
                 }
                 if client {
-                    for client in config.clients.values() {
+                    for writer in config.clients.values() {
                         if debug > 0 {
-                            let client_config = client.config.lock().unwrap();
+                            let writer_config = writer.config.lock().unwrap();
                             println!(
                                 "{} logging_thread_worker: SYNC->CLIENT {}:{}",
                                 process::id(),
-                                client_config.address,
-                                client_config.port
+                                writer_config.address,
+                                writer_config.port
                             );
                         }
-                        client.sync(timeout)?;
+                        writer.sync(timeout)?;
                     }
                 }
                 if syslog {
-                    if let Some(ref mut syslog) = config.syslog {
+                    if let Some(ref mut writer) = config.syslog {
                         if debug > 0 {
                             println!("{} logging_thread_worker: SYNC->SYSLOG", process::id());
                         }
-                        syslog.sync(timeout)?;
+                        writer.sync(timeout)?;
+                    }
+                }
+                if callback {
+                    if let Some(ref mut writer) = config.callback {
+                        if debug > 0 {
+                            println!("{} logging_thread_worker: SYNC->CALLBACK", process::id());
+                        }
+                        writer.sync(timeout)?;
                     }
                 }
                 sync_tx.send(1)?;
@@ -272,13 +284,13 @@ fn logging_thread_worker(
         } else {
             match config.structured {
                 MessageStructEnum::String => {
-                    build_string_message(&mut buffer, &config, level, tname, tid, message);
+                    build_string_message(&mut buffer, &config, level, &domain, message, tname, tid);
                 }
                 MessageStructEnum::Json => {
-                    build_json_message(&mut buffer, &config, level, tname, tid, message);
+                    build_json_message(&mut buffer, &config, level, &domain, message, tname, tid);
                 }
                 MessageStructEnum::Xml => {
-                    build_xml_message(&mut buffer, &config, level, tname, tid, message);
+                    build_xml_message(&mut buffer, &config, level, &domain, message, tname, tid);
                 }
             }
         }
@@ -291,22 +303,27 @@ fn logging_thread_worker(
         }
         if let Some(ref writer) = config.console {
             if writer.config.lock().unwrap().level <= level {
-                writer.send(level, buffer.clone())?;
+                writer.send(level, domain.clone(), buffer.clone())?;
             }
         }
         for writer in config.files.values() {
             if writer.config.lock().unwrap().level <= level {
-                writer.send(level, buffer.clone())?;
+                writer.send(level, domain.clone(), buffer.clone())?;
             }
         }
         for writer in config.clients.values() {
             if writer.config.lock().unwrap().level <= level {
-                writer.send(level, buffer.clone())?;
+                writer.send(level, domain.clone(), buffer.clone())?;
             }
         }
         if let Some(ref writer) = config.syslog {
             if writer.config.lock().unwrap().level <= level {
-                writer.send(level, buffer.clone())?;
+                writer.send(level, domain.clone(), buffer.clone())?;
+            }
+        }
+        if let Some(ref writer) = config.callback {
+            if writer.config.lock().unwrap().level <= level {
+                writer.send(level, domain, buffer.clone())?;
             }
         }
     }
@@ -371,6 +388,7 @@ fn logging_thread(
 #[derive(Debug)]
 pub struct Logging {
     pub level: u8,
+    pub domain: String,
     config_file: ConfigFile,
     pub instance: Arc<Mutex<LoggingInstance>>,
     tname: bool,
@@ -398,15 +416,24 @@ impl Logging {
         let mut config_file = ConfigFile::new(config)?;
         // Overwrite settings with arguments, if provided.
         let (config, tx, rx, stop) = config_file.init(
-            level, domain, ext_config, console, file, server, connect, syslog,
+            level,
+            domain.clone(),
+            ext_config,
+            console,
+            file,
+            server,
+            connect,
+            syslog,
         )?;
         let level = config.level;
+        let domain = config.domain.clone();
         let tname = config.tname;
         let tid = config.tid;
         let (sync_tx, sync_rx) = bounded(1);
         let config = Arc::new(Mutex::new(config));
         Ok(Self {
             level,
+            domain,
             instance: config.clone(),
             config_file,
             tname,
@@ -560,6 +587,15 @@ impl Logging {
                     ));
                 }
             }
+            WriterTypeEnum::Callback => {
+                if let Some(ref writer) = config.callback {
+                    writer.set_level(level);
+                } else {
+                    return Err(LoggingError::InvalidValue(
+                        "Callback writer not configured".to_string(),
+                    ));
+                }
+            }
         }
         Ok(())
     }
@@ -631,6 +667,10 @@ impl Logging {
                 config.syslog = Some(SyslogWriter::new(cfg.clone(), self.stop.clone())?);
                 WriterTypeEnum::Syslog
             }
+            WriterConfigEnum::Callback(cfg) => {
+                config.callback = Some(CallbackWriter::new(cfg.clone(), self.stop.clone())?);
+                WriterTypeEnum::Callback
+            }
         })
     }
 
@@ -687,6 +727,15 @@ impl Logging {
                     ));
                 }
             }
+            WriterTypeEnum::Callback => {
+                if let Some(mut callback) = config.callback.take() {
+                    callback.shutdown()?;
+                } else {
+                    return Err(LoggingError::InvalidValue(
+                        "Callback writer not conigured".to_string(),
+                    ));
+                }
+            }
         }
         Ok(())
     }
@@ -697,11 +746,12 @@ impl Logging {
         file: bool,
         client: bool,
         syslog: bool,
+        callback: bool,
         timeout: f64,
     ) -> Result<(), LoggingError> {
         self.tx
             .send(LoggingTypeEnum::Sync((
-                console, file, client, syslog, timeout,
+                console, file, client, syslog, callback, timeout,
             )))
             .map_err(|e| LoggingError::SendError(format!("Failed to send SYNC command: {e}")))?;
         self.sync_rx
@@ -711,7 +761,7 @@ impl Logging {
     }
 
     pub fn sync_all(&self, timeout: f64) -> Result<(), LoggingError> {
-        self.sync(true, true, true, true, timeout)?;
+        self.sync(true, true, true, true, true, timeout)?;
         Ok(())
     }
 
@@ -834,6 +884,15 @@ impl Logging {
                     ));
                 }
             }
+            WriterTypeEnum::Callback => {
+                if let Some(ref writer) = config.callback {
+                    WriterConfigEnum::Callback(writer.config.lock().unwrap().clone())
+                } else {
+                    return Err(LoggingError::InvalidValue(
+                        "Callback writer not configured".to_string(),
+                    ));
+                }
+            }
         })
     }
 
@@ -939,13 +998,17 @@ impl Logging {
             let tid = if self.tid { thread_id::get() as u32 } else { 0 };
             self.tx.send(LoggingTypeEnum::MessageExt((
                 level,
+                self.domain.clone(),
                 message.into(),
                 tid,
                 tname,
             )))
         } else {
-            self.tx
-                .send(LoggingTypeEnum::Message((level, message.into())))
+            self.tx.send(LoggingTypeEnum::Message((
+                level,
+                self.domain.clone(),
+                message.into(),
+            )))
         })
         .map_err(|e| {
             LoggingError::SendError(format!(

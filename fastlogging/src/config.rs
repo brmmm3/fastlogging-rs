@@ -12,6 +12,7 @@ use gethostname::gethostname;
 
 const CONFIG_FILE_SIZE_MAX: u64 = 4096;
 
+use crate::callback::CallbackWriter;
 use crate::level2string;
 use crate::LoggingError;
 use crate::{
@@ -149,6 +150,7 @@ pub struct LoggingInstance {
     pub(crate) servers: HashMap<String, LoggingServer>,
     pub(crate) clients: HashMap<String, ClientWriter>,
     pub(crate) syslog: Option<SyslogWriter>,
+    pub(crate) callback: Option<CallbackWriter>,
     pub(crate) debug: u8,
 }
 
@@ -219,7 +221,10 @@ impl LoggingInstance {
                     (k.clone(), {
                         let config = v.config.lock().unwrap();
                         ClientWriterConfig {
+                            enabled: config.enabled,
                             level: config.level,
+                            domain_filter: config.domain_filter.clone(),
+                            message_filter: config.message_filter.clone(),
                             address: config.address.clone(),
                             port: config.port,
                             key: config.key.clone(),
@@ -414,6 +419,7 @@ impl ConfigFile {
             servers,
             clients,
             syslog: None,
+            callback: None,
             level2sym: LevelSyms::Sym,
             debug: 0,
         };

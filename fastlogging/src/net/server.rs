@@ -14,6 +14,7 @@ use std::{
 };
 
 use flume::{bounded, Sender};
+use regex::Regex;
 use ring::aead::{self, BoundKey};
 
 use crate::{def::LoggingTypeEnum, LoggingError};
@@ -95,6 +96,7 @@ fn handle_client(
     stop_server: Arc<AtomicBool>,
 ) -> Result<bool, LoggingError> {
     let perr_addr = stream.peer_addr().unwrap().to_string();
+    let mut domain_buffer = [0u8; 256];
     let mut buffer = [0u8; 4352];
     let mut authenticated = false;
     let mut config_level = config.lock().unwrap().level;
@@ -117,25 +119,25 @@ fn handle_client(
                 stream.peer_addr()
             );
         }
-        if let Err(err) = read(stream, &mut buffer, 3) {
+        if let Err(err) = read(stream, &mut buffer, 4) {
             if err.kind() == ErrorKind::WouldBlock || err.kind() != ErrorKind::TimedOut {
                 continue;
             }
             eprintln!(
                 "{} handle_client: ERROR {err:?} {:?}",
                 process::id(),
-                &buffer[..3]
+                &buffer[..4]
             );
             break;
         }
-        let size = (buffer[0] as usize) | ((buffer[1] as usize) << 8);
-        if size > buffer.len() {
+        let message_size = (buffer[0] as usize) | ((buffer[1] as usize) << 8);
+        if message_size > buffer.len() {
             // Exit if received data is too big
-            if size < 0xfffe {
+            if message_size < 0xfffe {
                 Err(LoggingError::RecvError(format!(
-                    "Receive size {size} is too big"
+                    "Receive size {message_size} is too big"
                 )))?;
-            } else if size == 0xffff {
+            } else if message_size == 0xffff {
                 // Exit server
                 return Ok(true);
             }
@@ -146,15 +148,15 @@ fn handle_client(
             //println!("handle_client: AUTHENTICATE");
             // If channel is unencrypted then an AUTH_KEY is required first.
             // Wait up to 5 seconds for auth key.
-            read(stream, &mut buffer, size)?;
+            read(stream, &mut buffer, message_size)?;
             let key: Vec<u8> = config.lock().unwrap().key.key_cloned().unwrap();
             /*println!(
-                "AUTH_KEY: {} {size}\n{:?}\n{:?}",
+                "AUTH_KEY: {} {message_size}\n{:?}\n{:?}",
                 key.len(),
                 key,
-                &buffer[..size]
+                &buffer[..message_size]
             );*/
-            if key.len() != size || !key.starts_with(&buffer[..size]) {
+            if key.len() != message_size || !key.starts_with(&buffer[..message_size]) {
                 Err(LoggingError::RecvError("Invalid auth key".to_string()))?;
             }
             if debug > 1 {
@@ -164,16 +166,24 @@ fn handle_client(
             continue;
         }
         let msg_level = buffer[2];
-        read(stream, &mut buffer, size)?;
+        let domain_size = buffer[3] as usize;
+        let domain_data = &mut domain_buffer[..domain_size];
+        stream.read_exact(domain_data)?;
+        let message_data = &mut buffer[..message_size];
+        stream.read_exact(message_data)?;
         if msg_level >= config_level {
+            let domain = std::str::from_utf8(&domain_data).unwrap().to_string();
             let message = format!(
                 "{perr_addr}: {}",
-                std::str::from_utf8(&buffer[..size]).unwrap()
+                std::str::from_utf8(&message_data).unwrap()
             );
             if debug > 2 {
-                println!("{} handle_client: MESSAGE {message:?}", process::id());
+                println!(
+                    "{} handle_client: MESSAGE {domain}: {message:?}",
+                    process::id()
+                );
             }
-            tx.send(LoggingTypeEnum::MessageRemote((msg_level, message)))?;
+            tx.send(LoggingTypeEnum::MessageRemote((msg_level, domain, message)))?;
         }
     }
     if debug > 0 {
@@ -195,6 +205,7 @@ fn handle_encrypted_client(
 ) -> Result<bool, LoggingError> {
     //println!("handle_encrypted_client");
     let perr_addr = stream.peer_addr().unwrap().to_string();
+    let mut domain_buffer = [0u8; 512];
     let mut buffer = [0u8; 4352];
     stream.set_read_timeout(Some(Duration::from_secs(5)))?;
     let mut key = aead::OpeningKey::new(
@@ -235,20 +246,27 @@ fn handle_encrypted_client(
             return Ok(true);
         }
         let msg_level = buffer[2];
-        let data = &mut buffer[..size];
-        stream.read_exact(data)?;
+        let domain_size = buffer[3] as usize;
+        let domain_data = &mut domain_buffer[..domain_size];
+        stream.read_exact(domain_data)?;
+        let message_data = &mut buffer[..size];
+        stream.read_exact(message_data)?;
         if msg_level >= config_level {
             let _ = key
-                .open_in_place(seal.clone(), data)
+                .open_in_place(seal.clone(), domain_data)
                 .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+            let _ = key
+                .open_in_place(seal.clone(), message_data)
+                .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+            let domain = std::str::from_utf8(&domain_data).unwrap().to_string();
             let message = format!(
                 "{perr_addr}: {}",
-                std::str::from_utf8(&buffer[..size]).unwrap()
+                std::str::from_utf8(&message_data).unwrap()
             );
             if debug > 2 {
-                println!("handle_encrypted_client: MESSAGE {message:?}");
+                println!("handle_encrypted_client: MESSAGE {domain}: {message:?}");
             }
-            tx.send(LoggingTypeEnum::MessageRemote((msg_level, message)))?;
+            tx.send(LoggingTypeEnum::MessageRemote((msg_level, domain, message)))?;
         }
     }
     Ok(false)
@@ -460,7 +478,7 @@ impl LoggingServer {
     pub fn shutdown(&mut self) -> Result<(), LoggingError> {
         if let Some(thr) = self.thr.take() {
             // Send SHUTDOWN (255) to server socket
-            let stop_cmd = [255, 255, 255];
+            let stop_cmd = [255, 255, 255, 255];
             loop {
                 let mut stream = TcpStream::connect(self.config.lock().unwrap().get_address())?;
                 stream.write_all(&stop_cmd)?;
@@ -482,8 +500,36 @@ impl LoggingServer {
         }
     }
 
+    pub fn enable(&self) {
+        self.config.lock().unwrap().enabled = true;
+    }
+
+    pub fn disable(&self) {
+        self.config.lock().unwrap().enabled = false;
+    }
+
+    pub fn set_enabled(&self, enabled: bool) {
+        self.config.lock().unwrap().enabled = enabled;
+    }
+
     pub fn set_level(&mut self, level: u8) {
         self.config.lock().unwrap().level = level;
+    }
+
+    pub fn set_domain_filter(&self, domain_filter: Option<String>) -> Result<(), regex::Error> {
+        if let Some(ref message) = domain_filter {
+            Regex::new(message)?;
+        }
+        self.config.lock().unwrap().domain_filter = domain_filter;
+        Ok(())
+    }
+
+    pub fn set_message_filter(&self, message_filter: Option<String>) -> Result<(), regex::Error> {
+        if let Some(ref message) = message_filter {
+            Regex::new(message)?;
+        }
+        self.config.lock().unwrap().message_filter = message_filter;
+        Ok(())
     }
 
     pub fn set_encryption(&mut self, key: EncryptionMethod) -> Result<(), LoggingError> {

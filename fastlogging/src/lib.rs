@@ -17,6 +17,8 @@ pub use net::{
 };
 mod console;
 pub use console::{ConsoleWriter, ConsoleWriterConfig};
+mod callback;
+pub use callback::{CallbackWriter, CallbackWriterConfig};
 mod root;
 use root::PARENT_LOGGER_ADDRESS;
 pub use root::ROOT_LOGGER;
@@ -97,12 +99,13 @@ pub fn sync(
     file: bool,
     client: bool,
     syslog: bool,
+    callback: bool,
     timeout: f64,
 ) -> Result<(), LoggingError> {
     ROOT_LOGGER
         .lock()
         .unwrap()
-        .sync(console, file, client, syslog, timeout)
+        .sync(console, file, client, syslog, callback, timeout)
 }
 
 pub fn sync_all(timeout: f64) -> Result<(), LoggingError> {

@@ -12,6 +12,7 @@ use std::{
 };
 
 use flume::{bounded, Receiver, RecvTimeoutError, Sender};
+use regex::Regex;
 use zip::{write::SimpleFileOptions, ZipWriter};
 
 use crate::{level2str, LoggingError};
@@ -22,8 +23,8 @@ const DEFAULT_DELAY: u64 = 3600;
 
 #[derive(Debug, Clone)]
 pub enum FileTypeEnum {
-    Message((u8, String)), // level, message
-    Sync,                  // timeout
+    Message((u8, String, String)), // level, domain,message
+    Sync,                          // timeout
     Rotate,
     Stop,
 }
@@ -62,7 +63,10 @@ impl From<i32> for CompressionMethodEnum {
 #[repr(C)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileWriterConfig {
-    pub(crate) level: u8,               // Log level
+    pub(crate) enabled: bool,
+    pub(crate) level: u8, // Log level
+    pub(crate) domain_filter: Option<String>,
+    pub(crate) message_filter: Option<String>,
     pub(crate) path: PathBuf,           // Log file path
     size: usize,                        // Maximum size of log file. 0 means no size limit.
     backlog: usize,                     // Maximum number of backup files.
@@ -97,7 +101,10 @@ impl FileWriterConfig {
             }
         }
         Ok(Self {
+            enabled: true,
             level,
+            domain_filter: None,
+            message_filter: None,
             path,
             size,
             backlog,
@@ -192,7 +199,24 @@ fn file_writer_thread_worker(
             }
         };
         let rotate = match message {
-            FileTypeEnum::Message((_level, message)) => {
+            FileTypeEnum::Message((_level, domain, message)) => {
+                if let Ok(ref config) = config.lock() {
+                    if !config.enabled {
+                        continue;
+                    }
+                    if let Some(ref domain_filter) = config.domain_filter {
+                        let re = Regex::new(domain_filter).unwrap();
+                        if !re.is_match(&domain) {
+                            continue;
+                        }
+                    }
+                    if let Some(ref message_filter) = config.message_filter {
+                        let re = Regex::new(message_filter).unwrap();
+                        if !re.is_match(&domain) {
+                            continue;
+                        }
+                    }
+                }
                 file.write_all(message.as_bytes())?;
                 let _ = file.write(&newline)?;
                 size += message.len();
@@ -303,8 +327,32 @@ impl FileWriter {
         Ok(())
     }
 
+    pub fn enable(&self) {
+        self.config.lock().unwrap().enabled = true;
+    }
+
+    pub fn disable(&self) {
+        self.config.lock().unwrap().enabled = false;
+    }
+
     pub fn set_level(&self, level: u8) {
         self.config.lock().unwrap().level = level;
+    }
+
+    pub fn set_domain_filter(&self, domain_filter: Option<String>) -> Result<(), regex::Error> {
+        if let Some(ref message) = domain_filter {
+            Regex::new(message)?;
+        }
+        self.config.lock().unwrap().domain_filter = domain_filter;
+        Ok(())
+    }
+
+    pub fn set_message_filter(&self, message_filter: Option<String>) -> Result<(), regex::Error> {
+        if let Some(ref message) = message_filter {
+            Regex::new(message)?;
+        }
+        self.config.lock().unwrap().message_filter = message_filter;
+        Ok(())
     }
 
     pub fn set_rotate(
@@ -334,9 +382,9 @@ impl FileWriter {
     }
 
     #[inline]
-    pub fn send(&self, level: u8, message: String) -> Result<(), LoggingError> {
+    pub fn send(&self, level: u8, domain: String, message: String) -> Result<(), LoggingError> {
         self.tx
-            .send(FileTypeEnum::Message((level, message)))
+            .send(FileTypeEnum::Message((level, domain, message)))
             .map_err(|e| {
                 LoggingError::SendError(format!(
                     "FileWriter::send: Failed to send {} message: {e}",

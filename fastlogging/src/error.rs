@@ -4,7 +4,8 @@ use serde::{Deserialize, Serialize};
 use zip::result::ZipError;
 
 use crate::{
-    console::ConsoleTypeEnum, ClientTypeEnum, EncryptionMethod, LoggingTypeEnum, SyslogTypeEnum,
+    callback::CallbackTypeEnum, console::ConsoleTypeEnum, ClientTypeEnum, EncryptionMethod,
+    LoggingTypeEnum, SyslogTypeEnum,
 };
 
 pub const EIO: i32 = 5;
@@ -132,6 +133,12 @@ impl From<flume::SendError<ConsoleTypeEnum>> for LoggingError {
 
 impl From<flume::SendError<SyslogTypeEnum>> for LoggingError {
     fn from(error: flume::SendError<SyslogTypeEnum>) -> Self {
+        LoggingError::SendError(error.to_string())
+    }
+}
+
+impl From<flume::SendError<CallbackTypeEnum>> for LoggingError {
+    fn from(error: flume::SendError<CallbackTypeEnum>) -> Self {
         LoggingError::SendError(error.to_string())
     }
 }
