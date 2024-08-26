@@ -108,8 +108,10 @@ impl Logging {
     }
 
     #[pyo3(signature=(now=None,))]
-    pub fn shutdown(&mut self, now: Option<bool>) -> Result<(), LoggingError> {
-        Ok(self.instance.shutdown(now.unwrap_or_default())?)
+    pub fn shutdown(&mut self, now: Option<bool>, py: Python) -> Result<(), LoggingError> {
+        Ok(py.allow_threads(|| -> Result<(), LoggingError> {
+            Ok(self.instance.shutdown(now.unwrap_or_default())?)
+        })?)
     }
 
     pub fn set_level(&mut self, writer: WriterTypeEnum, level: u8) -> Result<(), LoggingError> {

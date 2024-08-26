@@ -1,4 +1,5 @@
 import os
+import time
 
 import fastlogging_rs as fl
 from fastlogging_rs import (

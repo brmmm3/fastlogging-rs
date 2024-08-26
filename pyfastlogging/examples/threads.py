@@ -25,7 +25,7 @@ def SomeThread(logger):
 
 if __name__ == "__main__":
     tmpDir = tempfile.mkdtemp(prefix="fastlogging")
-    logger = Logging()
+    logger = Logging(TRACE)
     logger.set_ext_config(
         ExtConfig(MessageStructEnum.String, True, True, True, True, True)
     )

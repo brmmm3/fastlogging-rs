@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use config::{CallbackWriterConfig, ExtConfig};
+use config::{CallbackWriterConfig, ExtConfig, RootConfig, SyslogWriterConfig};
 use pyo3::{exceptions::PyException, prelude::*};
 
 mod def;
@@ -50,11 +50,26 @@ fn remove_logger(logger: Py<logger::Logger>, py: Python) {
 
 #[pyfunction]
 fn add_writer(writer: PyObject, py: Python) -> PyResult<WriterTypeEnum> {
-    let config = writer
-        .downcast_bound::<WriterConfigEnum>(py)?
-        .borrow()
-        .clone();
-    Ok(fastlogging::add_writer(&mut config.into())
+    let writer = if let Ok(writer) = writer.extract::<RootConfig>(py) {
+        fastlogging::WriterConfigEnum::Root(writer.0)
+    } else if let Ok(writer) = writer.extract::<ConsoleWriterConfig>(py) {
+        fastlogging::WriterConfigEnum::Console(writer.0)
+    } else if let Ok(writer) = writer.extract::<FileWriterConfig>(py) {
+        fastlogging::WriterConfigEnum::File(writer.0)
+    } else if let Ok(writer) = writer.extract::<ClientWriterConfig>(py) {
+        fastlogging::WriterConfigEnum::Client(writer.0)
+    } else if let Ok(writer) = writer.extract::<ServerConfig>(py) {
+        fastlogging::WriterConfigEnum::Server(writer.0)
+    } else if let Ok(writer) = writer.extract::<SyslogWriterConfig>(py) {
+        fastlogging::WriterConfigEnum::Syslog(writer.0)
+    } else if let Ok(writer) = writer.extract::<CallbackWriterConfig>(py) {
+        fastlogging::WriterConfigEnum::Callback(writer.0)
+    } else {
+        return Err(PyException::new_err(
+            "writer has invalid argument type".to_string(),
+        ));
+    };
+    Ok(fastlogging::add_writer(&writer)
         .map_err(|e| PyException::new_err(e.to_string()))?
         .into())
 }
@@ -280,7 +295,8 @@ mod tests {
     fn it_works() {
         let mut logging =
             Logging::new(None, None, None, None, None, None, None, None, None, None).unwrap();
-        //logging.info("Hello".to_string()).unwrap();
-        logging.shutdown(Some(true)).unwrap();
+        Python::with_gil(|py| {
+            logging.shutdown(Some(true), py).unwrap();
+        });
     }
 }

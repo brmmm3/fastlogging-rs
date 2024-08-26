@@ -297,6 +297,12 @@ impl<'a> From<&'a fastlogging::WriterConfigEnum> for WriterConfigEnum {
     }
 }
 
+impl From<ConsoleWriterConfig> for WriterConfigEnum {
+    fn from(config: ConsoleWriterConfig) -> Self {
+        Self::Console { config }
+    }
+}
+
 #[pymethods]
 impl WriterConfigEnum {
     fn __repr__(&self) -> String {
