@@ -9,12 +9,12 @@ use fastlogging::{
 };
 use pyo3::types::PyBytes;
 
-use crate::config::{
+use crate::def::{EncryptionMethod, LevelSyms, WriterConfigEnum, WriterTypeEnum};
+use crate::logger::Logger;
+use crate::writer::{
     CallbackWriterConfig, ClientWriterConfig, ConsoleWriterConfig, ExtConfig, FileWriterConfig,
     RootConfig, ServerConfig, SyslogWriterConfig,
 };
-use crate::def::{EncryptionMethod, LevelSyms, WriterConfigEnum, WriterTypeEnum};
-use crate::logger::Logger;
 use crate::LoggingError;
 
 #[pyclass]

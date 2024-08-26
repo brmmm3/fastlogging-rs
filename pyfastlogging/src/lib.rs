@@ -1,12 +1,12 @@
 use std::path::PathBuf;
 
-use config::{CallbackWriterConfig, ExtConfig, RootConfig, SyslogWriterConfig};
 use pyo3::{exceptions::PyException, prelude::*};
+use writer::{CallbackWriterConfig, ExtConfig, RootConfig, SyslogWriterConfig};
 
 mod def;
 pub use def::{EncryptionMethod, LevelSyms, WriterConfigEnum, WriterTypeEnum};
-mod config;
-pub use config::{ClientWriterConfig, ConsoleWriterConfig, FileWriterConfig, ServerConfig};
+mod writer;
+pub use writer::{ClientWriterConfig, ConsoleWriterConfig, FileWriterConfig, ServerConfig};
 mod error;
 pub use error::LoggingError;
 mod logger;

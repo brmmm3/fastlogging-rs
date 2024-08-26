@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use pyo3::{exceptions::PyValueError, prelude::*};
 
-use crate::config::{CallbackWriterConfig, RootConfig, SyslogWriterConfig};
+use crate::writer::{CallbackWriterConfig, RootConfig, SyslogWriterConfig};
 use crate::{ClientWriterConfig, ConsoleWriterConfig, FileWriterConfig, ServerConfig};
 
 #[pyclass(eq, eq_int)]
