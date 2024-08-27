@@ -78,6 +78,7 @@ namespace rust
     struct ServerConfig;
     struct ClientWriterConfig;
     struct SyslogWriterConfig;
+    struct CallbackWriterConfig;
     struct Logging;
     struct Logger;
 } // namespace logging::rust
@@ -149,6 +150,11 @@ extern "C"
                                                        const char *hostname,
                                                        const char *pname,
                                                        uint32_t pid);
+
+    // Callback writer
+
+    rust::CallbackWriterConfig *callback_writer_config_new(uint8_t level,
+                                                           const char *callback);
 
     rust::Logging *logging_init();
 
@@ -357,6 +363,42 @@ namespace logging
         }
     };
 
+    class SyslogWriterConfig
+    {
+    public:
+        rust::SyslogWriterConfig *writer = NULL;
+
+        SyslogWriterConfig(uint8_t level,
+                           const char *hostname,
+                           const char *pname,
+                           uint32_t pid)
+        {
+            writer = syslog_writer_config_new(level, hostname, pname, pid);
+        }
+
+        ~SyslogWriterConfig()
+        {
+            writer = NULL;
+        }
+    };
+
+    class CallbackWriterConfig
+    {
+    public:
+        rust::CallbackWriterConfig *writer = NULL;
+
+        CallbackWriterConfig(uint8_t level,
+                             const char *callback)
+        {
+            writer = callback_writer_config_new(level, callback);
+        }
+
+        ~CallbackWriterConfig()
+        {
+            writer = NULL;
+        }
+    };
+
     class Logger
     {
     public:
@@ -522,9 +564,9 @@ namespace logging
             logging_remove_writer(logging, writer);
         }
 
-        int sync(int console, int file, int client, int syslog, double timeout)
+        int sync(int console, int file, int client, int syslog, int callback, double timeout)
         {
-            return logging_sync(logging, console, file, client, syslog, timeout);
+            return logging_sync(logging, console, file, client, syslog, callback, timeout);
         }
 
         int sync_all(double timeout)
