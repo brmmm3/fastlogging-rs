@@ -9,6 +9,7 @@ use std::{
 };
 
 use flume::{bounded, Receiver, SendError, Sender};
+use regex::Regex;
 
 use crate::LoggingError;
 
@@ -42,6 +43,7 @@ pub struct SyslogWriterConfig {
 impl SyslogWriterConfig {
     pub fn new<S: Into<String>>(level: u8, hostname: Option<String>, pname: S, pid: u32) -> Self {
         Self {
+            enabled: true,
             level,
             domain_filter: None,
             message_filter: None,
@@ -74,7 +76,7 @@ fn syslog_writer_thread(
         }
         match rx.recv()? {
             SyslogTypeEnum::Message((level, domain, message)) => {
-                log::log!(level2evt_level(level), "{}", message);
+                log::log!(level2evt_level(level), "{}: {}", domain, message);
             }
             SyslogTypeEnum::Sync(_) => {
                 sync_tx.send(1)?;
@@ -189,7 +191,13 @@ impl SyslogWriter {
     }
 
     #[inline]
-    pub fn send(&self, level: u8, message: String) -> Result<(), SendError<SyslogTypeEnum>> {
-        self.tx.send(SyslogTypeEnum::Message((level, message)))
+    pub fn send(
+        &self,
+        level: u8,
+        domain: String,
+        message: String,
+    ) -> Result<(), SendError<SyslogTypeEnum>> {
+        self.tx
+            .send(SyslogTypeEnum::Message((level, domain, message)))
     }
 }
