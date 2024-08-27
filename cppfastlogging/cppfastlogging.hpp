@@ -154,7 +154,7 @@ extern "C"
     // Callback writer
 
     rust::CallbackWriterConfig *callback_writer_config_new(uint8_t level,
-                                                           const char *callback);
+                                                           void (*callback)(uint8_t, const char *, const char *));
 
     rust::Logging *logging_init();
 
@@ -388,7 +388,7 @@ namespace logging
         rust::CallbackWriterConfig *writer = NULL;
 
         CallbackWriterConfig(uint8_t level,
-                             const char *callback)
+                             void (*callback)(uint8_t, *const char, *const char))
         {
             writer = callback_writer_config_new(level, callback);
         }

@@ -131,6 +131,15 @@ SyslogWriterConfig syslog_writer_config_new(uint8_t level,
                                             const char *pname,
                                             uint32_t pid);
 
+// Callback writer
+
+void writer_callback(uint8_t level, const char *domain, const char *message);
+
+typedef void *CallbackWriterConfig;
+
+CallbackWriterConfig callback_writer_config_new(uint8_t level,
+                                                void (*callback)(uint8_t, const char *, const char *));
+
 // Logger module
 
 typedef void *Logger;

@@ -3,7 +3,7 @@
 #include "cfastlogging.h"
 #include <string.h>
 
-void writer_callback(uint8_t level, *const char domain, *const char message) {
+void writer_callback(uint8_t level, const char *domain, const char *message) {
     printf("CB %d %s: %s\n", level, domain, message);
 }
 

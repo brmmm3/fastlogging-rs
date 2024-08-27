@@ -6,7 +6,8 @@ edition = "2021"
 
 [dependencies]
 jni = "0.21"
-fastlogging = { "path" = "../fastlogging" }
+once_cell = "1.19"
+fastlogging = { path = "../fastlogging" }
 
 [lib]
 crate-type = ["cdylib"]
