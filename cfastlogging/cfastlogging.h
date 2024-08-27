@@ -197,7 +197,7 @@ int logging_add_writer(Logging logging, WriterConfigEnum writer);
 
 int logging_remove_writer(Logging logging, WriterTypeEnum writer);
 
-int logging_sync(Logging logging, int8_t console, int8_t file, int8_t client, int8_t syslog, double timeout);
+int logging_sync(Logging logging, int8_t console, int8_t file, int8_t client, int8_t syslog, int8_t callback, double timeout);
 
 int logging_sync_all(Logging logging, double timeout);
 

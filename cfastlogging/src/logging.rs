@@ -239,9 +239,17 @@ pub unsafe extern "C" fn logging_sync(
     file: c_char,
     client: c_char,
     syslog: c_char,
+    callback: c_char,
     timeout: c_double,
 ) -> isize {
-    if let Err(err) = logging.sync(console != 0, file != 0, client != 0, syslog != 0, timeout) {
+    if let Err(err) = logging.sync(
+        console != 0,
+        file != 0,
+        client != 0,
+        syslog != 0,
+        callback != 0,
+        timeout,
+    ) {
         eprintln!("logging_sync failed: {err:?}");
         err.as_int() as isize
     } else {

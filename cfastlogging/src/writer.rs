@@ -1,12 +1,14 @@
-use std::ffi::{c_char, c_int, c_longlong, c_uchar, c_uint, CStr};
+use std::ffi::{c_char, c_int, c_longlong, c_uchar, c_uint, c_ulong, CStr, CString};
 use std::ops::Add;
 use std::path::PathBuf;
+use std::sync::Mutex;
 use std::time::{Duration, SystemTime};
 
 use fastlogging::{
-    ClientWriterConfig, CompressionMethodEnum, ConsoleWriterConfig, EncryptionMethod,
-    FileWriterConfig, ServerConfig, SyslogWriterConfig,
+    CallbackWriterConfig, ClientWriterConfig, CompressionMethodEnum, ConsoleWriterConfig,
+    EncryptionMethod, FileWriterConfig, ServerConfig, SyslogWriterConfig,
 };
+use once_cell::sync::Lazy;
 
 use crate::util::{char2string, option_char2string};
 
@@ -117,5 +119,36 @@ pub unsafe extern "C" fn syslog_writer_config_new(
         option_char2string(hostname),
         char2string(pname),
         pid,
+    ))
+}
+
+pub static CALLBACK_C_FUNC: Lazy<Mutex<c_ulong>> = Lazy::new(|| Mutex::new(0));
+
+unsafe extern "C-unwind" {
+    fn writer_callback(level: c_uchar, domain: *const c_char, message: *const c_char);
+}
+
+pub fn callback_func(
+    level: u8,
+    domain: String,
+    message: String,
+) -> Result<(), fastlogging::LoggingError> {
+    let c_domain = CString::new(domain).unwrap();
+    let c_message = CString::new(message).unwrap();
+    unsafe {
+        writer_callback(level, c_domain.as_ptr(), c_message.as_ptr());
+    }
+    Ok(())
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn callback_writer_config_new(
+    level: c_uchar,
+    callback: c_ulong,
+) -> Box<CallbackWriterConfig> {
+    *CALLBACK_C_FUNC.lock().unwrap() = callback;
+    Box::new(CallbackWriterConfig::new(
+        level,
+        Some(Box::new(callback_func)),
     ))
 }
