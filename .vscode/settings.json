@@ -16,5 +16,6 @@
 		"unordered_map": "cpp",
 		"vector": "cpp"
 	},
-	"git.ignoreLimitWarning": true
+	"git.ignoreLimitWarning": true,
+	"python.analysis.typeCheckingMode": "off"
 }
