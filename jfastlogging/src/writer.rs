@@ -1,17 +1,23 @@
 use std::ops::Add;
 use std::path::PathBuf;
+use std::ptr::null_mut;
+use std::sync::Mutex;
 use std::time::{Duration, SystemTime};
 
 use jni::JNIEnv;
 
 use jni::objects::{JClass, JString};
 
-use jni::sys::{jboolean, jint, jlong};
+use jni::sys::{
+    jboolean, jclass, jint, jlong, jmethodID, jobject, JNIInvokeInterface_, JNI_GetCreatedJavaVMs,
+    JavaVM,
+};
 
 use fastlogging::{
-    ClientWriterConfig, CompressionMethodEnum, ConsoleWriterConfig, EncryptionMethod,
-    FileWriterConfig, ServerConfig, SyslogWriterConfig,
+    CallbackWriterConfig, ClientWriterConfig, CompressionMethodEnum, ConsoleWriterConfig,
+    EncryptionMethod, FileWriterConfig, ServerConfig, SyslogWriterConfig,
 };
+use once_cell::sync::Lazy;
 
 use crate::get_string;
 
@@ -140,5 +146,48 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_syslogWriterConfigNew(
         hostname,
         pname,
         pid as u32,
+    ))) as jlong
+}
+
+pub static CALLBACK_JAVA_FUNC: Lazy<Mutex<jlong>> = Lazy::new(|| Mutex::new(0));
+
+pub fn callback_func(
+    level: u8,
+    domain: String,
+    message: String,
+) -> Result<(), fastlogging::LoggingError> {
+    let callable = *CALLBACK_JAVA_FUNC.lock().unwrap();
+    if callable != 0 {
+        let mut vms = vec![null_mut(); 1];
+        let count = null_mut();
+        unsafe {
+            JNI_GetCreatedJavaVMs(vms.as_mut_ptr(), 1, count);
+        }
+        let jvm: *mut *const JNIInvokeInterface_ = vms.first().unwrap().clone();
+        println!("CB: jvm={jvm:?}");
+        let env: JNIEnv;
+        /*let rs: jint = jvm.AttachCurrentThread(jvm, &mut env, 0);
+        if unsafe { *count } > 0 {
+            let mainClass: jclass = jvm_ptr.FindClass("net/minecraft/client/main/Main");
+            let constructor: jmethodID = jni->GetStaticMethodID(mainClass, "Main", "()V");
+            jni->CallStaticVoidMethod(mainClass, constructor);
+        }*/
+    }
+    Ok(())
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Java_org_logging_FastLogging_callbackWriterConfigNew(
+    env: JNIEnv,
+    _class: JClass,
+    level: jint,
+    callback: jobject,
+) -> jlong {
+    let jvm = env.get_java_vm().unwrap();
+    println!("jvm={jvm:?}");
+    *CALLBACK_JAVA_FUNC.lock().unwrap() = Box::into_raw(Box::new(callback)) as jlong;
+    Box::into_raw(Box::new(CallbackWriterConfig::new(
+        level as u8,
+        Some(Box::new(callback_func)),
     ))) as jlong
 }

@@ -113,6 +113,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingSetLevel(
         2 => WriterTypeEnum::File(get_pathbuf!(env, key)),
         3 => WriterTypeEnum::Client(get_string!(env, key)),
         4 => WriterTypeEnum::Server(get_string!(env, key)),
+        5 => WriterTypeEnum::Callback,
         _ => {
             env.throw(format!("Invalid value {writer} for writer."))
                 .unwrap();
@@ -230,6 +231,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingRemoveWriter(
         2 => WriterTypeEnum::File(get_pathbuf!(env, key)),
         3 => WriterTypeEnum::Client(get_string!(env, key)),
         4 => WriterTypeEnum::Server(get_string!(env, key)),
+        5 => WriterTypeEnum::Callback,
         _ => {
             env.throw(format!("Invalid value {writer} for writer."))
                 .unwrap();
@@ -255,9 +257,17 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingSync(
     file: jboolean,
     client: jboolean,
     syslog: jboolean,
+    callback: jboolean,
     timeout: jdouble,
 ) -> jint {
-    if let Err(err) = logging.sync(console != 0, file != 0, client != 0, syslog != 0, timeout) {
+    if let Err(err) = logging.sync(
+        console != 0,
+        file != 0,
+        client != 0,
+        syslog != 0,
+        callback != 0,
+        timeout,
+    ) {
         env.throw(err.to_string()).unwrap();
         return -1;
     }
