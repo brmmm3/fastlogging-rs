@@ -10,14 +10,14 @@ use fastlogging::Logger;
 pub unsafe extern "C" fn logger_new(
     level: c_uchar, // Global log level
     domain: *const c_char,
-) -> Box<Logger> {
+) -> *mut Logger {
     let domain = if !domain.is_null() {
         let c_str = unsafe { CStr::from_ptr(domain) };
         c_str.to_str().unwrap().to_string()
     } else {
         "".to_string()
     };
-    Box::new(Logger::new(level, domain))
+    Box::into_raw(Box::new(Logger::new(level, domain)))
 }
 
 /// # Safety
@@ -29,14 +29,19 @@ pub unsafe extern "C" fn logger_new_ext(
     domain: *const c_char,
     tname: c_char,
     tid: c_char,
-) -> Box<Logger> {
+) -> *mut Logger {
     let domain = if !domain.is_null() {
         let c_str = unsafe { CStr::from_ptr(domain) };
         c_str.to_str().unwrap().to_string()
     } else {
         "".to_string()
     };
-    Box::new(Logger::new_ext(level, domain, tname != 0, tid != 0))
+    Box::into_raw(Box::new(Logger::new_ext(
+        level,
+        domain,
+        tname != 0,
+        tid != 0,
+    )))
 }
 
 /// # Safety

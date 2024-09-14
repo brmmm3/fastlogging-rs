@@ -9,12 +9,13 @@ clean:
 build:
 	$(CARGO_BIN) build --release
 	mkdir -p bin
-	$(GCC_BIN) -o ./bin/console_static ./examples/console_static.c -I. -L. -l:../target/release/libcfastlogging.so
+	$(GCC_BIN) -o ./bin/callback ./examples/callback.c -I. -L. -l:../target/release/libcfastlogging.so
 	$(GCC_BIN) -o ./bin/console ./examples/console.c -I. -L. -l:../target/release/libcfastlogging.so
 	$(GCC_BIN) -o ./bin/file ./examples/file.c -I. -L. -l:../target/release/libcfastlogging.so
 	$(GCC_BIN) -o ./bin/threads ./examples/threads.c -I. -L. -l:../target/release/libcfastlogging.so
 	$(GCC_BIN) -o ./bin/net_unencrypted_one_client ./examples/net_unencrypted_one_client.c -I. -L. -l:../target/release/libcfastlogging.so
 	$(GCC_BIN) -o ./bin/syslog ./examples/syslog.c -I. -L. -l:../target/release/libcfastlogging.so
+	$(GCC_BIN) -o ./bin/console_static ./examples/console_static.c -I. -L. -l:../target/release/libcfastlogging.so
 
 run-console-static:
 	LD_LIBRARY_PATH=../target/release ./bin/console_static
@@ -34,11 +35,17 @@ run-net:
 run-syslog:
 	LD_LIBRARY_PATH=../target/release ./bin/syslog
 
+run-callback:
+	LD_LIBRARY_PATH=../target/release ./bin/callback
+
 build-debug:
 	$(CARGO_BIN) build
 	mkdir -p bin
+	$(GCC_BIN) -o ./bin/callback ./examples/callback.c -I. -L. -l:../target/debug/libcfastlogging.so
 	$(GCC_BIN) -o ./bin/console ./examples/console.c -I. -L. -l:../target/debug/libcfastlogging.so
+	$(GCC_BIN) -o ./bin/console_add_writer ./examples/console_add_writer.c -I. -L. -l:../target/debug/libcfastlogging.so
 	$(GCC_BIN) -o ./bin/file ./examples/file.c -I. -L. -l:../target/debug/libcfastlogging.so
+	$(GCC_BIN) -o ./bin/file_add_writer ./examples/file_add_writer.c -I. -L. -l:../target/debug/libcfastlogging.so
 	$(GCC_BIN) -o ./bin/threads ./examples/threads.c -I. -L. -l:../target/debug/libcfastlogging.so
 	$(GCC_BIN) -o ./bin/net_unencrypted_one_client ./examples/net_unencrypted_one_client.c -I. -L. -l:../target/debug/libcfastlogging.so
 	$(GCC_BIN) -o ./bin/syslog ./examples/syslog.c -I. -L. -l:../target/debug/libcfastlogging.so
@@ -50,8 +57,14 @@ run-console-static-debug:
 run-console-debug:
 	LD_LIBRARY_PATH=../target/debug ./bin/console
 
+run-console-add-writer-debug:
+	LD_LIBRARY_PATH=../target/debug ./bin/console_add_writer
+
 run-file-debug:
 	LD_LIBRARY_PATH=../target/debug ./bin/file
+
+run-file-add-writer-debug:
+	LD_LIBRARY_PATH=../target/debug ./bin/file_add_writer
 
 run-threads-debug:
 	LD_LIBRARY_PATH=../target/debug ./bin/threads
@@ -61,3 +74,6 @@ run-net-debug:
 
 run-syslog-debug:
 	LD_LIBRARY_PATH=../target/debug ./bin/syslog
+
+run-callback-debug:
+	LD_LIBRARY_PATH=../target/debug ./bin/callback

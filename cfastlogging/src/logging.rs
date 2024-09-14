@@ -28,21 +28,21 @@ pub unsafe extern "C" fn ext_config_new(
     pid: c_char,
     tname: c_char,
     tid: c_char,
-) -> Box<ExtConfig> {
+) -> *mut ExtConfig {
     let structured = match structured {
         0 => MessageStructEnum::String,
         1 => MessageStructEnum::Json,
         2 => MessageStructEnum::Xml,
         _ => MessageStructEnum::String,
     };
-    Box::new(ExtConfig::new(
+    Box::into_raw(Box::new(ExtConfig::new(
         structured,
         hostname != 0,
         pname != 0,
         pid != 0,
         tname != 0,
         tid != 0,
-    ))
+    )))
 }
 
 /// For further reading ...
@@ -202,9 +202,10 @@ pub unsafe extern "C" fn logging_remove_logger(logging: &mut Logging, logger: &m
 #[no_mangle]
 pub unsafe extern "C" fn logging_add_writer(
     logging: &mut Logging,
-    writer: &WriterConfigEnum,
+    writer: *mut WriterConfigEnum,
 ) -> isize {
-    match logging.add_writer(writer) {
+    let writer = *Box::from_raw(writer);
+    match logging.add_writer(&writer) {
         Ok(r) => Box::into_raw(Box::new(r)) as isize,
         Err(err) => {
             eprintln!("logging_add_writer failed: {err:?}");

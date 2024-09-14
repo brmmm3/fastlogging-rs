@@ -24,12 +24,12 @@ impl Drop for Error {
 /// # Safety
 ///
 /// Create new error.
-pub fn error_new<S: Into<String>>(code: isize, message: S) -> Box<Error> {
-    Box::new(Error {
+pub fn error_new<S: Into<String>>(code: isize, message: S) -> *mut Error {
+    Box::into_raw(Box::new(Error {
         magic: ERROR_MAGIC,
         msg: CString::new(message.into()).unwrap(),
         code,
-    })
+    }))
 }
 
 /// # Safety

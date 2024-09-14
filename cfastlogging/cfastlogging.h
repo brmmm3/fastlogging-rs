@@ -84,6 +84,8 @@ typedef void *ConsoleWriterConfig;
 
 ConsoleWriterConfig console_writer_config_new(uint8_t level, int8_t colors);
 
+WriterConfigEnum console_writer_config_enum_new(uint8_t level, int8_t colors);
+
 // File writer
 
 typedef void *FileWriterConfig;
@@ -96,6 +98,14 @@ FileWriterConfig file_writer_config_new(uint8_t level,
                                         int64_t time,
                                         CompressionMethodEnum compression);
 
+WriterConfigEnum file_writer_config_enum_new(uint8_t level,
+                                             const char *path,
+                                             uint32_t size,
+                                             uint32_t backlog,
+                                             int32_t timeout,
+                                             int64_t time,
+                                             CompressionMethodEnum compression);
+
 // Client writer
 
 typedef void *ClientWriterConfig;
@@ -104,6 +114,11 @@ ClientWriterConfig client_writer_config_new(uint8_t level,
                                             const char *address,
                                             EncryptionMethod encryption,
                                             const char *key);
+
+WriterConfigEnum client_writer_config_enum_new(uint8_t level,
+                                               const char *address,
+                                               EncryptionMethod encryption,
+                                               const char *key);
 
 // Server
 
@@ -122,6 +137,11 @@ ServerConfig server_config_new(uint8_t level,
                                EncryptionMethod encryption,
                                const char *key);
 
+WriterConfigEnum server_config_enum_new(uint8_t level,
+                                        const char *address,
+                                        EncryptionMethod encryption,
+                                        const char *key);
+
 // Syslog writer
 
 typedef void *SyslogWriterConfig;
@@ -131,14 +151,20 @@ SyslogWriterConfig syslog_writer_config_new(uint8_t level,
                                             const char *pname,
                                             uint32_t pid);
 
-// Callback writer
+WriterConfigEnum syslog_writer_config_enum_new(uint8_t level,
+                                               const char *hostname,
+                                               const char *pname,
+                                               uint32_t pid);
 
-void writer_callback(uint8_t level, const char *domain, const char *message);
+// Callback writer
 
 typedef void *CallbackWriterConfig;
 
 CallbackWriterConfig callback_writer_config_new(uint8_t level,
                                                 void (*callback)(uint8_t, const char *, const char *));
+
+WriterConfigEnum callback_writer_config_enum_new(uint8_t level,
+                                                 void (*callback)(uint8_t, const char *, const char *));
 
 // Logger module
 

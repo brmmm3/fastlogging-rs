@@ -3,10 +3,6 @@
 #include "cfastlogging.h"
 #include <string.h>
 
-void writer_callback(uint8_t level, const char *domain, const char *message) {
-    printf("MAIN C-CB %d %s: %s\n", level, domain, message);
-}
-
 // File: console.c
 //
 // Sample library usage.
@@ -21,9 +17,8 @@ int main(void)
                                   NULL,
                                   -1,
                                   NULL);
-    WriterConfigEnum callback_writer = callback_writer_config_enum_new(DEBUG, writer_callback);
-    //WriterConfigEnum callback_writer = callback_writer_config_enum_new(DEBUG, NULL);
-    logging_add_writer(logging, callback_writer);
+    WriterConfigEnum console = console_writer_config_enum_new(DEBUG, 1);
+    logging_add_writer(logging, console);
     logging_trace(logging, "Trace Message");
     logging_debug(logging, "Debug Message");
     logging_info(logging, "Info Message");
