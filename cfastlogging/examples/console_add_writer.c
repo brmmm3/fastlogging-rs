@@ -3,7 +3,7 @@
 #include "cfastlogging.h"
 #include <string.h>
 
-// File: console.c
+// File: console_add_writer.c
 //
 // Sample library usage.
 int main(void)

@@ -7,7 +7,7 @@ void writer_callback(uint8_t level, const char *domain, const char *message) {
     printf("MAIN C-CB %d %s: %s\n", level, domain, message);
 }
 
-// File: console.c
+// File: callback.c
 //
 // Sample library usage.
 int main(void)

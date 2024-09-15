@@ -74,11 +74,17 @@ namespace rust
     struct ExtConfig;
     struct WriterConfigEnum;
     struct ConsoleWriterConfig;
+    struct ConsoleWriterConfigEnum;
     struct FileWriterConfig;
+    struct FileWriterConfigEnum;
     struct ServerConfig;
+    struct ServerConfigEnum;
     struct ClientWriterConfig;
+    struct ClientWriterConfigEnum;
     struct SyslogWriterConfig;
+    struct SyslogWriterConfigEnum;
     struct CallbackWriterConfig;
+    struct CallbackWriterConfigEnum;
     struct Logging;
     struct Logger;
 } // namespace logging::rust
@@ -120,6 +126,8 @@ extern "C"
 
     rust::ConsoleWriterConfig *console_writer_config_new(uint8_t level, int8_t colors);
 
+    rust::WriterConfigEnum *console_writer_config_enum_new(uint8_t level, int8_t colors);
+
     // File writer
 
     rust::FileWriterConfig *file_writer_config_new(uint8_t level,
@@ -130,12 +138,25 @@ extern "C"
                                                    int64_t time,
                                                    CompressionMethodEnum compression);
 
+    rust::WriterConfigEnum *file_writer_config_enum_new(uint8_t level,
+                                                        const char *path,
+                                                        uint32_t size,
+                                                        uint32_t backlog,
+                                                        int32_t timeout,
+                                                        int64_t time,
+                                                        CompressionMethodEnum compression);
+
     // Client writer
 
     rust::ClientWriterConfig *client_writer_config_new(uint8_t level,
                                                        const char *address,
                                                        EncryptionMethod encryption,
                                                        const char *key);
+
+    rust::WriterConfigEnum *client_writer_config_enum_new(uint8_t level,
+                                                          const char *address,
+                                                          EncryptionMethod encryption,
+                                                          const char *key);
 
     // Server
 
@@ -144,6 +165,11 @@ extern "C"
                                           EncryptionMethod encryption,
                                           const char *key);
 
+    rust::ServerConfigEnum *server_config_enum_new(uint8_t level,
+                                                   const char *address,
+                                                   EncryptionMethod encryption,
+                                                   const char *key);
+
     // Syslog writer
 
     rust::SyslogWriterConfig *syslog_writer_config_new(uint8_t level,
@@ -151,10 +177,18 @@ extern "C"
                                                        const char *pname,
                                                        uint32_t pid);
 
+    rust::WriterConfigEnum *syslog_writer_config_enum_new(uint8_t level,
+                                                          const char *hostname,
+                                                          const char *pname,
+                                                          uint32_t pid);
+
     // Callback writer
 
     rust::CallbackWriterConfig *callback_writer_config_new(uint8_t level,
                                                            void (*callback)(uint8_t, const char *, const char *));
+
+    rust::WriterConfigEnum *callback_writer_config_enum_new(uint8_t level,
+                                                            void (*callback)(uint8_t, const char *, const char *));
 
     rust::Logging *logging_init();
 
@@ -188,7 +222,7 @@ extern "C"
 
     void logging_remove_writer(rust::Logging *logging, WriterTypeEnum writer);
 
-    intptr_t logging_sync(const rust::Logging *logging, int console, int file, int client, int syslog, double timeout);
+    intptr_t logging_sync(const rust::Logging *logging, int console, int file, int client, int syslog, int callback, double timeout);
 
     intptr_t logging_sync_all(const rust::Logging *logging, double timeout);
 
@@ -303,6 +337,22 @@ namespace logging
         }
     };
 
+    class ConsoleWriterConfigEnum
+    {
+    public:
+        rust::WriterConfigEnum *writer = NULL;
+
+        ConsoleWriterConfigEnum(uint8_t level, bool colors)
+        {
+            writer = console_writer_config_enum_new(level, (int8_t)colors);
+        }
+
+        ~ConsoleWriterConfigEnum()
+        {
+            writer = NULL;
+        }
+    };
+
     class FileWriterConfig
     {
     public:
@@ -320,6 +370,28 @@ namespace logging
         }
 
         ~FileWriterConfig()
+        {
+            writer = NULL;
+        }
+    };
+
+    class FileWriterConfigEnum
+    {
+    public:
+        rust::WriterConfigEnum *writer = NULL;
+
+        FileWriterConfigEnum(uint8_t level,
+                             const char *path,
+                             uint32_t size,
+                             uint32_t backlog,
+                             int32_t timeout,
+                             int64_t time,
+                             CompressionMethodEnum compression)
+        {
+            writer = file_writer_config_enum_new(level, path, size, backlog, timeout, time, compression);
+        }
+
+        ~FileWriterConfigEnum()
         {
             writer = NULL;
         }
@@ -388,12 +460,29 @@ namespace logging
         rust::CallbackWriterConfig *writer = NULL;
 
         CallbackWriterConfig(uint8_t level,
-                             void (*callback)(uint8_t, *const char, *const char))
+                             void (*callback)(uint8_t, const char *, const char *))
         {
             writer = callback_writer_config_new(level, callback);
         }
 
         ~CallbackWriterConfig()
+        {
+            writer = NULL;
+        }
+    };
+
+    class CallbackWriterConfigEnum
+    {
+    public:
+        rust::WriterConfigEnum *writer = NULL;
+
+        CallbackWriterConfigEnum(uint8_t level,
+                                 void (*callback)(uint8_t, const char *, const char *))
+        {
+            writer = callback_writer_config_enum_new(level, callback);
+        }
+
+        ~CallbackWriterConfigEnum()
         {
             writer = NULL;
         }
