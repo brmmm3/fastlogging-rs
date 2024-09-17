@@ -204,10 +204,7 @@ type ClientWriterConfig struct {
 }
 
 type ServerConfig struct {
-	level   uint8
-	address string
-	port    uint16
-	key     EncryptionMethod
+	config C.ServerConfig
 }
 
 type SyslogWriterConfig struct {
@@ -311,11 +308,11 @@ func Init() Logging {
 func New(
 	level uint8,
 	domain *string,
-	ext_config ExtConfig,
-	console ConsoleWriterConfig,
-	file FileWriterConfig,
-	server ServerConfig,
-	connect ClientWriterConfig,
+	ext_config *ExtConfig,
+	console *ConsoleWriterConfig,
+	file *FileWriterConfig,
+	server *ServerConfig,
+	connect *ClientWriterConfig,
 	syslog int8,
 	config *string) Logging {
 	var c_domain *C.char = nil
@@ -363,26 +360,26 @@ func (instance Logging) SetLevel2Sym(level2sym uint8) {
 }
 
 func (instance Logging) SetExtConfig(ext_config ExtConfig) {
-	C.logging_set_ext_config(instance.logging, ext_config.into())
+	C.logging_set_ext_config(instance.logging, ext_config.config)
 }
 
-func (instance Logging) AddLogger(logger Logger) int {
-	return int(C.logging_add_logger(instance.logging, &logger.logger))
+func (instance Logging) AddLogger(logger Logger) {
+	C.logging_add_logger(instance.logging, logger.logger)
 }
 
-func (instance Logging) RemoveLogger(logger Logger) int {
-	return int(C.logging_remove_logger(instance.logging, &logger.logger))
+func (instance Logging) RemoveLogger(logger Logger) {
+	C.logging_remove_logger(instance.logging, logger.logger)
 }
 
 func (instance Logging) AddWriter(writer WriterConfigEnum) int {
-	return int(C.logging_add_writer(instance.logging, writer))
+	return int(C.logging_add_writer(instance.logging, C.WriterConfigEnum(writer)))
 }
 
 func (instance Logging) RemoveWriter(writer WriterTypeEnum) int {
 	return int(C.logging_remove_writer(instance.logging, writer.into()))
 }
 
-func (instance Logging) Sync(console bool, file bool, client bool, syslog bool, timeout float64) int {
+func (instance Logging) Sync(console bool, file bool, client bool, syslog bool, callback bool, timeout float64) int {
 	var c_console C.int8_t
 	if console {
 		c_console = 1
@@ -399,7 +396,11 @@ func (instance Logging) Sync(console bool, file bool, client bool, syslog bool, 
 	if syslog {
 		c_syslog = 1
 	}
-	return int(C.logging_sync(instance.logging, c_console, c_file, c_client, c_syslog, C.double(timeout)))
+	var c_callback C.int8_t
+	if callback {
+		c_callback = 1
+	}
+	return int(C.logging_sync(instance.logging, c_console, c_file, c_client, c_syslog, c_callback, C.double(timeout)))
 }
 
 func (instance Logging) SyncAll(timeout float64) int {
@@ -429,13 +430,8 @@ func (instance Logging) GetConfig(writer WriterTypeEnum) C.WriterConfigEnum {
 }
 
 func (instance Logging) GetServerConfig() ServerConfig {
-	var config C.CServerConfig = C.logging_get_server_config(instance.logging)
-	var key EncryptionMethod = map[C.EncryptionMethod]EncryptionMethod{
-		0: NONE,
-		1: AuthKey,
-		2: AES,
-	}
-	return ServerConfig{uint8(config.level), C.GoString(config.address), uint16(config.port), key}
+	var config *C.CServerConfig = C.logging_get_server_config(instance.logging)
+	return ServerConfig{C.server_config_new(C.uint8_t(config.level), config.address, config.encryption, config.key)}
 }
 
 func (instance Logging) GetServerAuthKey() string {

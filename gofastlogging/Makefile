@@ -18,6 +18,9 @@ build-static:
 	@cp ../target/release/libcfastlogging.a lib/
 	go build -o bin/console_static examples/console_static/main.go
 
+run-console-static:
+	LD_LIBRARY_PATH=../target/release ./bin/console_static
+
 .PHONY: build-static-debug
 build-static-debug:
 	@cp ../target/debug/libcfastlogging.a lib/
