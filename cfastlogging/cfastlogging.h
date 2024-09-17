@@ -127,7 +127,8 @@ typedef struct
     uint8_t level;
     const char *address;
     uint16_t port;
-    EncryptionMethod key;
+    EncryptionMethod encryption;
+    const char *key;
 } CServerConfig;
 
 typedef void *ServerConfig;
