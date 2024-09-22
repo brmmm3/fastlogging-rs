@@ -7,14 +7,20 @@ package main
 #include "../../lib/cfastlogging.h"
 */
 import "C"
-import "examples/logging"
+import (
+	"examples/logging"
+	"unsafe"
+)
+
+func CallbackWriter(level C.char, domain *C.char, message *C.char) {
+	println("%d %s %s", level, domain, message)
+}
 
 func main() {
-	var encryption logging.EncryptionMethod = logging.NONE
-	console := logging.ConsoleWriterConfigNew(logging.DEBUG, true)
-	server := logging.ServerConfigNew(logging.DEBUG, "127.0.0.1", encryption, nil)
-	server_domain := "LOGSRV"
-	logger := logging.New(logging.DEBUG, &server_domain, nil, &console, nil, &server, nil, -1, nil)
+	logger := logging.New(logging.DEBUG, nil, nil, nil, nil, nil, nil, -1, nil)
+	fn := CallbackWriter
+	callback := logging.CallbackWriterConfigNew(logging.DEBUG, uintptr(unsafe.Pointer(&fn)))
+	logger.AddWriter(logging.WriterConfigEnum(&callback))
 	logger.Trace("Trace message")
 	logger.Debug("Debug message")
 	logger.Info("Info Message")

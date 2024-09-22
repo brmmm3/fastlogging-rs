@@ -10,11 +10,14 @@ import "C"
 import "examples/logging"
 
 func main() {
-	var encryption logging.EncryptionMethod = logging.NONE
-	console := logging.ConsoleWriterConfigNew(logging.DEBUG, true)
-	server := logging.ServerConfigNew(logging.DEBUG, "127.0.0.1", encryption, nil)
-	server_domain := "LOGSRV"
-	logger := logging.New(logging.DEBUG, &server_domain, nil, &console, nil, &server, nil, -1, nil)
+	file := logging.FileWriterConfigNew(logging.DEBUG,
+		"/tmp/gofastlogging.log",
+		1024,
+		3,
+		-1,
+		-1,
+		logging.Store)
+	logger := logging.New(logging.DEBUG, nil, nil, nil, &file, nil, nil, -1, nil)
 	logger.Trace("Trace message")
 	logger.Debug("Debug message")
 	logger.Info("Info Message")

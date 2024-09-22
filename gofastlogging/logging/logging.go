@@ -1,12 +1,22 @@
 package logging
 
-// NOTE: There should be NO space between the comments and the `import "C"` line.
-
 /*
+#include <stdint.h>
+
+extern void go_logging_callback_writer(uintptr_t h, char level, char *domain, char *message);
+
+static inline void CallCallbackWriter(uintptr_t h, char level, const char *domain, const char *message) {
+    go_logging_callback_writer(h, level, domain, message);
+}
+
 #cgo LDFLAGS: -L. -L../lib -lcfastlogging
 #include "../lib/cfastlogging.h"
 */
 import "C"
+import (
+	"runtime/cgo"
+	"unsafe"
+)
 
 // Log-Levels
 const NOLOG = C.NOLOG
@@ -211,6 +221,10 @@ type SyslogWriterConfig struct {
 	config C.SyslogWriterConfig
 }
 
+type CallbackWriterConfig struct {
+	config C.CallbackWriterConfig
+}
+
 type Logger struct {
 	logger C.Logger
 }
@@ -297,6 +311,22 @@ func SyslogWriterConfigNew(
 	return SyslogWriterConfig{C.syslog_writer_config_new(C.uint8_t(level), c_hostname, c_pname, C.uint32_t(pid))}
 }
 
+// Callback writer
+
+//export go_logging_callback_writer
+func go_logging_callback_writer(h C.uintptr_t, level C.char, domain *C.char, message *C.char) {
+	fn := cgo.Handle(h).Value().(func(C.char, *C.char, *C.char))
+	fn(level, domain, message)
+}
+
+func CallbackWriterConfigNew(
+	level uint8,
+	callback uintptr) CallbackWriterConfig {
+	fn := go_logging_callback_writer
+	// TODO
+	return CallbackWriterConfig{C.callback_writer_config_new(C.uint8_t(level), (*[0]byte)(unsafe.Pointer(&fn)))}
+}
+
 // Logging module
 
 func Init() Logging {
@@ -319,6 +349,26 @@ func New(
 	if domain != nil {
 		c_domain = C.CString(*domain)
 	}
+	var c_ext_config C.ExtConfig = nil
+	if ext_config != nil {
+		c_ext_config = ext_config.config
+	}
+	var c_console_config C.ConsoleWriterConfig = nil
+	if console != nil {
+		c_console_config = console.config
+	}
+	var c_file_config C.FileWriterConfig = nil
+	if file != nil {
+		c_file_config = file.config
+	}
+	var c_server_config C.ServerConfig = nil
+	if server != nil {
+		c_server_config = server.config
+	}
+	var c_connect_config C.ClientWriterConfig = nil
+	if connect != nil {
+		c_connect_config = connect.config
+	}
 	var c_config *C.char = nil
 	if config != nil {
 		c_config = C.CString(*config)
@@ -326,11 +376,11 @@ func New(
 	return Logging{C.logging_new(
 		C.uint8_t(level),
 		c_domain,
-		&ext_config.config,
-		&console.config,
-		&file.config,
-		&server.config,
-		&connect.config,
+		&c_ext_config,
+		&c_console_config,
+		&c_file_config,
+		&c_server_config,
+		&c_connect_config,
 		C.int8_t(syslog),
 		c_config)}
 }
