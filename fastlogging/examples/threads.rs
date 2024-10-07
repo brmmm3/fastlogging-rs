@@ -1,8 +1,7 @@
 use std::thread;
 
 use fastlogging::{
-    ConsoleWriterConfig, ExtConfig, Logger, Logging, LoggingError, MessageStructEnum,
-    WriterConfigEnum, DEBUG,
+    ConsoleWriterConfig, ExtConfig, Logger, Logging, LoggingError, MessageStructEnum, DEBUG,
 };
 
 fn main() -> Result<(), LoggingError> {
@@ -15,9 +14,7 @@ fn main() -> Result<(), LoggingError> {
         true,
         true,
     ));
-    logger.add_writer(&mut WriterConfigEnum::Console(ConsoleWriterConfig::new(
-        DEBUG, true,
-    )))?;
+    logger.add_writer_config(&ConsoleWriterConfig::new(DEBUG, true).into())?;
     let mut logger2 = Logger::new_ext(DEBUG, "LoggerThread", true, true);
     logger.add_logger(&mut logger2);
     let thr = thread::Builder::new()

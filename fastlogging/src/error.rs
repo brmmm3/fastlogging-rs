@@ -39,6 +39,9 @@ pub enum LoggingError {
     #[error("{0}")]
     InvalidValue(String),
 
+    #[error("{0}")]
+    InvalidFile(String),
+
     #[error("{0}: Invalid encryption {1:?}: {2}")]
     InvalidEncryption(String, EncryptionMethod, String),
 
@@ -66,6 +69,7 @@ impl LoggingError {
             LoggingError::SendCmdError(_, _, _) => EFAIL,
             LoggingError::RecvAswError(_, _, _) => EFAIL,
             LoggingError::InvalidValue(_) => EINVAL,
+            LoggingError::InvalidFile(_) => EINVAL,
             LoggingError::InvalidEncryption(_, _, _) => EINVAL,
             LoggingError::JoinError(_, _) => EFAIL,
             LoggingError::ConfigError(_) => EINVAL,

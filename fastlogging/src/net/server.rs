@@ -24,11 +24,11 @@ use super::{def::NetConfig, EncryptionMethod, NonceGenerator};
 #[repr(C)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ServerConfig {
-    pub level: u8,
-    pub address: String,
-    pub port: u16,
-    pub key: EncryptionMethod,
-    pub port_file: Option<PathBuf>,
+    pub(crate) level: u8,
+    pub(crate) address: String,
+    pub(crate) port: u16,
+    pub(crate) key: EncryptionMethod,
+    pub(crate) port_file: Option<PathBuf>,
 }
 
 impl ServerConfig {
@@ -50,6 +50,14 @@ impl ServerConfig {
             port,
             key,
             port_file: None,
+        }
+    }
+
+    pub fn get_address_port(&self) -> String {
+        if self.port > 0 {
+            format!("{}:{}", self.address, self.port)
+        } else {
+            self.address.clone()
         }
     }
 }
@@ -172,10 +180,10 @@ fn handle_client(
         let message_data = &mut buffer[..message_size];
         stream.read_exact(message_data)?;
         if msg_level >= config_level {
-            let domain = std::str::from_utf8(&domain_data).unwrap().to_string();
+            let domain = std::str::from_utf8(domain_data).unwrap().to_string();
             let message = format!(
                 "{perr_addr}: {}",
-                std::str::from_utf8(&message_data).unwrap()
+                std::str::from_utf8(message_data).unwrap()
             );
             if debug > 2 {
                 println!(
@@ -258,10 +266,10 @@ fn handle_encrypted_client(
             let _ = key
                 .open_in_place(seal.clone(), message_data)
                 .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
-            let domain = std::str::from_utf8(&domain_data).unwrap().to_string();
+            let domain = std::str::from_utf8(domain_data).unwrap().to_string();
             let message = format!(
                 "{perr_addr}: {}",
-                std::str::from_utf8(&message_data).unwrap()
+                std::str::from_utf8(message_data).unwrap()
             );
             if debug > 2 {
                 println!("handle_encrypted_client: MESSAGE {domain}: {message:?}");
@@ -400,6 +408,7 @@ fn server_thread(
 pub struct LoggingServer {
     pub(crate) config: Arc<Mutex<NetConfig>>,
     thr: Option<JoinHandle<()>>,
+    pub(crate) debug: u8,
 }
 
 impl LoggingServer {
@@ -472,6 +481,7 @@ impl LoggingServer {
         Ok(Self {
             config,
             thr: Some(thr),
+            debug: 0,
         })
     }
 

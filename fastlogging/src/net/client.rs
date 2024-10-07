@@ -58,6 +58,14 @@ impl ClientWriterConfig {
             debug: 0,
         }
     }
+
+    pub fn get_address_port(&self) -> String {
+        if self.port > 0 {
+            format!("{}:{}", self.address, self.port)
+        } else {
+            self.address.clone()
+        }
+    }
 }
 
 impl fmt::Display for ClientWriterConfig {
@@ -180,17 +188,20 @@ pub struct ClientWriter {
     tx: Sender<ClientTypeEnum>,
     sync_rx: Receiver<u8>,
     thr: Option<JoinHandle<()>>,
+    pub(crate) debug: u8,
 }
 
 impl ClientWriter {
-    pub fn new(writer: ClientWriterConfig, stop: Arc<AtomicBool>) -> Result<Self, LoggingError> {
+    pub fn new(
+        writer_config: ClientWriterConfig,
+        stop: Arc<AtomicBool>,
+    ) -> Result<Self, LoggingError> {
         let config = Arc::new(Mutex::new(NetConfig::new(
-            writer.level,
-            writer.address,
-            writer.port,
-            writer.key,
+            writer_config.level,
+            writer_config.address,
+            writer_config.port,
+            writer_config.key,
         )?));
-        config.lock().unwrap().debug = writer.debug;
         let (tx, rx) = bounded(1000);
         let (sync_tx, sync_rx) = bounded(1);
         let (tx_started, rx_started) = bounded(1);
@@ -216,6 +227,7 @@ impl ClientWriter {
             tx,
             sync_rx,
             thr: Some(thr),
+            debug: 0,
         })
     }
 

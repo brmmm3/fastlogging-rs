@@ -41,6 +41,7 @@ pub struct CallbackWriterConfig {
     pub(crate) message_filter: Option<String>,
     #[serde(skip_serializing, skip_deserializing)]
     pub(crate) callback: Option<Arc<Mutex<CallbackFn>>>,
+    pub(crate) debug: u8,
 }
 
 impl std::fmt::Debug for CallbackWriterConfig {
@@ -57,6 +58,7 @@ impl CallbackWriterConfig {
             domain_filter: None,
             message_filter: None,
             callback: callback.map(|f| Arc::new(Mutex::new(f))),
+            debug: 0,
         }
     }
 }
@@ -69,6 +71,7 @@ impl Default for CallbackWriterConfig {
             domain_filter: None,
             message_filter: None,
             callback: None,
+            debug: 0,
         }
     }
 }
@@ -118,6 +121,7 @@ pub struct CallbackWriter {
     tx: Sender<CallbackTypeEnum>,
     sync_rx: Receiver<u8>,
     thr: Option<JoinHandle<()>>,
+    pub(crate) debug: u8,
 }
 
 impl CallbackWriter {
@@ -139,6 +143,7 @@ impl CallbackWriter {
                         }
                     })?,
             ),
+            debug: 0,
         })
     }
 
@@ -232,7 +237,7 @@ impl CallbackWriter {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Logging, LoggingError, WriterConfigEnum, DEBUG};
+    use crate::{Logging, LoggingError, DEBUG, NOTSET};
 
     use super::CallbackWriterConfig;
 
@@ -243,12 +248,14 @@ mod tests {
 
     #[test]
     fn callback() {
-        let callback_writer = CallbackWriterConfig::new(DEBUG, Some(Box::new(writer_callback)));
-        let mut logging =
-            Logging::new(None, None, None, None, None, None, None, None, None).unwrap();
-        logging
-            .add_writer(&WriterConfigEnum::Callback(callback_writer))
-            .unwrap();
+        let mut logging = Logging::new(
+            NOTSET,
+            "root",
+            vec![CallbackWriterConfig::new(DEBUG, Some(Box::new(writer_callback))).into()],
+            None,
+            None,
+        )
+        .unwrap();
         logging.trace("Trace Message".to_string()).unwrap();
         logging.debug("Debug Message".to_string()).unwrap();
         logging.info("Info Message".to_string()).unwrap();

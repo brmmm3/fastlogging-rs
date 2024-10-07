@@ -44,15 +44,10 @@ mod windows;
 pub use windows::getppid;
 
 pub fn logging_init() -> Result<Logging, LoggingError> {
-    let console = ConsoleWriterConfig::new(TRACE, false);
     Logging::new(
-        None,
-        None,
-        None,
-        Some(console),
-        None,
-        None,
-        None,
+        NOTSET,
+        "root",
+        vec![ConsoleWriterConfig::new(TRACE, false).into()],
         None,
         None,
     )
@@ -62,8 +57,8 @@ pub fn shutdown(now: bool) -> Result<(), LoggingError> {
     ROOT_LOGGER.lock().unwrap().shutdown(now)
 }
 
-pub fn set_level(writer: &WriterTypeEnum, level: u8) -> Result<(), LoggingError> {
-    ROOT_LOGGER.lock().unwrap().set_level(writer, level)
+pub fn set_level(wid: usize, level: u8) -> Result<(), LoggingError> {
+    ROOT_LOGGER.lock().unwrap().set_level(wid, level)
 }
 
 pub fn set_domain<S: Into<String>>(domain: S) {
@@ -86,12 +81,36 @@ pub fn remove_logger(logger: &mut Logger) {
     ROOT_LOGGER.lock().unwrap().remove_logger(logger)
 }
 
-pub fn add_writer(writer: &WriterConfigEnum) -> Result<WriterTypeEnum, LoggingError> {
+pub fn set_root_writer_config(config: &WriterConfigEnum) -> Result<(), LoggingError> {
+    ROOT_LOGGER.lock().unwrap().set_root_writer_config(config)
+}
+
+pub fn set_root_writer(writer: WriterEnum) -> Result<(), LoggingError> {
+    ROOT_LOGGER.lock().unwrap().set_root_writer(writer)
+}
+
+pub fn add_writer_config(config: &WriterConfigEnum) -> Result<usize, LoggingError> {
+    ROOT_LOGGER.lock().unwrap().add_writer_config(config)
+}
+
+pub fn add_writer(writer: WriterEnum) -> usize {
     ROOT_LOGGER.lock().unwrap().add_writer(writer)
 }
 
-pub fn remove_writer(writer: &WriterTypeEnum) -> Result<(), LoggingError> {
-    ROOT_LOGGER.lock().unwrap().remove_writer(writer)
+pub fn remove_writer(wid: usize) -> Option<WriterEnum> {
+    ROOT_LOGGER.lock().unwrap().remove_writer(wid)
+}
+
+pub fn add_writer_configs(configs: &[WriterConfigEnum]) -> Result<Vec<usize>, LoggingError> {
+    ROOT_LOGGER.lock().unwrap().add_writer_configs(configs)
+}
+
+pub fn add_writers(writers: Vec<WriterEnum>) -> Vec<usize> {
+    ROOT_LOGGER.lock().unwrap().add_writers(writers)
+}
+
+pub fn remove_writers(wids: Vec<usize>) -> Vec<WriterEnum> {
+    ROOT_LOGGER.lock().unwrap().remove_writers(wids)
 }
 
 pub fn sync(
@@ -118,8 +137,8 @@ pub fn rotate(path: Option<PathBuf>) -> Result<(), LoggingError> {
 
 // Network
 
-pub fn set_encryption(writer: WriterTypeEnum, key: EncryptionMethod) -> Result<(), LoggingError> {
-    ROOT_LOGGER.lock().unwrap().set_encryption(writer, key)
+pub fn set_encryption(wid: usize, key: EncryptionMethod) -> Result<(), LoggingError> {
+    ROOT_LOGGER.lock().unwrap().set_encryption(wid, key)
 }
 
 // Config
@@ -128,20 +147,25 @@ pub fn set_debug(debug: u8) {
     let logger = ROOT_LOGGER.lock().unwrap();
     let mut config = logger.instance.lock().unwrap();
     config.debug = debug;
-    for writer in config.clients.values_mut() {
-        writer.config.lock().unwrap().debug = debug;
-    }
-    for server in config.servers.values_mut() {
-        server.config.lock().unwrap().debug = debug;
+    for writer in config.writers.values_mut() {
+        match writer {
+            WriterEnum::Console(console_writer) => console_writer.debug = debug,
+            WriterEnum::File(file_writer) => file_writer.debug = debug,
+            WriterEnum::Client(client_writer) => client_writer.debug = debug,
+            WriterEnum::Server(server_writer) => server_writer.debug = debug,
+            WriterEnum::Callback(callback_writer) => callback_writer.debug = debug,
+            WriterEnum::Syslog(syslog_writer) => syslog_writer.debug = debug,
+            _ => {}
+        }
     }
 }
 
-pub fn get_config(writer: &WriterTypeEnum) -> Result<WriterConfigEnum, LoggingError> {
-    ROOT_LOGGER.lock().unwrap().get_config(writer)
+pub fn get_config(wid: usize) -> Result<WriterConfigEnum, LoggingError> {
+    ROOT_LOGGER.lock().unwrap().get_config(wid)
 }
 
-pub fn get_server_config(address: &str) -> Option<ServerConfig> {
-    ROOT_LOGGER.lock().unwrap().get_server_config(address)
+pub fn get_server_config(wid: usize) -> Result<ServerConfig, LoggingError> {
+    ROOT_LOGGER.lock().unwrap().get_server_config(wid)
 }
 
 pub fn get_server_auth_key() -> EncryptionMethod {
@@ -152,7 +176,7 @@ pub fn get_config_string() -> String {
     ROOT_LOGGER.lock().unwrap().get_config_string()
 }
 
-pub fn save_config(path: &Path) -> Result<(), LoggingError> {
+pub fn save_config(path: Option<&Path>) -> Result<(), LoggingError> {
     ROOT_LOGGER.lock().unwrap().save_config(path)
 }
 

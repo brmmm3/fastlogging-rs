@@ -1,7 +1,7 @@
 use fastlogging::{Logging, LoggingError, DEBUG};
 
 fn main() -> Result<(), LoggingError> {
-    let mut logger = Logging::new(None, None, None, None, None, None, None, Some(DEBUG), None)?;
+    let mut logger = Logging::new(DEBUG, "root", Vec::new(), None, None)?;
     logger.trace("Trace Message")?;
     logger.debug("Debug Message")?;
     logger.info("Info Message")?;

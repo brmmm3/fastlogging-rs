@@ -40,6 +40,7 @@ pub struct ConsoleWriterConfig {
     pub(crate) message_filter: Option<String>,
     pub(crate) colors: bool,
     pub(crate) target: ConsoleTargetEnum,
+    pub(crate) debug: u8,
 }
 
 impl ConsoleWriterConfig {
@@ -51,6 +52,7 @@ impl ConsoleWriterConfig {
             message_filter: None,
             colors,
             target: ConsoleTargetEnum::StdOut,
+            debug: 0,
         }
     }
 }
@@ -64,6 +66,7 @@ impl Default for ConsoleWriterConfig {
             message_filter: None,
             colors: false,
             target: ConsoleTargetEnum::StdOut,
+            debug: 0,
         }
     }
 }
@@ -130,7 +133,7 @@ fn console_writer_thread(
                         })))?;
                         writeln!(buffer, "{message}")?;
                         buffer.reset()?;
-                        bufwtr.print(&buffer)?;
+                        bufwtr.print(buffer)?;
                     } else if config.target == ConsoleTargetEnum::StdOut {
                         println!("{message}");
                     } else if config.target == ConsoleTargetEnum::StdErr {
@@ -161,6 +164,7 @@ pub struct ConsoleWriter {
     tx: Sender<ConsoleTypeEnum>,
     sync_rx: Receiver<u8>,
     thr: Option<JoinHandle<()>>,
+    pub(crate) debug: u8,
 }
 
 impl ConsoleWriter {
@@ -181,6 +185,7 @@ impl ConsoleWriter {
                         }
                     })?,
             ),
+            debug: 0,
         })
     }
 
@@ -278,19 +283,14 @@ impl ConsoleWriter {
 
 #[cfg(test)]
 mod tests {
-    use crate::{ConsoleWriterConfig, Logging, DEBUG};
+    use crate::{ConsoleWriterConfig, Logging, DEBUG, NOTSET};
 
     #[test]
     fn console() {
-        let console_writer = ConsoleWriterConfig::new(DEBUG, true);
         let mut logging = Logging::new(
-            None,
-            None,
-            None,
-            Some(console_writer),
-            None,
-            None,
-            None,
+            NOTSET,
+            "root",
+            vec![ConsoleWriterConfig::new(DEBUG, true).into()],
             None,
             None,
         )

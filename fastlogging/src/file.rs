@@ -268,6 +268,7 @@ pub struct FileWriter {
     tx: Sender<FileTypeEnum>,
     sync_rx: Receiver<u8>,
     thr: Option<JoinHandle<()>>,
+    pub(crate) debug: u8,
 }
 
 impl FileWriter {
@@ -288,6 +289,7 @@ impl FileWriter {
                         }
                     })?,
             ),
+            debug: 0,
         })
     }
 
@@ -398,22 +400,20 @@ impl FileWriter {
 mod tests {
     use tempdir::TempDir;
 
-    use crate::{FileWriterConfig, Logging, DEBUG};
+    use crate::{FileWriterConfig, Logging, DEBUG, NOTSET};
 
     #[test]
     fn file() {
         let temp_dir = TempDir::new("fastlogging").unwrap();
         let log_file = temp_dir.path().join("file.log");
-        let file_writer =
-            FileWriterConfig::new(DEBUG, log_file.clone(), 0, 0, None, None, None).unwrap();
         let mut logging = Logging::new(
-            None,
-            None,
-            None,
-            None,
-            Some(file_writer),
-            None,
-            None,
+            NOTSET,
+            "root",
+            vec![
+                FileWriterConfig::new(DEBUG, log_file.clone(), 0, 0, None, None, None)
+                    .unwrap()
+                    .into(),
+            ],
             None,
             None,
         )

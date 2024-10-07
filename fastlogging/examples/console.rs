@@ -1,15 +1,10 @@
 use fastlogging::{ConsoleWriterConfig, Logging, LoggingError, DEBUG};
 
 fn main() -> Result<(), LoggingError> {
-    let console = ConsoleWriterConfig::new(DEBUG, true);
     let mut logger = Logging::new(
-        None,
-        None,
-        None,
-        Some(console),
-        None,
-        None,
-        None,
+        DEBUG,
+        "root",
+        vec![ConsoleWriterConfig::new(DEBUG, true).into()],
         None,
         None,
     )?;

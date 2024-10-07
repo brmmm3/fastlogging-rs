@@ -29,6 +29,7 @@ pub struct SyslogWriterConfig {
     pub(crate) message_filter: Option<String>,
     #[serde(skip_serializing, skip_deserializing)]
     formatter: Formatter3164,
+    pub(crate) debug: u8,
 }
 
 impl SyslogWriterConfig {
@@ -44,6 +45,7 @@ impl SyslogWriterConfig {
                 process: pname.into(),
                 pid,
             },
+            debug: 0,
         }
     }
 }
@@ -114,6 +116,7 @@ pub struct SyslogWriter {
     tx: Sender<SyslogTypeEnum>,
     sync_rx: Receiver<u8>,
     thr: Option<JoinHandle<()>>,
+    pub(crate) debug: u8,
 }
 
 impl SyslogWriter {
@@ -134,6 +137,7 @@ impl SyslogWriter {
                         }
                     })?,
             ),
+            debug: 0,
         })
     }
 

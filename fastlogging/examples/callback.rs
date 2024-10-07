@@ -1,4 +1,4 @@
-use fastlogging::{CallbackWriterConfig, Logging, LoggingError, WriterConfigEnum, DEBUG};
+use fastlogging::{CallbackWriterConfig, Logging, LoggingError, DEBUG};
 
 fn writer_callback(level: u8, domain: String, message: String) -> Result<(), LoggingError> {
     println!("CB: {level} {domain}: {message}");
@@ -6,11 +6,14 @@ fn writer_callback(level: u8, domain: String, message: String) -> Result<(), Log
 }
 
 fn main() -> Result<(), LoggingError> {
-    let mut logging = Logging::new(None, None, None, None, None, None, None, None, None).unwrap();
-    let callback_writer = CallbackWriterConfig::new(DEBUG, Some(Box::new(writer_callback)));
-    logging
-        .add_writer(&WriterConfigEnum::Callback(callback_writer))
-        .unwrap();
+    let mut logging = Logging::new(
+        DEBUG,
+        "root",
+        vec![CallbackWriterConfig::new(DEBUG, Some(Box::new(writer_callback))).into()],
+        None,
+        None,
+    )
+    .unwrap();
     logging.trace("Trace Message".to_string()).unwrap();
     logging.debug("Debug Message".to_string()).unwrap();
     logging.info("Info Message".to_string()).unwrap();

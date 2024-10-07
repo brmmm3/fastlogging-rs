@@ -31,7 +31,7 @@ threadpool = "1.8"
 thread-id = "4.2"
 termcolor = "1.4"
 once_cell = "1.19"
-regex = "1.10"
+regex = "1.11"
 zip = { version = "2.2", default-features = false, features = [
     "deflate",
     "zstd",

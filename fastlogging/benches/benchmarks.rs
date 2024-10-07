@@ -1,7 +1,7 @@
-use std::{ path::PathBuf, time::Duration };
+use std::{path::PathBuf, time::Duration};
 
-use fastlogging::{ FileWriterConfig, Logging, DEBUG };
-use criterion::{ criterion_group, criterion_main, Criterion };
+use criterion::{criterion_group, criterion_main, Criterion};
+use fastlogging::{FileWriterConfig, Logging, DEBUG};
 
 fn benchmark_logging_file(c: &mut Criterion) {
     println!("Running benchmark for logging.file...");
@@ -10,26 +10,23 @@ fn benchmark_logging_file(c: &mut Criterion) {
     group.sample_size(20);
     group.bench_function("Logging::file", |b| {
         b.iter(|| {
-            let file = FileWriterConfig::new(
-                DEBUG,
-                PathBuf::from("/tmp/fastlogging.log"),
-                0,
-                0,
-                None,
-                None,
-                None
-            )?;
             let mut logging = Logging::new(
+                DEBUG,
+                "root",
+                vec![FileWriterConfig::new(
+                    DEBUG,
+                    PathBuf::from("/tmp/fastlogging.log"),
+                    0,
+                    0,
+                    None,
+                    None,
+                    None,
+                )?
+                .into()],
                 None,
                 None,
-                None,
-                None,
-                Some(file),
-                None,
-                None,
-                None,
-                None
-            ).unwrap();
+            )
+            .unwrap();
             for _ in 1..10000 {
                 logging.debug("Debug message".to_string()).unwrap();
                 logging.info("Info message".to_string()).unwrap();
