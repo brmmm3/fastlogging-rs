@@ -12,8 +12,8 @@ mod tests {
     use tempdir::TempDir;
 
     use crate::{
-        ClientWriterConfig, ConsoleWriterConfig, FileWriterConfig, Logging, ServerConfig,
-        WriterConfigEnum, DEBUG, NOTSET,
+        ClientWriterConfig, ConsoleWriterConfig, FileWriterConfig, Logging, ServerConfig, DEBUG,
+        NOTSET,
     };
 
     use super::EncryptionMethod;
@@ -23,28 +23,42 @@ mod tests {
         let temp_dir = TempDir::new("fastlogging").unwrap();
         let log_file = temp_dir.path().join("file.log");
         // Server
-        let server_writers: Vec<WriterConfigEnum> = vec![
-            ConsoleWriterConfig::new(DEBUG, true).into(),
-            FileWriterConfig::new(DEBUG, log_file.clone(), 0, 0, None, None, None)
-                .unwrap()
-                .into(),
-            ServerConfig::new(DEBUG, "127.0.0.1", EncryptionMethod::NONE).into(),
-        ];
-        let mut logging_server =
-            Logging::new(NOTSET, "server".to_string(), server_writers, None, None).unwrap();
+        let mut logging_server = Logging::new(
+            NOTSET,
+            "server".to_string(),
+            vec![
+                ConsoleWriterConfig::new(DEBUG, true).into(),
+                FileWriterConfig::new(DEBUG, log_file.clone(), 0, 0, None, None, None)
+                    .unwrap()
+                    .into(),
+            ],
+            None,
+            None,
+        )
+        .unwrap();
+        logging_server
+            .set_root_writer_config(
+                &ServerConfig::new(DEBUG, "127.0.0.1", EncryptionMethod::NONE).into(),
+            )
+            .unwrap();
         logging_server.sync_all(5.0).unwrap();
         // Client
-        let client_writers = vec![
-            ConsoleWriterConfig::new(DEBUG, false).into(),
-            ClientWriterConfig::new(
-                DEBUG,
-                logging_server.get_server_addresses().get(&0).unwrap(),
-                logging_server.get_server_auth_key(),
-            )
-            .into(),
-        ];
-        let mut logging_client =
-            Logging::new(NOTSET, "client".to_string(), client_writers, None, None).unwrap();
+        let mut logging_client = Logging::new(
+            NOTSET,
+            "client".to_string(),
+            vec![
+                ConsoleWriterConfig::new(DEBUG, false).into(),
+                ClientWriterConfig::new(
+                    DEBUG,
+                    logging_server.get_server_addresses_ports().get(&0).unwrap(),
+                    logging_server.get_server_auth_key(),
+                )
+                .into(),
+            ],
+            None,
+            None,
+        )
+        .unwrap();
         logging_client.trace("Trace Message".to_string()).unwrap();
         logging_client.debug("Debug Message".to_string()).unwrap();
         logging_client.info("Info Message".to_string()).unwrap();

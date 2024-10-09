@@ -226,6 +226,13 @@ impl LoggingInstance {
             .collect()
     }
 
+    pub fn get_server_addresses_ports(&self) -> HashMap<usize, String> {
+        self.get_server_configs()
+            .iter()
+            .map(|(k, c)| (*k, format!("{}:{}", c.address, c.port)))
+            .collect::<HashMap<usize, _>>()
+    }
+
     pub fn get_server_addresses(&self) -> HashMap<usize, String> {
         self.get_server_configs()
             .iter()

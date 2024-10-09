@@ -819,6 +819,10 @@ impl Logging {
         self.instance.lock().unwrap().get_server_configs()
     }
 
+    pub fn get_server_addresses_ports(&self) -> HashMap<usize, String> {
+        self.instance.lock().unwrap().get_server_addresses_ports()
+    }
+
     pub fn get_server_addresses(&self) -> HashMap<usize, String> {
         self.instance.lock().unwrap().get_server_addresses()
     }
