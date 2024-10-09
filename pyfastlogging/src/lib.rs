@@ -19,8 +19,8 @@ fn shutdown(now: Option<bool>) -> Result<(), LoggingError> {
 }
 
 #[pyfunction]
-fn set_level(writer: WriterTypeEnum, level: u8) -> Result<(), LoggingError> {
-    Ok(fastlogging::set_level(&writer.into(), level)?)
+fn set_level(wid: usize, level: u8) -> Result<(), LoggingError> {
+    Ok(fastlogging::set_level(wid, level)?)
 }
 
 #[pyfunction]
@@ -49,52 +49,41 @@ fn remove_logger(logger: Py<logger::Logger>, py: Python) {
 }
 
 #[pyfunction]
-fn add_writer(writer: PyObject, py: Python) -> PyResult<WriterTypeEnum> {
-    let writer = if let Ok(writer) = writer.extract::<RootConfig>(py) {
-        fastlogging::WriterConfigEnum::Root(writer.0)
-    } else if let Ok(writer) = writer.extract::<ConsoleWriterConfig>(py) {
-        fastlogging::WriterConfigEnum::Console(writer.0)
-    } else if let Ok(writer) = writer.extract::<FileWriterConfig>(py) {
-        fastlogging::WriterConfigEnum::File(writer.0)
-    } else if let Ok(writer) = writer.extract::<ClientWriterConfig>(py) {
-        fastlogging::WriterConfigEnum::Client(writer.0)
-    } else if let Ok(writer) = writer.extract::<ServerConfig>(py) {
-        fastlogging::WriterConfigEnum::Server(writer.0)
-    } else if let Ok(writer) = writer.extract::<SyslogWriterConfig>(py) {
-        fastlogging::WriterConfigEnum::Syslog(writer.0)
-    } else if let Ok(writer) = writer.extract::<CallbackWriterConfig>(py) {
-        fastlogging::WriterConfigEnum::Callback(writer.0)
+fn add_writer(config: PyObject, py: Python) -> PyResult<usize> {
+    let config = if let Ok(config) = config.extract::<RootConfig>(py) {
+        fastlogging::WriterConfigEnum::Root(config.0)
+    } else if let Ok(config) = config.extract::<ConsoleWriterConfig>(py) {
+        fastlogging::WriterConfigEnum::Console(config.0)
+    } else if let Ok(config) = config.extract::<FileWriterConfig>(py) {
+        fastlogging::WriterConfigEnum::File(config.0)
+    } else if let Ok(config) = config.extract::<ClientWriterConfig>(py) {
+        fastlogging::WriterConfigEnum::Client(config.0)
+    } else if let Ok(config) = config.extract::<ServerConfig>(py) {
+        fastlogging::WriterConfigEnum::Server(config.0)
+    } else if let Ok(config) = config.extract::<SyslogWriterConfig>(py) {
+        fastlogging::WriterConfigEnum::Syslog(config.0)
+    } else if let Ok(config) = config.extract::<CallbackWriterConfig>(py) {
+        fastlogging::WriterConfigEnum::Callback(config.0)
     } else {
         return Err(PyException::new_err(
             "writer has invalid argument type".to_string(),
         ));
     };
-    Ok(fastlogging::add_writer(&writer)
+    Ok(fastlogging::add_writer_config(&config)
         .map_err(|e| PyException::new_err(e.to_string()))?
         .into())
 }
 
 #[pyfunction]
-fn remove_writer(writer: WriterTypeEnum) -> Result<(), LoggingError> {
-    Ok(fastlogging::remove_writer(&writer.into())?)
+fn remove_writer(wid: usize) -> Option<WriterConfigEnum> {
+    fastlogging::remove_writer(wid).map(|w| w.config().into())
 }
 
 #[pyfunction]
-#[pyo3(signature=(console=None, file=None, client=None, syslog=None, callback=None, timeout=None))]
-fn sync(
-    console: Option<bool>,
-    file: Option<bool>,
-    client: Option<bool>,
-    syslog: Option<bool>,
-    callback: Option<bool>,
-    timeout: Option<f64>,
-) -> Result<(), LoggingError> {
+#[pyo3(signature=(types, timeout=None))]
+fn sync(types: Vec<WriterTypeEnum>, timeout: Option<f64>) -> Result<(), LoggingError> {
     Ok(fastlogging::sync(
-        console.unwrap_or_default(),
-        file.unwrap_or_default(),
-        client.unwrap_or_default(),
-        syslog.unwrap_or_default(),
-        callback.unwrap_or_default(),
+        types.into_iter().map(|t| t.into()).collect::<Vec<_>>(),
         timeout.unwrap_or(1.0),
     )?)
 }
@@ -114,8 +103,8 @@ fn rotate(path: Option<PathBuf>) -> Result<(), LoggingError> {
 // Network
 
 #[pyfunction]
-fn set_encryption(writer: WriterTypeEnum, key: EncryptionMethod) -> Result<(), LoggingError> {
-    Ok(fastlogging::set_encryption(writer.into(), key.into())?)
+fn set_encryption(wid: usize, key: EncryptionMethod) -> Result<(), LoggingError> {
+    Ok(fastlogging::set_encryption(wid, key.into())?)
 }
 
 // Config
@@ -126,13 +115,13 @@ pub fn set_debug(debug: u8) {
 }
 
 #[pyfunction]
-fn get_config(writer: WriterTypeEnum) -> Result<WriterConfigEnum, LoggingError> {
-    Ok(fastlogging::get_config(&writer.into())?.into())
+fn get_config(wid: usize) -> Option<WriterConfigEnum> {
+    fastlogging::get_config(wid).map(|w| w.into())
 }
 
 #[pyfunction]
-fn get_server_config(address: String) -> Option<ServerConfig> {
-    fastlogging::get_server_config(&address).map(|v| v.into())
+fn get_server_config(wid: usize) -> Result<ServerConfig, LoggingError> {
+    Ok(fastlogging::get_server_config(wid)?.into())
 }
 
 #[pyfunction]
@@ -146,8 +135,9 @@ fn get_config_string() -> String {
 }
 
 #[pyfunction]
-fn save_config(path: PathBuf) -> Result<(), LoggingError> {
-    Ok(fastlogging::save_config(&path)?)
+#[pyo3(signature=(path=None,))]
+fn save_config(path: Option<PathBuf>) -> Result<(), LoggingError> {
+    Ok(fastlogging::save_config(path.as_deref())?)
 }
 
 #[pyfunction]
@@ -293,8 +283,7 @@ mod tests {
 
     #[test]
     fn it_works() {
-        let mut logging =
-            Logging::new(None, None, None, None, None, None, None, None, None, None).unwrap();
+        let mut logging = Logging::new(None, None, vec![], None, None, None).unwrap();
         Python::with_gil(|py| {
             logging.shutdown(Some(true), py).unwrap();
         });

@@ -1,11 +1,12 @@
 use std::cmp;
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
 
 use fastlogging::{
-    LoggingConfig, CRITICAL, DEBUG, ERROR, EXCEPTION, FATAL, INFO, SUCCESS, TRACE, WARNING,
+    LoggingConfig, CRITICAL, DEBUG, ERROR, EXCEPTION, FATAL, INFO, NOTSET, SUCCESS, TRACE, WARNING,
 };
 use pyo3::types::PyBytes;
 
@@ -56,18 +57,14 @@ impl Logging {
 #[pymethods]
 impl Logging {
     #[new]
-    #[pyo3(signature=(level, domain=None, indent=None, ext_config=None, console=None, file=None, server=None, connect=None, syslog=None, config=None))]
+    #[pyo3(signature=(level, domain=None, configs=vec![], ext_config=None, config_path=None, indent=None))]
     pub fn new(
         level: Option<u8>, // Global log level
         domain: Option<String>,
-        indent: Option<(usize, usize, usize)>, // If defined indent text by call depth
+        configs: Vec<WriterConfigEnum>,
         ext_config: Option<&Bound<'_, ExtConfig>>, // Extended configuration
-        console: Option<&Bound<'_, ConsoleWriterConfig>>, // If config is defined start ConsoleWriter
-        file: Option<&Bound<'_, FileWriterConfig>>,       // If config is defined start FileWriter
-        server: Option<&Bound<'_, ServerConfig>>, // If config is defined start LoggingServer
-        connect: Option<&Bound<'_, ClientWriterConfig>>, // If config is defined start ClientWriter
-        syslog: Option<u8>,                       // If log level is defined start SyslogLogging
-        config: Option<PathBuf>,                  // Optional configuration file
+        config_path: Option<PathBuf>,              // Optional configuration file
+        indent: Option<(usize, usize, usize)>,     // If defined indent text by call depth
     ) -> PyResult<Self> {
         let (getframe, format_exc) = Python::with_gil(|py| -> PyResult<(Py<PyAny>, Py<PyAny>)> {
             let sys = py.import_bound("sys")?;
@@ -90,15 +87,11 @@ impl Logging {
         };
         Ok(Self {
             instance: fastlogging::Logging::new(
-                level,
-                domain,
+                level.unwrap_or(NOTSET),
+                domain.unwrap_or_else(|| "root".to_string()),
+                configs.iter().map(|v| v.into()).collect::<Vec<_>>(),
                 ext_config.map(|v| v.borrow().0.clone()),
-                console.map(|v| v.borrow().0.clone()),
-                file.map(|v| v.borrow().0.clone()),
-                server.map(|v| v.borrow().0.clone()),
-                connect.map(|v| v.borrow().0.clone()),
-                syslog,
-                config,
+                config_path,
             )
             .map_err(|e| PyException::new_err(e.to_string()))?,
             indent,
@@ -114,9 +107,8 @@ impl Logging {
         })?)
     }
 
-    pub fn set_level(&mut self, writer: WriterTypeEnum, level: u8) -> Result<(), LoggingError> {
-        let writer: fastlogging::WriterTypeEnum = writer.into();
-        Ok(self.instance.set_level(&writer, level)?)
+    pub fn set_level(&mut self, wid: usize, level: u8) -> Result<(), LoggingError> {
+        Ok(self.instance.set_level(wid, level)?)
     }
 
     pub fn set_domain(&mut self, domain: String) {
@@ -131,35 +123,31 @@ impl Logging {
         self.instance.set_ext_config(&ext_config.borrow().0)
     }
 
-    pub fn add_writer(
-        &mut self,
-        writer: PyObject,
-        py: Python,
-    ) -> Result<WriterTypeEnum, LoggingError> {
-        let writer = if let Ok(writer) = writer.extract::<RootConfig>(py) {
-            fastlogging::WriterConfigEnum::Root(writer.0)
-        } else if let Ok(writer) = writer.extract::<ConsoleWriterConfig>(py) {
-            fastlogging::WriterConfigEnum::Console(writer.0)
-        } else if let Ok(writer) = writer.extract::<FileWriterConfig>(py) {
-            fastlogging::WriterConfigEnum::File(writer.0)
-        } else if let Ok(writer) = writer.extract::<ClientWriterConfig>(py) {
-            fastlogging::WriterConfigEnum::Client(writer.0)
-        } else if let Ok(writer) = writer.extract::<ServerConfig>(py) {
-            fastlogging::WriterConfigEnum::Server(writer.0)
-        } else if let Ok(writer) = writer.extract::<SyslogWriterConfig>(py) {
-            fastlogging::WriterConfigEnum::Syslog(writer.0)
-        } else if let Ok(writer) = writer.extract::<CallbackWriterConfig>(py) {
-            fastlogging::WriterConfigEnum::Callback(writer.0)
+    pub fn add_writer(&mut self, config: PyObject, py: Python) -> Result<usize, LoggingError> {
+        let config = if let Ok(config) = config.extract::<RootConfig>(py) {
+            fastlogging::WriterConfigEnum::Root(config.0)
+        } else if let Ok(config) = config.extract::<ConsoleWriterConfig>(py) {
+            fastlogging::WriterConfigEnum::Console(config.0)
+        } else if let Ok(config) = config.extract::<FileWriterConfig>(py) {
+            fastlogging::WriterConfigEnum::File(config.0)
+        } else if let Ok(config) = config.extract::<ClientWriterConfig>(py) {
+            fastlogging::WriterConfigEnum::Client(config.0)
+        } else if let Ok(config) = config.extract::<ServerConfig>(py) {
+            fastlogging::WriterConfigEnum::Server(config.0)
+        } else if let Ok(config) = config.extract::<SyslogWriterConfig>(py) {
+            fastlogging::WriterConfigEnum::Syslog(config.0)
+        } else if let Ok(config) = config.extract::<CallbackWriterConfig>(py) {
+            fastlogging::WriterConfigEnum::Callback(config.0)
         } else {
             return Err(LoggingError(fastlogging::LoggingError::InvalidValue(
                 "writer has invalid argument type".to_string(),
             )));
         };
-        Ok(self.instance.add_writer(&writer)?.into())
+        Ok(self.instance.add_writer_config(&config)?)
     }
 
-    pub fn remove_writer(&mut self, writer: WriterTypeEnum) -> Result<(), LoggingError> {
-        Ok(self.instance.remove_writer(&(writer.into()))?)
+    pub fn remove_writer(&mut self, wid: usize) -> Option<WriterConfigEnum> {
+        self.instance.remove_writer(wid).map(|c| c.config().into())
     }
 
     pub fn add_logger(&mut self, logger: Py<Logger>, py: Python) {
@@ -172,22 +160,30 @@ impl Logging {
             .remove_logger(&mut logger.borrow_mut(py).instance)
     }
 
-    #[pyo3(signature=(console=None, file=None, client=None, syslog=None, callback=None, timeout=None))]
+    pub fn enable(&self, wid: usize) -> Result<(), LoggingError> {
+        Ok(self.instance.enable(wid)?)
+    }
+
+    pub fn disable(&self, wid: usize) -> Result<(), LoggingError> {
+        Ok(self.instance.disable(wid)?)
+    }
+
+    pub fn enable_type(&self, typ: WriterTypeEnum) -> Result<(), LoggingError> {
+        Ok(self.instance.enable_type(typ.into())?)
+    }
+
+    pub fn disable_type(&self, typ: WriterTypeEnum) -> Result<(), LoggingError> {
+        Ok(self.instance.disable_type(typ.into())?)
+    }
+
+    #[pyo3(signature=(types, timeout=None))]
     pub fn sync(
         &self,
-        console: Option<bool>,
-        file: Option<bool>,
-        client: Option<bool>,
-        syslog: Option<bool>,
-        callback: Option<bool>,
+        types: Vec<WriterTypeEnum>,
         timeout: Option<f64>,
     ) -> Result<(), LoggingError> {
         Ok(self.instance.sync(
-            console.unwrap_or_default(),
-            file.unwrap_or_default(),
-            client.unwrap_or_default(),
-            syslog.unwrap_or_default(),
-            callback.unwrap_or_default(),
+            types.into_iter().map(|t| t.into()).collect::<Vec<_>>(),
             timeout.unwrap_or(1.0),
         )?)
     }
@@ -208,10 +204,10 @@ impl Logging {
 
     pub fn set_encryption(
         &mut self,
-        writer: WriterTypeEnum,
+        wid: usize,
         key: EncryptionMethod,
     ) -> Result<(), LoggingError> {
-        Ok(self.instance.set_encryption(writer.into(), key.into())?)
+        Ok(self.instance.set_encryption(wid, key.into())?)
     }
 
     // Config
@@ -220,30 +216,27 @@ impl Logging {
         self.instance.set_debug(debug);
     }
 
-    pub fn get_config(&self, writer: WriterTypeEnum) -> Result<WriterConfigEnum, LoggingError> {
-        Ok(self
-            .instance
-            .get_config(&(writer.into()))
-            .map(|c| c.into())?)
+    pub fn get_config(&self, wid: usize) -> Option<WriterConfigEnum> {
+        self.instance.get_config(wid).map(|c| c.into())
     }
 
-    pub fn get_server_config(&self, address: String) -> Option<ServerConfig> {
-        self.instance.get_server_config(&address).map(ServerConfig)
+    pub fn get_server_config(&self, wid: usize) -> Result<ServerConfig, LoggingError> {
+        Ok(self.instance.get_server_config(wid)?.into())
     }
 
-    pub fn get_server_configs(&self) -> Vec<ServerConfig> {
+    pub fn get_server_configs(&self) -> HashMap<usize, ServerConfig> {
         self.instance
             .get_server_configs()
             .into_iter()
-            .map(ServerConfig)
+            .map(|(k, v)| (k, v.into()))
             .collect()
     }
 
-    pub fn get_server_addresses(&self) -> Vec<String> {
+    pub fn get_server_addresses(&self) -> HashMap<usize, String> {
         self.instance.get_server_addresses()
     }
 
-    pub fn get_server_ports(&self) -> Vec<u16> {
+    pub fn get_server_ports(&self) -> HashMap<usize, u16> {
         self.instance.get_server_ports()
     }
 
@@ -257,8 +250,9 @@ impl Logging {
         self.instance.get_config_string()
     }
 
-    pub fn save_config(&self, path: PathBuf) -> Result<(), LoggingError> {
-        Ok(self.instance.save_config(&path)?)
+    #[pyo3(signature=(path=None,))]
+    pub fn save_config(&mut self, path: Option<PathBuf>) -> Result<(), LoggingError> {
+        Ok(self.instance.save_config(path.as_deref())?)
     }
 
     // Logging methods
@@ -372,7 +366,7 @@ impl Logging {
             .instance
             .lock()
             .unwrap()
-            .get_config()
+            .get_logging_config()
             .to_json_vec()?;
         Ok(PyBytes::new_bound(py, &config))
     }
@@ -387,7 +381,7 @@ impl Logging {
             .instance
             .lock()
             .unwrap()
-            .get_config()
+            .get_logging_config()
             .to_json_vec()?;
         Ok((PyBytes::new_bound(py, &config),))
     }

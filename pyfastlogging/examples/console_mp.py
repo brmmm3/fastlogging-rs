@@ -15,7 +15,7 @@ def ChildProcess():
     logger = Logging(
         TRACE,
         "child",
-        console=ConsoleWriterConfig(TRACE, True),
+        [ConsoleWriterConfig(TRACE, True)],
     )
     logger.trace("Trace Message")
     logger.debug("Debug Message")

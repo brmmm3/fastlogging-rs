@@ -199,6 +199,70 @@ impl EncryptionMethod {
 
 #[pyclass]
 #[derive(Debug, Clone)]
+pub enum WriterTypeEnum {
+    Root {},
+    Console {},
+    File { path: PathBuf },
+    Files {},
+    Client { address: String },
+    Clients {},
+    Server { address: String },
+    Servers {},
+    Syslog {},
+    Callback {},
+}
+
+impl From<WriterTypeEnum> for fastlogging::WriterTypeEnum {
+    fn from(val: WriterTypeEnum) -> Self {
+        use WriterTypeEnum::*;
+        match val {
+            Root {} => fastlogging::WriterTypeEnum::Root,
+            Console {} => fastlogging::WriterTypeEnum::Console,
+            File { path } => fastlogging::WriterTypeEnum::File(path.to_str().unwrap().to_string()),
+            Files {} => fastlogging::WriterTypeEnum::Files,
+            Client { address } => fastlogging::WriterTypeEnum::Client(address),
+            Clients {} => fastlogging::WriterTypeEnum::Clients,
+            Server { address } => fastlogging::WriterTypeEnum::Server(address),
+            Servers {} => fastlogging::WriterTypeEnum::Servers,
+            Syslog {} => fastlogging::WriterTypeEnum::Syslog,
+            Callback {} => fastlogging::WriterTypeEnum::Callback,
+        }
+    }
+}
+
+impl From<fastlogging::WriterTypeEnum> for WriterTypeEnum {
+    fn from(val: fastlogging::WriterTypeEnum) -> Self {
+        use fastlogging::WriterTypeEnum::*;
+        match val {
+            Root => WriterTypeEnum::Root {},
+            Console => WriterTypeEnum::Console {},
+            File(path) => WriterTypeEnum::File {
+                path: PathBuf::from(path),
+            },
+            Files => WriterTypeEnum::Files {},
+            Client(address) => WriterTypeEnum::Client { address },
+            Clients => WriterTypeEnum::Clients {},
+            Server(address) => WriterTypeEnum::Server { address },
+            Servers => WriterTypeEnum::Servers {},
+            Syslog => WriterTypeEnum::Syslog {},
+            Callback => WriterTypeEnum::Callback {},
+        }
+    }
+}
+
+#[pymethods]
+impl WriterTypeEnum {
+    fn __repr__(&self) -> String {
+        format!("{self:?}")
+    }
+
+    fn __str__(&self) -> String {
+        format!("{self:?}")
+    }
+}
+
+#[pyclass]
+#[derive(Debug, Clone)]
 pub enum WriterConfigEnum {
     Root { config: RootConfig },
     Console { config: ConsoleWriterConfig },
@@ -305,59 +369,6 @@ impl From<ConsoleWriterConfig> for WriterConfigEnum {
 
 #[pymethods]
 impl WriterConfigEnum {
-    fn __repr__(&self) -> String {
-        format!("{self:?}")
-    }
-
-    fn __str__(&self) -> String {
-        format!("{self:?}")
-    }
-}
-
-#[pyclass]
-#[derive(Debug, Clone)]
-pub enum WriterTypeEnum {
-    Root {},
-    Console {},
-    File { path: PathBuf },
-    Client { address: String },
-    Server { address: String },
-    Syslog {},
-    Callback {},
-}
-
-impl From<WriterTypeEnum> for fastlogging::WriterTypeEnum {
-    fn from(val: WriterTypeEnum) -> Self {
-        use WriterTypeEnum::*;
-        match val {
-            Root {} => fastlogging::WriterTypeEnum::Root,
-            Console {} => fastlogging::WriterTypeEnum::Console,
-            File { path } => fastlogging::WriterTypeEnum::File(path),
-            Client { address } => fastlogging::WriterTypeEnum::Client(address),
-            Server { address } => fastlogging::WriterTypeEnum::Server(address),
-            Syslog {} => fastlogging::WriterTypeEnum::Syslog,
-            Callback {} => fastlogging::WriterTypeEnum::Callback,
-        }
-    }
-}
-
-impl From<fastlogging::WriterTypeEnum> for WriterTypeEnum {
-    fn from(val: fastlogging::WriterTypeEnum) -> Self {
-        use fastlogging::WriterTypeEnum::*;
-        match val {
-            Root => WriterTypeEnum::Root {},
-            Console => WriterTypeEnum::Console {},
-            File(path) => WriterTypeEnum::File { path },
-            Client(address) => WriterTypeEnum::Client { address },
-            Server(address) => WriterTypeEnum::Server { address },
-            Syslog => WriterTypeEnum::Syslog {},
-            Callback => WriterTypeEnum::Callback {},
-        }
-    }
-}
-
-#[pymethods]
-impl WriterTypeEnum {
     fn __repr__(&self) -> String {
         format!("{self:?}")
     }

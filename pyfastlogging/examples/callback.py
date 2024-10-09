@@ -15,10 +15,11 @@ if __name__ == "__main__":
     logger = Logging(
         TRACE,
         "main",
-        console=ConsoleWriterConfig(TRACE, True),
+        [
+            ConsoleWriterConfig(TRACE, True),
+            CallbackWriterConfig(DEBUG, writer_callback),
+        ],
     )
-    callback_writer = CallbackWriterConfig(DEBUG, writer_callback)
-    logger.add_writer(callback_writer)
     logger.trace("Trace Message")
     logger.debug("Debug Message")
     logger.info("Info Message")

@@ -24,17 +24,22 @@ def SomeThread(logger):
 
 if __name__ == "__main__":
     tmpDir = tempfile.mkdtemp(prefix="fastlogging")
-    logging_server = Logging(TRACE, "LOGSRV")
-    logging_server.add_writer(ConsoleWriterConfig(TRACE, True))
-    logging_server.add_writer(FileWriterConfig(TRACE, f"{tmpDir}/fastlogging.log"))
-    logging_server.add_writer(ServerConfig(TRACE, "127.0.0.1"))
+    logging_server = Logging(
+        TRACE,
+        "LOGSRV",
+        [
+            ConsoleWriterConfig(TRACE, True),
+            FileWriterConfig(TRACE, f"{tmpDir}/fastlogging.log"),
+            ServerConfig(TRACE, "127.0.0.1"),
+        ],
+    )
     logging_server.sync_all(5.0)
     address = logging_server.get_server_address()
     print(address)
     key = logging_server.get_server_auth_key()
     print(key)
     logging_client = Logging(
-        TRACE, "LOGCLIENT", connect=ClientWriterConfig(DEBUG, address, key)
+        TRACE, "LOGCLIENT", [ClientWriterConfig(DEBUG, address, key)]
     )
     logging_client.trace("Trace Message")
     logging_client.debug("Debug Message")

@@ -38,6 +38,9 @@ impl From<LoggingError> for PyErr {
             fastlogging::LoggingError::InvalidValue(e) => {
                 PyErr::new::<exceptions::PyValueError, _>(e)
             }
+            fastlogging::LoggingError::InvalidFile(e) => {
+                PyErr::new::<exceptions::PyValueError, _>(e)
+            }
             fastlogging::LoggingError::InvalidEncryption(m, k, e) => {
                 PyErr::new::<exceptions::PyValueError, _>(format!(
                     "{m}: Invalid encryption {k:?}: {e}"
