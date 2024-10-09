@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::process;
 use std::str;
 use std::sync::atomic::AtomicBool;
@@ -58,6 +59,7 @@ pub struct LoggingInstance {
     pub(crate) server_tx: Sender<LoggingTypeEnum>,
     pub(crate) server_rx: Receiver<LoggingTypeEnum>,
     pub(crate) writers: HashMap<usize, WriterEnum>,
+    pub(crate) typ2wids: HashMap<WriterTypeEnum, Vec<usize>>,
     pub(crate) wid: usize, // Next writer ID
     pub(crate) debug: u8,
     pub(crate) stop: Arc<AtomicBool>,
@@ -83,6 +85,7 @@ impl LoggingInstance {
             server_tx,
             server_rx,
             writers: HashMap::new(),
+            typ2wids: HashMap::new(),
             wid: 1,
             debug: 0,
             stop: Arc::new(AtomicBool::new(false)),
@@ -141,9 +144,9 @@ impl LoggingInstance {
                 }
                 WriterConfigEnum::File(file_writer_config) => {
                     if let WriterTypeEnum::File(ref path) = wtype {
-                        &file_writer_config.path == path || path.to_string_lossy().is_empty()
+                        file_writer_config.path == PathBuf::from(path) || path.is_empty()
                     } else {
-                        false
+                        WriterTypeEnum::Files == wtype
                     }
                 }
                 WriterConfigEnum::Client(client_writer_config) => {
@@ -157,7 +160,7 @@ impl LoggingInstance {
                             &client_writer_config.address == address || address.is_empty()
                         }
                     } else {
-                        false
+                        WriterTypeEnum::Clients == wtype
                     }
                 }
                 WriterConfigEnum::Server(server_config) => {
@@ -169,7 +172,7 @@ impl LoggingInstance {
                             &server_config.address == address || address.is_empty()
                         }
                     } else {
-                        false
+                        WriterTypeEnum::Servers == wtype
                     }
                 }
                 WriterConfigEnum::Callback(_callback_writer_config) => {
@@ -256,42 +259,50 @@ impl LoggingInstance {
     }
 
     pub fn add_writer(&mut self, writer: WriterEnum) -> usize {
-        self.writers.insert(self.wid, writer);
+        let wid = self.wid;
+        let typ = writer.typ();
+        self.writers.insert(wid, writer);
+        self.typ2wids.entry(typ).or_default().push(wid);
         self.wid += 1;
-        self.wid
+        wid
     }
 
     pub fn remove_writer(&mut self, wid: usize) -> Option<WriterEnum> {
-        self.writers.remove(&wid)
+        if let Some(writer) = self.writers.remove(&wid) {
+            let typ = writer.typ();
+            if let Some(wids) = self.typ2wids.get_mut(&typ) {
+                let index = wids.iter().position(|x| *x == wid).unwrap();
+                wids.remove(index);
+                if wids.is_empty() {
+                    self.typ2wids.remove(&typ);
+                }
+            }
+            Some(writer)
+        } else {
+            None
+        }
     }
 
     pub fn add_writer_configs(
         &mut self,
         configs: &[WriterConfigEnum],
     ) -> Result<Vec<usize>, LoggingError> {
-        let mut wids = Vec::new();
-        for config in configs.into_iter() {
-            let writer = WriterEnum::new(self, config)?;
-            self.writers.insert(self.wid, writer);
-            wids.push(self.wid);
-            self.wid += 1;
-        }
-        Ok(wids)
+        configs
+            .iter()
+            .map(|c| self.add_writer_config(c))
+            .collect::<Result<Vec<_>, LoggingError>>()
     }
 
     pub fn add_writers(&mut self, writers: Vec<WriterEnum>) -> Vec<usize> {
-        let mut wids = Vec::new();
-        for writer in writers.into_iter() {
-            self.writers.insert(self.wid, writer);
-            wids.push(self.wid);
-            self.wid += 1;
-        }
-        wids
+        writers
+            .into_iter()
+            .map(|w| self.add_writer(w))
+            .collect::<Vec<_>>()
     }
 
     pub fn remove_writers(&mut self, wids: Vec<usize>) -> Vec<WriterEnum> {
-        wids.iter()
-            .filter_map(|wid| self.writers.remove(wid))
+        wids.into_iter()
+            .filter_map(|wid| self.remove_writer(wid))
             .collect::<Vec<_>>()
     }
 }

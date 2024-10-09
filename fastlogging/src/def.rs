@@ -1,4 +1,4 @@
-use std::{fmt, path::PathBuf};
+use std::fmt;
 
 use crate::{
     callback::CallbackWriterConfig, config::LoggingInstance, CallbackWriter, ClientWriter,
@@ -100,13 +100,32 @@ pub struct RootConfig {
     pub level2sym: LevelSyms,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+impl Default for RootConfig {
+    fn default() -> Self {
+        Self {
+            level: NOTSET,
+            domain: "root".to_string(),
+            hostname: None,
+            pname: "".to_string(),
+            pid: 0,
+            tname: false,
+            tid: false,
+            structured: MessageStructEnum::String,
+            level2sym: LevelSyms::Sym,
+        }
+    }
+}
+
+#[derive(Debug, Eq, PartialOrd, Hash, Clone, PartialEq)]
 pub enum WriterTypeEnum {
     Root,
     Console,
-    File(PathBuf),
+    File(String),
+    Files,
     Client(String),
+    Clients,
     Server(String),
+    Servers,
     Callback,
     Syslog,
 }
@@ -263,6 +282,78 @@ impl WriterEnum {
             )),
         }
     }
+
+    pub fn config(&self) -> WriterConfigEnum {
+        match self {
+            WriterEnum::Root => WriterConfigEnum::Root(RootConfig::default()),
+            WriterEnum::Console(console_writer) => {
+                WriterConfigEnum::Console(console_writer.config.lock().unwrap().clone())
+            }
+            WriterEnum::File(file_writer) => {
+                WriterConfigEnum::File(file_writer.config.lock().unwrap().clone())
+            }
+            WriterEnum::Client(client_writer) => {
+                WriterConfigEnum::Client(client_writer.config.lock().unwrap().get_client_config())
+            }
+            WriterEnum::Server(logging_server) => {
+                WriterConfigEnum::Server(logging_server.config.lock().unwrap().get_server_config())
+            }
+            WriterEnum::Callback(callback_writer) => {
+                WriterConfigEnum::Callback(callback_writer.config.lock().unwrap().clone())
+            }
+            WriterEnum::Syslog(syslog_writer) => {
+                WriterConfigEnum::Syslog(syslog_writer.config.lock().unwrap().clone())
+            }
+        }
+    }
+
+    pub fn typ(&self) -> WriterTypeEnum {
+        match self {
+            WriterEnum::Root => WriterTypeEnum::Root,
+            WriterEnum::Console(_console_writer) => WriterTypeEnum::Console,
+            WriterEnum::File(file_writer) => WriterTypeEnum::File(
+                file_writer
+                    .config
+                    .lock()
+                    .unwrap()
+                    .path
+                    .to_str()
+                    .unwrap()
+                    .to_string(),
+            ),
+            WriterEnum::Client(client_writer) => {
+                WriterTypeEnum::Client(client_writer.config.lock().unwrap().get_address())
+            }
+            WriterEnum::Server(logging_server) => {
+                WriterTypeEnum::Server(logging_server.config.lock().unwrap().get_address())
+            }
+            WriterEnum::Callback(_callback_writer) => WriterTypeEnum::Callback,
+            WriterEnum::Syslog(_syslog_writer) => WriterTypeEnum::Syslog,
+        }
+    }
+
+    pub fn sync(&self, timeout: f64) -> Result<(), LoggingError> {
+        match self {
+            WriterEnum::Root => {}
+            WriterEnum::Console(console_writer) => {
+                console_writer.sync(timeout)?;
+            }
+            WriterEnum::File(file_writer) => {
+                file_writer.sync(timeout)?;
+            }
+            WriterEnum::Client(client_writer) => {
+                client_writer.sync(timeout)?;
+            }
+            WriterEnum::Server(_logging_server) => {}
+            WriterEnum::Callback(callback_writer) => {
+                callback_writer.sync(timeout)?;
+            }
+            WriterEnum::Syslog(syslog_writer) => {
+                syslog_writer.sync(timeout)?;
+            }
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug)]
@@ -270,8 +361,7 @@ pub enum LoggingTypeEnum {
     Message((u8, String, String)),                 // level, domain, message
     MessageRemote((u8, String, String)),           // level, domain, message
     MessageExt((u8, String, String, u32, String)), // level, domain, message, tname, tid
-    Sync((bool, bool, bool, bool, bool, f64)),     // console, file, client, syslog, timeout
-    Rotate,
+    Sync((Vec<WriterTypeEnum>, f64)),              // list of logging types, timeout
     Stop,
 }
 

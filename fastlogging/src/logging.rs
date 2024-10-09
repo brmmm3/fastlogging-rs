@@ -18,7 +18,7 @@ use crate::logger::Logger;
 use crate::net::{ClientWriter, EncryptionMethod, LoggingServer, ServerConfig, AUTH_KEY};
 use crate::{
     level2short, level2str, level2string, level2sym, LevelSyms, LoggingError, MessageStructEnum,
-    RootConfig, SyslogWriter, WriterConfigEnum, WriterEnum, NOTSET, SUCCESS, TRACE,
+    SyslogWriter, WriterConfigEnum, WriterEnum, WriterTypeEnum, NOTSET, SUCCESS, TRACE,
 };
 
 #[inline]
@@ -177,7 +177,7 @@ fn build_xml_message(
 fn logging_thread_worker(
     rx: Receiver<LoggingTypeEnum>,
     sync_tx: Sender<u8>,
-    config: Arc<Mutex<LoggingInstance>>,
+    instance: Arc<Mutex<LoggingInstance>>,
     stop: Arc<AtomicBool>,
 ) -> Result<(), LoggingError> {
     let mut buffer = String::with_capacity(4096);
@@ -195,78 +195,20 @@ fn logging_thread_worker(
             LoggingTypeEnum::MessageExt((level, domain, message, tid, tname)) => {
                 (level, domain, message, Some(tname), tid)
             }
-            LoggingTypeEnum::Rotate => {
-                let debug = config.lock().unwrap().debug;
-                for writer in config.lock().unwrap().writers.values_mut() {
-                    if let crate::WriterEnum::File(file_writer) = writer {
-                        if debug > 0 {
-                            println!(
-                                "logging_thread_worker: ROTATE {:?}",
-                                file_writer.config.lock().unwrap().path
-                            );
-                        }
-                        file_writer.rotate()?;
-                    }
-                }
-                continue;
-            }
-            LoggingTypeEnum::Sync((console, file, client, syslog, callback, timeout)) => {
-                let mut config = config.lock().unwrap();
+            LoggingTypeEnum::Sync((types, timeout)) => {
+                let instance = instance.lock().unwrap();
                 let pid = process::id();
-                let debug = config.debug;
+                let debug = instance.debug;
                 if debug > 0 {
                     println!("{pid} logging_thread_worker: SYNC");
                 }
-                for writer in config.writers.values_mut() {
-                    match writer {
-                        WriterEnum::Root => {}
-                        WriterEnum::Console(console_writer) => {
-                            if console {
-                                if debug > 0 {
-                                    println!("{pid} logging_thread_worker: SYNC->CONSOLE");
-                                }
-                                console_writer.sync(timeout)?;
+                for typ in types {
+                    if let Some(wids) = instance.typ2wids.get(&typ) {
+                        for wid in wids {
+                            if debug > 0 {
+                                println!("{pid} logging_thread_worker: SYNC(wid={wid})");
                             }
-                        }
-                        WriterEnum::File(file_writer) => {
-                            if file {
-                                if debug > 0 {
-                                    println!(
-                                        "{pid} logging_thread_worker: SYNC->FILE {:?}",
-                                        file_writer.config.lock().unwrap().path
-                                    );
-                                }
-                                file_writer.sync(timeout)?;
-                            }
-                        }
-                        WriterEnum::Client(client_writer) => {
-                            if client {
-                                if debug > 0 {
-                                    let writer_config = client_writer.config.lock().unwrap();
-                                    println!(
-                                        "{pid} logging_thread_worker: SYNC->CLIENT {}:{}",
-                                        writer_config.address, writer_config.port
-                                    );
-                                }
-                                client_writer.sync(timeout)?;
-                            }
-                        }
-                        crate::WriterEnum::Server(_logging_server) => {}
-                        crate::WriterEnum::Callback(callback_writer) => {
-                            if callback {
-                                if debug > 0 {
-                                    println!("{pid} logging_thread_worker: SYNC->CALLBACK");
-                                }
-                                callback_writer.sync(timeout)?;
-                            }
-                        }
-                        crate::WriterEnum::Syslog(syslog_writer) => {
-                            if syslog {
-                                if debug > 0 {
-                                    println!("{pid} logging_thread_worker: SYNC->SYSLOG");
-                                }
-                                syslog_writer.sync(timeout)?;
-                            }
+                            instance.writers.get(wid).unwrap().sync(timeout)?;
                         }
                     }
                 }
@@ -274,7 +216,7 @@ fn logging_thread_worker(
                 continue;
             }
             LoggingTypeEnum::Stop => {
-                if config.lock().unwrap().debug > 0 {
+                if instance.lock().unwrap().debug > 0 {
                     println!("{} logging_thread_worker: STOP", process::id());
                 }
                 break;
@@ -282,31 +224,39 @@ fn logging_thread_worker(
         };
         // Build message
         // {date} {hostname} {pname}[{pid}]>{tname}[{tid}] {domain}: {level} {message}
-        let mut config = config.lock().unwrap();
+        let mut instance = instance.lock().unwrap();
         buffer.clear();
         if remote {
             buffer.push_str(&message);
         } else {
-            match config.structured {
+            match instance.structured {
                 MessageStructEnum::String => {
-                    build_string_message(&mut buffer, &config, level, &domain, message, tname, tid);
+                    build_string_message(
+                        &mut buffer,
+                        &instance,
+                        level,
+                        &domain,
+                        message,
+                        tname,
+                        tid,
+                    );
                 }
                 MessageStructEnum::Json => {
-                    build_json_message(&mut buffer, &config, level, &domain, message, tname, tid);
+                    build_json_message(&mut buffer, &instance, level, &domain, message, tname, tid);
                 }
                 MessageStructEnum::Xml => {
-                    build_xml_message(&mut buffer, &config, level, &domain, message, tname, tid);
+                    build_xml_message(&mut buffer, &instance, level, &domain, message, tname, tid);
                 }
             }
         }
         // Send message to writers
-        if config.debug > 2 {
+        if instance.debug > 2 {
             println!(
                 "{} logging_thread_worker: MESSAGE {buffer:?}",
                 process::id()
             );
         }
-        for writer in config.writers.values_mut() {
+        for writer in instance.writers.values_mut() {
             match writer {
                 WriterEnum::Root => {}
                 WriterEnum::Console(console_writer) => {
@@ -410,9 +360,9 @@ fn logging_thread(
 #[repr(C)]
 #[derive(Debug)]
 pub struct Logging {
-    pub(crate) level: u8,
-    pub(crate) domain: String,
-    pub(crate) instance: Arc<Mutex<LoggingInstance>>,
+    pub level: u8,
+    pub domain: String,
+    pub instance: Arc<Mutex<LoggingInstance>>,
     pub(crate) server_tx: Sender<LoggingTypeEnum>,
     pub(crate) drop: bool,
     pub(crate) config_file: ConfigFile,
@@ -674,19 +624,89 @@ impl Logging {
         self.instance.lock().unwrap().remove_writers(wids)
     }
 
-    pub fn sync(
-        &self,
-        console: bool,
-        file: bool,
-        client: bool,
-        syslog: bool,
-        callback: bool,
-        timeout: f64,
-    ) -> Result<(), LoggingError> {
+    pub fn enable(&self, wid: usize) -> Result<(), LoggingError> {
+        let mut instance = self.instance.lock().unwrap();
+        let writer = match instance.writers.get_mut(&wid) {
+            Some(w) => w,
+            None => {
+                return Err(LoggingError::InvalidValue(format!(
+                    "Writer {wid} does not exist"
+                )));
+            }
+        };
+        match writer {
+            WriterEnum::Root => {}
+            WriterEnum::Console(console_config) => {
+                console_config.enable();
+            }
+            WriterEnum::File(file_writer) => file_writer.enable(),
+            WriterEnum::Client(client_writer) => client_writer.enable(),
+            WriterEnum::Server(logging_server) => logging_server.enable(),
+            WriterEnum::Callback(callback_writer) => callback_writer.enable(),
+            WriterEnum::Syslog(syslog_writer) => syslog_writer.enable(),
+        }
+        Ok(())
+    }
+
+    pub fn disable(&self, wid: usize) -> Result<(), LoggingError> {
+        let mut instance = self.instance.lock().unwrap();
+        let writer = match instance.writers.get_mut(&wid) {
+            Some(w) => w,
+            None => {
+                return Err(LoggingError::InvalidValue(format!(
+                    "Writer {wid} does not exist"
+                )));
+            }
+        };
+        match writer {
+            WriterEnum::Root => {}
+            WriterEnum::Console(console_config) => {
+                console_config.disable();
+            }
+            WriterEnum::File(file_writer) => file_writer.disable(),
+            WriterEnum::Client(client_writer) => client_writer.disable(),
+            WriterEnum::Server(logging_server) => logging_server.disable(),
+            WriterEnum::Callback(callback_writer) => callback_writer.disable(),
+            WriterEnum::Syslog(syslog_writer) => syslog_writer.disable(),
+        }
+        Ok(())
+    }
+
+    pub fn enable_type(&self, typ: WriterTypeEnum) -> Result<(), LoggingError> {
+        let instance = self.instance.lock().unwrap();
+        let wids = match instance.typ2wids.get(&typ) {
+            Some(w) => w,
+            None => {
+                return Err(LoggingError::InvalidValue(format!(
+                    "Writer type {typ:?} does not exist"
+                )));
+            }
+        };
+        for wid in wids {
+            self.enable(*wid)?;
+        }
+        Ok(())
+    }
+
+    pub fn disable_type(&self, typ: WriterTypeEnum) -> Result<(), LoggingError> {
+        let instance = self.instance.lock().unwrap();
+        let wids = match instance.typ2wids.get(&typ) {
+            Some(w) => w,
+            None => {
+                return Err(LoggingError::InvalidValue(format!(
+                    "Writer type {typ:?} does not exist"
+                )));
+            }
+        };
+        for wid in wids {
+            self.disable(*wid)?;
+        }
+        Ok(())
+    }
+
+    pub fn sync(&self, types: Vec<WriterTypeEnum>, timeout: f64) -> Result<(), LoggingError> {
         self.server_tx
-            .send(LoggingTypeEnum::Sync((
-                console, file, client, syslog, callback, timeout,
-            )))
+            .send(LoggingTypeEnum::Sync((types, timeout)))
             .map_err(|e| LoggingError::SendError(format!("Failed to send SYNC command: {e}")))?;
         self.sync_rx
             .recv_timeout(Duration::from_secs_f64(timeout))
@@ -695,7 +715,17 @@ impl Logging {
     }
 
     pub fn sync_all(&self, timeout: f64) -> Result<(), LoggingError> {
-        self.sync(true, true, true, true, true, timeout)?;
+        self.sync(
+            vec![
+                WriterTypeEnum::Console,
+                WriterTypeEnum::Files,
+                WriterTypeEnum::Clients,
+                WriterTypeEnum::Servers,
+                WriterTypeEnum::Callback,
+                WriterTypeEnum::Syslog,
+            ],
+            timeout,
+        )?;
         Ok(())
     }
 
@@ -760,47 +790,8 @@ impl Logging {
         }
     }
 
-    pub fn get_config(&self, wid: usize) -> Result<WriterConfigEnum, LoggingError> {
-        let instance = self.instance.lock().unwrap();
-        let writer = match instance.writers.get(&wid) {
-            Some(w) => w,
-            None => {
-                return Err(LoggingError::InvalidValue(format!(
-                    "Writer {wid} does not exist"
-                )));
-            }
-        };
-        Ok(match writer {
-            WriterEnum::Root => WriterConfigEnum::Root(RootConfig {
-                level: self.level,
-                domain: instance.domain.clone(),
-                hostname: instance.hostname.clone(),
-                pname: instance.pname.clone(),
-                pid: instance.pid,
-                tname: instance.tname,
-                tid: instance.tid,
-                structured: instance.structured.clone(),
-                level2sym: instance.level2sym.clone(),
-            }),
-            WriterEnum::Console(console_writer) => {
-                WriterConfigEnum::Console(console_writer.config.lock().unwrap().clone())
-            }
-            WriterEnum::File(file_writer) => {
-                WriterConfigEnum::File(file_writer.config.lock().unwrap().clone())
-            }
-            WriterEnum::Client(client_writer) => {
-                WriterConfigEnum::Client(client_writer.config.lock().unwrap().get_client_config())
-            }
-            WriterEnum::Server(logging_server) => {
-                WriterConfigEnum::Server(logging_server.config.lock().unwrap().get_server_config())
-            }
-            WriterEnum::Syslog(syslog_writer) => {
-                WriterConfigEnum::Syslog(syslog_writer.config.lock().unwrap().clone())
-            }
-            WriterEnum::Callback(callback_writer) => {
-                WriterConfigEnum::Callback(callback_writer.config.lock().unwrap().clone())
-            }
-        })
+    pub fn get_config(&self, wid: usize) -> Option<WriterConfigEnum> {
+        self.instance.lock().unwrap().get_writer_config(wid)
     }
 
     pub fn get_writer_configs(&self) -> HashMap<usize, WriterConfigEnum> {
@@ -808,7 +799,14 @@ impl Logging {
     }
 
     pub fn get_server_config(&self, wid: usize) -> Result<ServerConfig, LoggingError> {
-        let writer = self.get_config(wid)?;
+        let writer = match self.get_config(wid) {
+            Some(w) => w,
+            None => {
+                return Err(LoggingError::InvalidValue(format!(
+                    "Writer wid={wid} does not exist"
+                )))
+            }
+        };
         match writer {
             WriterConfigEnum::Server(config) => Ok(config),
             _ => Err(LoggingError::InvalidValue(format!(

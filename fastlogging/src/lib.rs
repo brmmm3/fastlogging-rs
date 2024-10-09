@@ -113,18 +113,8 @@ pub fn remove_writers(wids: Vec<usize>) -> Vec<WriterEnum> {
     ROOT_LOGGER.lock().unwrap().remove_writers(wids)
 }
 
-pub fn sync(
-    console: bool,
-    file: bool,
-    client: bool,
-    syslog: bool,
-    callback: bool,
-    timeout: f64,
-) -> Result<(), LoggingError> {
-    ROOT_LOGGER
-        .lock()
-        .unwrap()
-        .sync(console, file, client, syslog, callback, timeout)
+pub fn sync(types: Vec<WriterTypeEnum>, timeout: f64) -> Result<(), LoggingError> {
+    ROOT_LOGGER.lock().unwrap().sync(types, timeout)
 }
 
 pub fn sync_all(timeout: f64) -> Result<(), LoggingError> {
@@ -160,7 +150,7 @@ pub fn set_debug(debug: u8) {
     }
 }
 
-pub fn get_config(wid: usize) -> Result<WriterConfigEnum, LoggingError> {
+pub fn get_config(wid: usize) -> Option<WriterConfigEnum> {
     ROOT_LOGGER.lock().unwrap().get_config(wid)
 }
 

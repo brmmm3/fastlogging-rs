@@ -244,7 +244,7 @@ impl ConfigFile {
                 }
                 WriterConfigEnum::File(file_config) => {
                     let configs = instance.get_filtered_writer_configs(WriterTypeEnum::File(
-                        file_config.path.clone(),
+                        file_config.path.to_str().unwrap().to_string(),
                     ));
                     if merge == FileMerge::MergeReplace {
                         instance.remove_writers(configs.into_keys().collect::<Vec<_>>());
