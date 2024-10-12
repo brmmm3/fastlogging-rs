@@ -7,7 +7,7 @@ use crate::{
 };
 
 // Log-Levels
-pub const NOLOG: u8 = 70;
+pub const NOLOG: u8 = 100;
 pub const EXCEPTION: u8 = 60;
 pub const CRITICAL: u8 = 50;
 pub const FATAL: u8 = CRITICAL;

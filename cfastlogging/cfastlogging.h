@@ -7,7 +7,7 @@
 #include <stdint.h>
 
 // Log-Levels
-#define NOLOG 70
+#define NOLOG 100
 #define EXCEPTION 60
 #define CRITICAL 50
 #define FATAL CRITICAL
@@ -185,7 +185,7 @@ Logging logging_init();
 Logging logging_new(uint8_t level,
                     const char *domain,
                     WriterConfigEnum *configs_ptr , // This is a Vec<WriterConfigEnum>
-                    uint configs_cnt,
+                    uint config_cnt,
                     ExtConfig *ext_config,
                     const char *config_path);
 
@@ -255,11 +255,15 @@ CServerConfig *logging_get_server_configs(Logging logging);
 
 const char *logging_get_root_server_address_port(Logging logging);
 
-const char *logging_get_server_addresses_ports(Logging logging);
+typedef void *CusizeStringHashMap;
 
-const char *logging_get_server_addresses(Logging logging);
+const CusizeStringHashMap *logging_get_server_addresses_ports(Logging logging);
 
-const char *logging_get_server_ports(Logging logging);
+const CusizeStringHashMap *logging_get_server_addresses(Logging logging);
+
+typedef void *Cusizeu16HashMap;
+
+const Cusizeu16HashMap *logging_get_server_ports(Logging logging);
 
 const char *logging_get_server_auth_key(Logging logging);
 

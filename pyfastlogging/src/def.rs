@@ -15,7 +15,7 @@ pub enum Level2Sym {
     Error = 40,
     Critical = 50,
     Exception = 60,
-    NoLog = 70,
+    NoLog = 100,
 }
 
 #[pymethods]
@@ -30,7 +30,7 @@ impl Level2Sym {
             40 => Ok(Level2Sym::Error),
             50 => Ok(Level2Sym::Critical),
             60 => Ok(Level2Sym::Exception),
-            70 => Ok(Level2Sym::NoLog),
+            100 => Ok(Level2Sym::NoLog),
             _ => Err(PyValueError::new_err(format!("Invalid value {value}"))),
         }
     }
@@ -45,7 +45,7 @@ impl Level2Sym {
             Self::Error => 40,
             Self::Critical => 50,
             Self::Exception => 60,
-            Self::NoLog => 70,
+            Self::NoLog => 100,
         }
     }
 

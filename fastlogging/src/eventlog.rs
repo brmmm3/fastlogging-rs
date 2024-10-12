@@ -15,7 +15,7 @@ use crate::LoggingError;
 
 fn level2evt_level(level: u8) -> log::Level {
     match level {
-        70 | 60 | 50 | 40 => log::Level::Error,
+        100 | 60 | 50 | 40 => log::Level::Error,
         30 => log::Level::Warn,
         25 => log::Level::Info,
         20 => log::Level::Info,
