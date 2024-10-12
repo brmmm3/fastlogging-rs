@@ -1,4 +1,5 @@
 use core::slice;
+use std::collections::HashMap;
 use std::ffi::{c_char, c_double, c_uchar, c_uint, CStr, CString};
 use std::path::PathBuf;
 use std::ptr::null;
@@ -42,6 +43,18 @@ pub struct CServerConfigHashMap {
     cnt: c_uint,
     keys: Vec<usize>,
     values: Vec<ServerConfig>,
+}
+
+#[repr(C)]
+pub struct CusizeStringHashMap {
+    cnt: c_uint,
+    values: HashMap<usize, String>,
+}
+
+#[repr(C)]
+pub struct Cusizeu16HashMap {
+    cnt: c_uint,
+    values: HashMap<usize, u16>,
 }
 
 #[inline]
@@ -629,7 +642,45 @@ pub unsafe extern "C" fn logging_get_root_server_address_port(logging: &Logging)
     }
 }
 
-// TODO: get_server_addresses_ports, get_server_addresses, get_server_ports
+/// # Safety
+///
+/// Get server configuration.
+#[no_mangle]
+pub unsafe extern "C" fn logging_get_server_addresses_ports(
+    logging: &Logging,
+) -> *const CusizeStringHashMap {
+    let values = logging.get_server_addresses_ports();
+    Box::into_raw(Box::new(CusizeStringHashMap {
+        cnt: values.len() as u32,
+        values: values,
+    }))
+}
+
+/// # Safety
+///
+/// Get server configuration.
+#[no_mangle]
+pub unsafe extern "C" fn logging_get_server_addresses(
+    logging: &Logging,
+) -> *const CusizeStringHashMap {
+    let values = logging.get_server_addresses();
+    Box::into_raw(Box::new(CusizeStringHashMap {
+        cnt: values.len() as u32,
+        values: values,
+    }))
+}
+
+/// # Safety
+///
+/// Get server configuration.
+#[no_mangle]
+pub unsafe extern "C" fn logging_get_server_ports(logging: &Logging) -> *const Cusizeu16HashMap {
+    let values = logging.get_server_ports();
+    Box::into_raw(Box::new(Cusizeu16HashMap {
+        cnt: values.len() as u32,
+        values: values,
+    }))
+}
 
 /// # Safety
 ///
