@@ -14,7 +14,6 @@ int main(void)
                                   NULL,
                                   writers, // Pointer to writers array
                                   1, // Array size / Number of writers
-                                  -1,
                                   NULL,
                                   NULL);
     logging_trace(logging, "Trace Message");

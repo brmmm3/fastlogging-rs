@@ -253,6 +253,8 @@ CServerConfig *logging_get_server_config(Logging logging);
 
 CServerConfig *logging_get_server_configs(Logging logging);
 
+const char *logging_get_root_server_address_port(Logging logging);
+
 const char *logging_get_server_addresses_ports(Logging logging);
 
 const char *logging_get_server_addresses(Logging logging);

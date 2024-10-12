@@ -8,23 +8,20 @@
 // Sample library usage.
 int main(void)
 {
+    WriterConfigEnum writers[1];
     CompressionMethodEnum compression = Store;
-    FileWriterConfig file = file_writer_config_new(DEBUG,
-                                                   "/tmp/cfastlogging.log",
-                                                   1024,
-                                                   3,
-                                                   -1,
-                                                   -1,
-                                                   compression);
-
+    writers[0] = file_writer_config_new(DEBUG,
+                                        "/tmp/cfastlogging.log",
+                                        1024,
+                                        3,
+                                        -1,
+                                        -1,
+                                        compression);
     Logging logging = logging_new(DEBUG,
                                   NULL,
+                                  writers, // Pointer to writers array
+                                  1, // Array size / Number of writers
                                   NULL,
-                                  NULL,
-                                  file,
-                                  NULL,
-                                  NULL,
-                                  -1,
                                   NULL);
     logging_trace(logging, "Trace Message");
     logging_debug(logging, "Debug Message");

@@ -8,34 +8,33 @@
 // Sample library usage.
 int main(void)
 {
-    ServerConfig server = server_config_new(DEBUG, "127.0.0.1", String, NONE);
-    printf("server_config=%p\n", server);
-    ConsoleWriterConfig console = console_writer_config_new(DEBUG, 1);
-    printf("console=%p\n", console);
+    // Server
+    WriterConfigEnum server_writers[1];
+    server_writers[0] = console_writer_config_new(DEBUG, 1);
     Logging logging_server = logging_new(DEBUG,
                                          "LOGSRV",
+                                         server_writers,
+                                         1,
                                          NULL,
-                                         console,
-                                         NULL,
-                                         server,
-                                         NULL,
-                                         -1,
                                          NULL);
+    ServerConfig server = server_config_new(DEBUG, "127.0.0.1", String, NONE);
+    printf("server_config=%p\n", server);
+    logging_set_root_writer_config(logging_server, server);
     logging_sync_all(logging_server, 5.0);
-    const char *address = logging_get_server_address(logging_server);
+    const char *address = logging_get_root_server_address_port(logging_server);
     printf("address=%s\n", address);
     const char *key = logging_get_server_auth_key(logging_server);
     printf("key=%s\n", key);
-    ClientWriterConfig client_writer = client_writer_config_new(DEBUG, address, String, key);
+    // Client
     Logging logging_client = logging_new(DEBUG,
                                          "LOGCLIENT",
                                          NULL,
+                                         0,
                                          NULL,
-                                         NULL,
-                                         NULL,
-                                         client_writer,
-                                         -1,
                                          NULL);
+    ClientWriterConfig client_writer = client_writer_config_new(DEBUG, address, String, key);
+    printf("client_writer=%p\n", client_writer);
+    logging_set_root_writer_config(logging_server, client_writer);
     printf("Send logs\n");
     logging_trace(logging_client, "Trace Message");
     logging_debug(logging_client, "Debug Message");

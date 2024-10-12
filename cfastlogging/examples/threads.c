@@ -24,16 +24,14 @@ void *loggerThreadFun(void *vargp)
 int main(void)
 {
     pthread_t thread_id;
+    WriterConfigEnum writers[1];
+    writers[0] = console_writer_config_new(DEBUG, 1);
     ExtConfig ext_config = ext_config_new(String, 1, 1, 1, 1, 1);
-    ConsoleWriterConfig console = console_writer_config_new(DEBUG, 1);
     Logging logging = logging_new(DEBUG,
                                   NULL,
+                                  writers,
+                                  1,
                                   ext_config,
-                                  console,
-                                  NULL,
-                                  NULL,
-                                  NULL,
-                                  -1,
                                   NULL);
     Logger logger = logger_new_ext(DEBUG, "LoggerThread", 1, 1);
     logging_add_logger(logging, logger);

@@ -10,15 +10,12 @@ int main(void)
 {
     Logging logging = logging_new(DEBUG,
                                   NULL,
+                                  NULL, // Pointer to writers array
+                                  0, // Array size / Number of writers
                                   NULL,
-                                  NULL,
-                                  NULL,
-                                  NULL,
-                                  NULL,
-                                  -1,
                                   NULL);
     CompressionMethodEnum compression = Store;
-    WriterConfigEnum file = file_writer_config_enum_new(DEBUG,
+    WriterConfigEnum file = file_writer_config_new(DEBUG,
                                                    "/tmp/cfastlogging.log",
                                                    1024,
                                                    3,
@@ -26,7 +23,7 @@ int main(void)
                                                    -1,
                                                    compression);
 
-    logging_add_writer(logging, file);
+    logging_add_writer_config(logging, file);
     printf("ADDED\n");
     logging_trace(logging, "Trace Message");
     logging_debug(logging, "Debug Message");

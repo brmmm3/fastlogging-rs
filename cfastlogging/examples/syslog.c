@@ -8,14 +8,13 @@
 // Sample library usage.
 int main(void)
 {
+    WriterConfigEnum writers[1];
+    writers[0] = syslog_writer_config_new(DEBUG, "HOSTNAME", "PNAME", 1234);
     Logging logging = logging_new(DEBUG,
                                   NULL,
+                                  writers,
+                                  1,
                                   NULL,
-                                  NULL,
-                                  NULL,
-                                  NULL,
-                                  NULL,
-                                  0,
                                   NULL);
     logging_trace(logging, "Trace Message");
     logging_debug(logging, "Debug Message");
