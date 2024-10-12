@@ -74,24 +74,18 @@ namespace rust
     struct ExtConfig;
     struct WriterConfigEnum;
     struct ConsoleWriterConfig;
-    struct ConsoleWriterConfigEnum;
     struct FileWriterConfig;
-    struct FileWriterConfigEnum;
     struct ServerConfig;
-    struct ServerConfigEnum;
     struct ClientWriterConfig;
-    struct ClientWriterConfigEnum;
     struct SyslogWriterConfig;
-    struct SyslogWriterConfigEnum;
     struct CallbackWriterConfig;
-    struct CallbackWriterConfigEnum;
     struct Logging;
     struct Logger;
 } // namespace logging::rust
 
 extern "C"
 {
-    static const int NOLOG = 70;
+    static const int NOLOG = 100;
     static const int EXCEPTION = 60;
     static const int CRITICAL = 50;
     static const int FATAL = CRITICAL;
@@ -126,8 +120,6 @@ extern "C"
 
     rust::ConsoleWriterConfig *console_writer_config_new(uint8_t level, int8_t colors);
 
-    rust::WriterConfigEnum *console_writer_config_enum_new(uint8_t level, int8_t colors);
-
     // File writer
 
     rust::FileWriterConfig *file_writer_config_new(uint8_t level,
@@ -138,25 +130,12 @@ extern "C"
                                                    int64_t time,
                                                    CompressionMethodEnum compression);
 
-    rust::WriterConfigEnum *file_writer_config_enum_new(uint8_t level,
-                                                        const char *path,
-                                                        uint32_t size,
-                                                        uint32_t backlog,
-                                                        int32_t timeout,
-                                                        int64_t time,
-                                                        CompressionMethodEnum compression);
-
     // Client writer
 
     rust::ClientWriterConfig *client_writer_config_new(uint8_t level,
                                                        const char *address,
                                                        EncryptionMethod encryption,
                                                        const char *key);
-
-    rust::WriterConfigEnum *client_writer_config_enum_new(uint8_t level,
-                                                          const char *address,
-                                                          EncryptionMethod encryption,
-                                                          const char *key);
 
     // Server
 
@@ -165,11 +144,6 @@ extern "C"
                                           EncryptionMethod encryption,
                                           const char *key);
 
-    rust::ServerConfigEnum *server_config_enum_new(uint8_t level,
-                                                   const char *address,
-                                                   EncryptionMethod encryption,
-                                                   const char *key);
-
     // Syslog writer
 
     rust::SyslogWriterConfig *syslog_writer_config_new(uint8_t level,
@@ -177,18 +151,10 @@ extern "C"
                                                        const char *pname,
                                                        uint32_t pid);
 
-    rust::WriterConfigEnum *syslog_writer_config_enum_new(uint8_t level,
-                                                          const char *hostname,
-                                                          const char *pname,
-                                                          uint32_t pid);
-
     // Callback writer
 
     rust::CallbackWriterConfig *callback_writer_config_new(uint8_t level,
                                                            void (*callback)(uint8_t, const char *, const char *));
-
-    rust::WriterConfigEnum *callback_writer_config_enum_new(uint8_t level,
-                                                            void (*callback)(uint8_t, const char *, const char *));
 
     rust::Logging *logging_init();
 
@@ -196,13 +162,12 @@ extern "C"
     /// #[no_mangle] - // https://internals.rust-lang.org/t/precise-semantics-of-no-mangle/4098
     rust::Logging *logging_new(uint8_t level,
                                const char *domain,
+                               rust::WriterConfigEnum *configs_ptr,
+                               uint config_cnt,
                                rust::ExtConfig *ext_config,
-                               rust::ConsoleWriterConfig *console,
-                               rust::FileWriterConfig *file,
-                               rust::ServerConfig *server,
-                               rust::ClientWriterConfig *connect,
-                               int8_t syslog,
-                               const char *config);
+                               const char *config_path);
+
+    int logging_apply_config(rust::Logging logging, const char *path);
 
     int logging_shutdown(rust::Logging *logging, uint8_t now);
 
@@ -218,9 +183,29 @@ extern "C"
 
     void logging_remove_logger(rust::Logging *logging, rust::Logger *logger);
 
-    intptr_t logging_add_writer(rust::Logging *logging, rust::WriterConfigEnum *writer);
+    int logging_set_root_writer_config(rust::Logging logging, rust::WriterConfigEnum config);
+
+    int logging_set_root_writer(rust::Logging logging, rust::WriterEnum writer);
+
+    int logging_add_writer_config(rust::Logging logging, rust::WriterEnum writer);
+
+    int logging_add_writer(rust::Logging *logging, rust::WriterConfigEnum *writer);
 
     void logging_remove_writer(rust::Logging *logging, WriterTypeEnum writer);
+
+    int logging_add_writer_configs(rust::Logging logging, rust::WriterConfigEnum *configs, uint config_cnt);
+
+    int logging_add_writers(rust::Logging logging, rust::WriterEnum *writers, uint writer_cnt);
+
+    int logging_remove_writers(rust::Logging logging, uint *wids, uint wid_cnt);
+
+    int logging_enable(rust::Logging logging, uint wid);
+
+    int logging_disable(rust::Logging logging, uint wid);
+
+    int logging_enable_type(rust::Logging logging, rust::WriterTypeEnum typ);
+
+    int logging_disable_type(rust::Logging logging, rust::WriterTypeEnum typ);
 
     intptr_t logging_sync(const rust::Logging *logging, int console, int file, int client, int syslog, int callback, double timeout);
 
@@ -236,11 +221,23 @@ extern "C"
 
     // Config
 
+    void logging_set_debug(uint debug);
+
     rust::WriterConfigEnum *logging_get_config(rust::Logging *logging, WriterTypeEnum writer);
 
-    rust::ServerConfig *logging_get_server_config(rust::Logging *logging);
+    rust::WriterConfigEnum *logging_get_writer_configs(Logging logging);
 
-    const char *logging_get_server_address(rust::Logging *logging);
+    rust::CServerConfig *logging_get_server_config(rust::Logging *logging);
+
+    rust::CServerConfig *logging_get_server_configs(rust::Logging logging);
+
+    const char *logging_get_root_server_address_port(rust::Logging logging);
+
+    const rust::CusizeStringHashMap *logging_get_server_addresses_ports(rust::Logging logging);
+
+    const rust::CusizeStringHashMap *logging_get_server_addresses(rust::Logging logging);
+
+    const rust::Cusizeu16HashMap *logging_get_server_ports(rust::Logging logging);
 
     const char *logging_get_server_auth_key(rust::Logging *logging);
 
