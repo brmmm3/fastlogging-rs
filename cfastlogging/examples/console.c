@@ -8,15 +8,14 @@
 // Sample library usage.
 int main(void)
 {
-    ConsoleWriterConfig console = console_writer_config_new(DEBUG, 1);
+    WriterConfigEnum writers[1];
+    writers[0] = console_writer_config_new(DEBUG, 1);
     Logging logging = logging_new(DEBUG,
                                   NULL,
-                                  NULL,
-                                  console,
-                                  NULL,
-                                  NULL,
-                                  NULL,
+                                  writers, // Pointer to writers array
+                                  1, // Array size / Number of writers
                                   -1,
+                                  NULL,
                                   NULL);
     logging_trace(logging, "Trace Message");
     logging_debug(logging, "Debug Message");
