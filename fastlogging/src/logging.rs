@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::process;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -364,10 +364,11 @@ pub struct Logging {
     pub domain: String,
     pub instance: Arc<Mutex<LoggingInstance>>,
     pub(crate) server_tx: Sender<LoggingTypeEnum>,
-    pub(crate) drop: bool,
+    pub drop: bool,
     pub(crate) config_file: ConfigFile,
     pub(crate) tname: bool,
     pub(crate) tid: bool,
+    loggers: HashSet<String>,
     sync_rx: Receiver<u8>,
     stop: Arc<AtomicBool>,
     thr: Option<JoinHandle<()>>,
@@ -410,6 +411,7 @@ impl Logging {
             config_file,
             tname,
             tid,
+            loggers: HashSet::new(),
             sync_rx,
             stop: stop.clone(),
             thr: Some(
@@ -559,10 +561,12 @@ impl Logging {
 
     pub fn add_logger(&mut self, logger: &'_ mut Logger) {
         logger.set_tx(Some(self.server_tx.clone()));
+        self.loggers.insert(logger.domain.clone());
     }
 
     pub fn remove_logger(&mut self, logger: &'_ mut Logger) {
         logger.set_tx(None);
+        self.loggers.remove(&logger.domain);
     }
 
     pub fn set_root_writer_config(
@@ -790,7 +794,7 @@ impl Logging {
         }
     }
 
-    pub fn get_config(&self, wid: usize) -> Option<WriterConfigEnum> {
+    pub fn get_writer_config(&self, wid: usize) -> Option<WriterConfigEnum> {
         self.instance.lock().unwrap().get_writer_config(wid)
     }
 
@@ -799,7 +803,7 @@ impl Logging {
     }
 
     pub fn get_server_config(&self, wid: usize) -> Result<ServerConfig, LoggingError> {
-        let writer = match self.get_config(wid) {
+        let writer = match self.get_writer_config(wid) {
             Some(w) => w,
             None => {
                 return Err(LoggingError::InvalidValue(format!(
@@ -817,6 +821,10 @@ impl Logging {
 
     pub fn get_server_configs(&self) -> HashMap<usize, ServerConfig> {
         self.instance.lock().unwrap().get_server_configs()
+    }
+
+    pub fn get_root_server_address_port(&self) -> Option<String> {
+        self.instance.lock().unwrap().get_root_server_address_port()
     }
 
     pub fn get_server_addresses_ports(&self) -> HashMap<usize, String> {
@@ -846,7 +854,8 @@ impl Logging {
             tname={:?}\n\
             tid={}\n\
             structured={:?}\n\
-            writers={:?}",
+            writers={:?}\n\
+            loggers={:?}",
             level2string(&instance.level2sym, instance.level),
             instance.domain,
             instance.hostname,
@@ -855,7 +864,8 @@ impl Logging {
             instance.tname,
             instance.tid,
             instance.structured,
-            self.get_writer_configs()
+            self.get_writer_configs(),
+            self.loggers
         )
     }
 

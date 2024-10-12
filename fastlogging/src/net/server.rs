@@ -24,11 +24,11 @@ use super::{def::NetConfig, EncryptionMethod, NonceGenerator};
 #[repr(C)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ServerConfig {
-    pub(crate) level: u8,
-    pub(crate) address: String,
-    pub(crate) port: u16,
-    pub(crate) key: EncryptionMethod,
-    pub(crate) port_file: Option<PathBuf>,
+    pub level: u8,
+    pub address: String,
+    pub port: u16,
+    pub key: EncryptionMethod,
+    pub port_file: Option<PathBuf>,
 }
 
 impl ServerConfig {

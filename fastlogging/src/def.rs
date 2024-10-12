@@ -20,6 +20,7 @@ pub const DEBUG: u8 = 10;
 pub const TRACE: u8 = 5;
 pub const NOTSET: u8 = 0;
 
+/// Convert log level into string.
 pub fn level2str(level: u8) -> &'static str {
     match level {
         NOTSET..TRACE => "NOTSET",
@@ -35,6 +36,7 @@ pub fn level2str(level: u8) -> &'static str {
     }
 }
 
+/// Convert log level into sort string.
 pub fn level2short(level: u8) -> &'static str {
     match level {
         NOTSET..TRACE => "NOT",
@@ -50,6 +52,7 @@ pub fn level2short(level: u8) -> &'static str {
     }
 }
 
+/// Convert log level into symbol.
 pub fn level2sym(level: u8) -> &'static str {
     match level {
         NOTSET..TRACE => "N",
@@ -65,6 +68,7 @@ pub fn level2sym(level: u8) -> &'static str {
     }
 }
 
+/// Convert log level into string, short string or symbol depending on `levelsym`.
 pub fn level2string(levelsym: &LevelSyms, level: u8) -> &'static str {
     match levelsym {
         LevelSyms::Sym => level2sym(level),
@@ -93,8 +97,11 @@ pub struct RootConfig {
     pub domain: String,
     pub hostname: Option<String>,
     pub pname: String,
+    /// `pid` is process ID and is logged with greater than 0.
     pub pid: u32,
+    /// Add name of thread to log messages if `true`.
     pub tname: bool,
+    /// Add ID of thread to log messages if `true`.
     pub tid: bool,
     pub structured: MessageStructEnum,
     pub level2sym: LevelSyms,
@@ -242,6 +249,7 @@ pub enum WriterEnum {
 }
 
 impl WriterEnum {
+    /// Create new writer enum from writer configuration.
     pub fn new(
         instance: &mut LoggingInstance,
         config: &WriterConfigEnum,
