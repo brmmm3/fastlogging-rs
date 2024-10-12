@@ -76,9 +76,7 @@ fn add_writer(config: PyObject, py: Python) -> PyResult<usize> {
             "writer has invalid argument type".to_string(),
         ));
     };
-    Ok(fastlogging::add_writer_config(&config)
-        .map_err(|e| PyException::new_err(e.to_string()))?
-        .into())
+    fastlogging::add_writer_config(&config).map_err(|e| PyException::new_err(e.to_string()))
 }
 
 #[pyfunction]
@@ -163,17 +161,17 @@ fn get_server_configs() -> HashMap<usize, ServerConfig> {
 
 #[pyfunction]
 fn get_server_addresses_ports() -> HashMap<usize, String> {
-    fastlogging::get_server_addresses_ports().into()
+    fastlogging::get_server_addresses_ports()
 }
 
 #[pyfunction]
 fn get_server_addresses() -> HashMap<usize, String> {
-    fastlogging::get_server_addresses().into()
+    fastlogging::get_server_addresses()
 }
 
 #[pyfunction]
 fn get_server_ports() -> HashMap<usize, u16> {
-    fastlogging::get_server_ports().into()
+    fastlogging::get_server_ports()
 }
 
 #[pyfunction]
