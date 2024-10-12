@@ -1,5 +1,5 @@
 [package]
-name = "fastlogging-rs"
+name = "pyfastlogging"
 version = "0.3.0"
 edition = "2021"
 authors = ["Martin Bammer <mrbm74@gmail.com>"]
@@ -19,7 +19,7 @@ include = [
 ]
 
 [lib]
-name = "fastlogging_rs"
+name = "pyfastlogging"
 crate-type = ["cdylib"]
 
 [dependencies]

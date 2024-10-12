@@ -1,5 +1,5 @@
 [project]
-name = "fastlogging-rs"
+name = "pyfastlogging"
 version = "0.3.0"
 authors = [{ name = "Martin Bammer", email = "mrbm74@gmail.com" }]
 description = "A fast logger"

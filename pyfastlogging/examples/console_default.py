@@ -1,8 +1,8 @@
 import os
 import time
 
-import fastlogging_rs as fl
-from fastlogging_rs import (
+import pyfastlogging as fl
+from pyfastlogging import (
     TRACE,
     ConsoleWriterConfig,
 )

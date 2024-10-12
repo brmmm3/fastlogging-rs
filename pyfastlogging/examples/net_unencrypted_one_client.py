@@ -1,6 +1,6 @@
 import tempfile
 
-from fastlogging_rs import (
+from pyfastlogging import (
     TRACE,
     DEBUG,
     Logging,

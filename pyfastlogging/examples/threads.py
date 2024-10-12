@@ -1,7 +1,7 @@
 import tempfile
 from threading import Thread
 
-from fastlogging_rs import (
+from pyfastlogging import (
     TRACE,
     DEBUG,
     MessageStructEnum,

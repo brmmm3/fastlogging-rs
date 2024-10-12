@@ -1,7 +1,7 @@
 import os
 
-import fastlogging_rs
-from fastlogging_rs import (
+import pyfastlogging
+from pyfastlogging import (
     TRACE,
     Logging,
     ConsoleWriterConfig,

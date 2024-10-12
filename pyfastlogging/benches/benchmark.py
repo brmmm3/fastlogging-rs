@@ -6,8 +6,8 @@ import json
 import shutil
 
 from fastlogging import LogInit
-import fastlogging_rs as fl
-from fastlogging_rs import (
+import pyfastlogging as fl
+from pyfastlogging import (
     CRITICAL,
     ERROR,
     WARNING,

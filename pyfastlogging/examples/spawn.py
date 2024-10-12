@@ -1,7 +1,7 @@
 import os
 import time
 
-import fastlogging_rs as fl
+import pyfastlogging as fl
 
 
 def run_parent():

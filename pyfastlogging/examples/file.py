@@ -1,7 +1,7 @@
 import os
 
-import fastlogging_rs as fl
-from fastlogging_rs import (
+import pyfastlogging as fl
+from pyfastlogging import (
     TRACE,
     CompressionMethodEnum,
     FileWriterConfig,

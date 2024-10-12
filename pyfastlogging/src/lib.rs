@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{collections::HashMap, path::PathBuf};
 
 use pyo3::{exceptions::PyException, prelude::*};
 use writer::{CallbackWriterConfig, ExtConfig, RootConfig, SyslogWriterConfig};
@@ -12,27 +12,34 @@ pub use error::LoggingError;
 mod logger;
 mod logging;
 
+/// Python layer for fastlogging.
+
+/// Shutdown fastlogging module.
 #[pyfunction]
 #[pyo3(signature=(now=None,))]
 fn shutdown(now: Option<bool>) -> Result<(), LoggingError> {
     Ok(fastlogging::shutdown(now.unwrap_or_default())?)
 }
 
+/// Set log level for writer with ID `wid` to `level`.
 #[pyfunction]
 fn set_level(wid: usize, level: u8) -> Result<(), LoggingError> {
     Ok(fastlogging::set_level(wid, level)?)
 }
 
+/// Set logging domain.
 #[pyfunction]
 fn set_domain(domain: String) {
     fastlogging::set_domain(domain)
 }
 
+/// Configure log level symbols. For valid values see [LevelSyms].
 #[pyfunction]
 fn set_level2sym(level2sym: &Bound<'_, LevelSyms>) {
     fastlogging::set_level2sym(&level2sym.borrow().0)
 }
 
+/// Set extended configuration. For details see [ExtConfig].
 #[pyfunction]
 fn set_ext_config(ext_config: &Bound<'_, ExtConfig>) {
     fastlogging::set_ext_config(&ext_config.borrow().0)
@@ -80,6 +87,26 @@ fn remove_writer(wid: usize) -> Option<WriterConfigEnum> {
 }
 
 #[pyfunction]
+fn enable(wid: usize) -> Result<(), LoggingError> {
+    Ok(fastlogging::enable(wid)?)
+}
+
+#[pyfunction]
+fn disable(wid: usize) -> Result<(), LoggingError> {
+    Ok(fastlogging::disable(wid)?)
+}
+
+#[pyfunction]
+fn enable_type(typ: WriterTypeEnum) -> Result<(), LoggingError> {
+    Ok(fastlogging::enable_type(typ.into())?)
+}
+
+#[pyfunction]
+fn disable_type(typ: WriterTypeEnum) -> Result<(), LoggingError> {
+    Ok(fastlogging::disable_type(typ.into())?)
+}
+
+#[pyfunction]
 #[pyo3(signature=(types, timeout=None))]
 fn sync(types: Vec<WriterTypeEnum>, timeout: Option<f64>) -> Result<(), LoggingError> {
     Ok(fastlogging::sync(
@@ -109,19 +136,44 @@ fn set_encryption(wid: usize, key: EncryptionMethod) -> Result<(), LoggingError>
 
 // Config
 
+/// Set debug mode.
 #[pyfunction]
 pub fn set_debug(debug: u8) {
     fastlogging::set_debug(debug);
 }
 
+/// Get configuration for writer with ID `wid`.
 #[pyfunction]
-fn get_config(wid: usize) -> Option<WriterConfigEnum> {
-    fastlogging::get_config(wid).map(|w| w.into())
+fn get_writer_config(wid: usize) -> Option<WriterConfigEnum> {
+    fastlogging::get_writer_config(wid).map(|w| w.into())
 }
 
 #[pyfunction]
 fn get_server_config(wid: usize) -> Result<ServerConfig, LoggingError> {
     Ok(fastlogging::get_server_config(wid)?.into())
+}
+
+#[pyfunction]
+fn get_server_configs() -> HashMap<usize, ServerConfig> {
+    fastlogging::get_server_configs()
+        .into_iter()
+        .map(|(k, v)| (k, v.into()))
+        .collect::<HashMap<_, _>>()
+}
+
+#[pyfunction]
+fn get_server_addresses_ports() -> HashMap<usize, String> {
+    fastlogging::get_server_addresses_ports().into()
+}
+
+#[pyfunction]
+fn get_server_addresses() -> HashMap<usize, String> {
+    fastlogging::get_server_addresses().into()
+}
+
+#[pyfunction]
+fn get_server_ports() -> HashMap<usize, u16> {
+    fastlogging::get_server_ports().into()
 }
 
 #[pyfunction]
@@ -140,6 +192,7 @@ fn save_config(path: Option<PathBuf>) -> Result<(), LoggingError> {
     Ok(fastlogging::save_config(path.as_deref())?)
 }
 
+/// Get process ID of parent process.
 #[pyfunction]
 pub fn get_parent_pid() -> Option<u32> {
     fastlogging::get_parent_pid()
@@ -203,14 +256,15 @@ fn exception(obj: PyObject) -> Result<(), LoggingError> {
     Ok(fastlogging::exception(obj.to_string())?)
 }
 
+/// This function is called when Python interpreter exits. The fastlogging module is shutdown.
 #[pyfunction]
 fn shutdown_at_exit() -> Result<(), LoggingError> {
     Ok(fastlogging::shutdown(false)?)
 }
 
-/// fastlogging_rs is a simple example for using Rust to create Python extension modules.
+/// Python API
 #[pymodule]
-#[pyo3(name = "fastlogging_rs")]
+#[pyo3(name = "pyfastlogging")]
 fn init(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     m.add("EXCEPTION", fastlogging::EXCEPTION)?;
@@ -246,13 +300,21 @@ fn init(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(remove_logger, m)?)?;
     m.add_function(wrap_pyfunction!(add_writer, m)?)?;
     m.add_function(wrap_pyfunction!(remove_writer, m)?)?;
+    m.add_function(wrap_pyfunction!(enable, m)?)?;
+    m.add_function(wrap_pyfunction!(disable, m)?)?;
+    m.add_function(wrap_pyfunction!(enable_type, m)?)?;
+    m.add_function(wrap_pyfunction!(disable_type, m)?)?;
     m.add_function(wrap_pyfunction!(sync, m)?)?;
     m.add_function(wrap_pyfunction!(sync_all, m)?)?;
     m.add_function(wrap_pyfunction!(rotate, m)?)?;
     m.add_function(wrap_pyfunction!(set_encryption, m)?)?;
     m.add_function(wrap_pyfunction!(set_debug, m)?)?;
-    m.add_function(wrap_pyfunction!(get_config, m)?)?;
+    m.add_function(wrap_pyfunction!(get_writer_config, m)?)?;
     m.add_function(wrap_pyfunction!(get_server_config, m)?)?;
+    m.add_function(wrap_pyfunction!(get_server_configs, m)?)?;
+    m.add_function(wrap_pyfunction!(get_server_addresses_ports, m)?)?;
+    m.add_function(wrap_pyfunction!(get_server_addresses, m)?)?;
+    m.add_function(wrap_pyfunction!(get_server_ports, m)?)?;
     m.add_function(wrap_pyfunction!(get_server_auth_key, m)?)?;
     m.add_function(wrap_pyfunction!(get_config_string, m)?)?;
     m.add_function(wrap_pyfunction!(save_config, m)?)?;

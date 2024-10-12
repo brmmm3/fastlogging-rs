@@ -123,6 +123,16 @@ impl Logging {
         self.instance.set_ext_config(&ext_config.borrow().0)
     }
 
+    pub fn add_logger(&mut self, logger: Py<Logger>, py: Python) {
+        self.instance
+            .add_logger(&mut logger.borrow_mut(py).instance)
+    }
+
+    pub fn remove_logger(&mut self, logger: Py<Logger>, py: Python) {
+        self.instance
+            .remove_logger(&mut logger.borrow_mut(py).instance)
+    }
+
     pub fn add_writer(&mut self, config: PyObject, py: Python) -> Result<usize, LoggingError> {
         let config = if let Ok(config) = config.extract::<RootConfig>(py) {
             fastlogging::WriterConfigEnum::Root(config.0)
@@ -148,16 +158,6 @@ impl Logging {
 
     pub fn remove_writer(&mut self, wid: usize) -> Option<WriterConfigEnum> {
         self.instance.remove_writer(wid).map(|c| c.config().into())
-    }
-
-    pub fn add_logger(&mut self, logger: Py<Logger>, py: Python) {
-        self.instance
-            .add_logger(&mut logger.borrow_mut(py).instance)
-    }
-
-    pub fn remove_logger(&mut self, logger: Py<Logger>, py: Python) {
-        self.instance
-            .remove_logger(&mut logger.borrow_mut(py).instance)
     }
 
     pub fn enable(&self, wid: usize) -> Result<(), LoggingError> {
@@ -216,8 +216,8 @@ impl Logging {
         self.instance.set_debug(debug);
     }
 
-    pub fn get_config(&self, wid: usize) -> Option<WriterConfigEnum> {
-        self.instance.get_config(wid).map(|c| c.into())
+    pub fn get_writer_config(&self, wid: usize) -> Option<WriterConfigEnum> {
+        self.instance.get_writer_config(wid).map(|c| c.into())
     }
 
     pub fn get_server_config(&self, wid: usize) -> Result<ServerConfig, LoggingError> {
@@ -230,6 +230,14 @@ impl Logging {
             .into_iter()
             .map(|(k, v)| (k, v.into()))
             .collect()
+    }
+
+    pub fn get_root_server_address_port(&self) -> Option<String> {
+        self.instance.get_root_server_address_port()
+    }
+
+    pub fn get_server_addresses_ports(&self) -> HashMap<usize, String> {
+        self.instance.get_server_addresses_ports()
     }
 
     pub fn get_server_addresses(&self) -> HashMap<usize, String> {

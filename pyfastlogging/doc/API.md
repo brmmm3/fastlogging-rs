@@ -1,34 +1,26 @@
-API
-===
+# API
 
-Log levels
-----------
+## Log levels
 
-::
+`NOLOG` &ensp;&ensp;&ensp;&ensp;&ensp; No logging.  
+`EXCEPTION` &nbsp; Log exception messages. In addition to the message text the exception info (output of traceback.format_exc) is logged.  
+`CRITICAL` &nbsp;&ensp; Log fatal/critical messages. Default color is bright red.  
+`FATAL` &ensp;&ensp;&ensp;&ensp;&ensp; Same as CRITICAL.  
+`ERROR` &ensp;&ensp;&ensp;&ensp;&ensp; Log also error messages. Default color is red.  
+`WARNING` &ensp;&ensp;&ensp; Log also warning messages. Default color is bright yellow.  
+`SUCCESS` &ensp;&ensp;&ensp; Success messages.  
+`INFO` &ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&nbsp; Log also info messages. Default color is bright green.  
+`DEBUG` &ensp;&ensp;&ensp;&ensp;&ensp;  Log also debug messages. Default color is white.  
+`TRACE` &ensp;&ensp;&ensp;&ensp;&ensp;  Trace messages.  
+`NOTSET` &ensp;&ensp;&ensp;&ensp; All messages are logged.
 
- EXCEPTION Log exception messages. In addition to the message text the exception info
-           (output of traceback.format_exc) is logged.
- FATAL     Log fatal/critical messages. Default color is bright red.
- CRITICAL  Same as FATAL.
- ERROR     Log also error messages. Default color is red.
- WARNING   Log also warning messages. Default color is bright yellow.
- INFO      Log also info messages. Default color is bright green.
- DEBUG     Log also debug messages. Default color is white.
- NOTSET    All messages are logged.
-
-Mappings
---------
-
-::
+## Mappings
 
  LOG2SYM      A dictionary which maps the integer severity value to a string.
  LOG2SSYM     A dictionary which maps the integer severity value to a short string.
  LVL2COL      A dictionary which maps the integer severity to a color.
 
-Global fastlogging members
---------------------------
-
-::
+## Global fastlogging members
 
  domains                A dictionary holding all Logger instances for the configured domains.
  Colors                 A class which contains the color codes (if colorama is installed).
@@ -39,8 +31,7 @@ Global fastlogging members
  GetLogger              Create a new log domain.
  LogInit                Create initial log domain. Has to be called first!
 
-class Logger
-------------
+## class Logger
 
 Logging class object. It contains the following static member variables::
 
