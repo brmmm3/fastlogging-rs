@@ -1,6 +1,6 @@
 use core::slice;
 use std::collections::HashMap;
-use std::ffi::{c_char, c_double, c_uchar, c_uint, CStr, CString};
+use std::ffi::{c_char, c_double, c_uchar, c_uint, c_ushort, CStr, CString};
 use std::path::PathBuf;
 use std::ptr::null;
 
@@ -46,15 +46,52 @@ pub struct CServerConfigHashMap {
 }
 
 #[repr(C)]
-pub struct CusizeStringHashMap {
+pub struct Cu32StringVec {
     cnt: c_uint,
-    values: HashMap<usize, String>,
+    keys: *const c_uint,
+    values: *const *const c_char, // List of C-Strings
+}
+
+impl From<HashMap<usize, String>> for Cu32StringVec {
+    fn from(items: HashMap<usize, String>) -> Self {
+        let wids = items.keys().map(|v| *v as u32).collect::<Vec<_>>();
+        let strings = items
+            .values()
+            .filter_map(|v| CString::new(v.clone()).ok())
+            .collect::<Vec<_>>();
+        let c_wids = wids.as_ptr() as *const c_uint;
+        let c_strings = strings.as_ptr() as *const *const c_char;
+        std::mem::forget(wids);
+        std::mem::forget(strings);
+        Cu32StringVec {
+            cnt: items.len() as c_uint,
+            keys: c_wids,
+            values: c_strings,
+        }
+    }
 }
 
 #[repr(C)]
-pub struct Cusizeu16HashMap {
+pub struct Cu32u16Vec {
     cnt: c_uint,
-    values: HashMap<usize, u16>,
+    keys: *const c_uint,
+    values: *const c_ushort,
+}
+
+impl From<HashMap<usize, u16>> for Cu32u16Vec {
+    fn from(items: HashMap<usize, u16>) -> Self {
+        let wids = items.keys().map(|v| *v as u32).collect::<Vec<_>>();
+        let ports = items.values().map(|v| *v as u16).collect::<Vec<_>>();
+        let c_wids = wids.as_ptr() as *const c_uint;
+        let c_ports = ports.as_ptr() as *const c_ushort;
+        std::mem::forget(wids);
+        std::mem::forget(ports);
+        Cu32u16Vec {
+            cnt: items.len() as c_uint,
+            keys: c_wids,
+            values: c_ports,
+        }
+    }
 }
 
 #[inline]
@@ -77,7 +114,7 @@ pub unsafe extern "C" fn ext_config_new(
     pid: c_char,
     tname: c_char,
     tid: c_char,
-) -> *mut ExtConfig {
+) -> *const ExtConfig {
     let structured = match structured {
         0 => MessageStructEnum::String,
         1 => MessageStructEnum::Json,
@@ -117,13 +154,11 @@ pub unsafe extern "C" fn logging_new(
     ext_config: *mut ExtConfig,
     config_path: *const c_char, // Optional path to config file
 ) -> *mut Logging {
-    println!("logging_new level={level} domain={domain:p} writers_ptr={writers_ptr:p} writers_cnt={writers_cnt} ext_config={ext_config:p} config={config_path:p}");
     let domain = if domain.is_null() {
         "root".to_string()
     } else {
         char2string(domain)
     };
-    println!("domain={domain}");
     let writers = if writers_ptr.is_null() {
         Vec::new()
     } else {
@@ -133,15 +168,11 @@ pub unsafe extern "C" fn logging_new(
             .map(|w| *Box::from_raw(*w))
             .collect::<Vec<_>>()
     };
-    println!("writers={:p}", &writers);
-    println!("writers={writers:?}");
     let ext_config = if ext_config.is_null() {
         None
     } else {
         Some(*Box::from_raw(ext_config))
     };
-    println!("ext_config={:p}", &ext_config);
-    println!("ext_config={ext_config:?}");
     Box::into_raw(Box::new(
         Logging::new(
             level as u8,
@@ -256,11 +287,7 @@ pub unsafe extern "C" fn logging_set_root_writer_config(
     logging: &mut Logging,
     config: *mut WriterConfigEnum,
 ) -> isize {
-    println!("logging_set_root_writer_config {config:p}");
-    let config = *Box::from_raw(config);
-    println!("logging_set_root_writer_config #");
-    println!("logging_set_root_writer_config {:p}", &config);
-    match logging.set_root_writer_config(&config) {
+    match logging.set_root_writer_config(&*Box::from_raw(config)) {
         Ok(r) => Box::into_raw(Box::new(r)) as isize,
         Err(err) => {
             eprintln!("logging_set_root_writer_config failed: {err:?}");
@@ -277,11 +304,7 @@ pub unsafe extern "C" fn logging_set_root_writer(
     logging: &mut Logging,
     writer: *mut WriterEnum,
 ) -> isize {
-    println!("logging_set_root_writer {writer:p}");
-    let writer = *Box::from_raw(writer);
-    println!("logging_set_root_writer #");
-    println!("logging_set_root_writer {:p}", &writer);
-    match logging.set_root_writer(writer) {
+    match logging.set_root_writer(*Box::from_raw(writer)) {
         Ok(r) => Box::into_raw(Box::new(r)) as isize,
         Err(err) => {
             eprintln!("logging_set_root_writer failed: {err:?}");
@@ -298,11 +321,7 @@ pub unsafe extern "C" fn logging_add_writer_config(
     logging: &mut Logging,
     config: *mut WriterConfigEnum,
 ) -> isize {
-    println!("logging_add_writer_config {config:p}");
-    let config = *Box::from_raw(config);
-    println!("logging_add_writer_config #");
-    println!("logging_add_writer_config {:p}", &config);
-    match logging.add_writer_config(&config) {
+    match logging.add_writer_config(&*Box::from_raw(config)) {
         Ok(r) => Box::into_raw(Box::new(r)) as isize,
         Err(err) => {
             eprintln!("logging_add_writer_config failed: {err:?}");
@@ -319,11 +338,7 @@ pub unsafe extern "C" fn logging_add_writer(
     logging: &mut Logging,
     writer: *mut WriterEnum,
 ) -> usize {
-    println!("logging_add_writer {writer:p}");
-    let writer = *Box::from_raw(writer);
-    println!("logging_add_writer #");
-    println!("logging_add_writer {:p}", &writer);
-    logging.add_writer(writer)
+    logging.add_writer(*Box::from_raw(writer))
 }
 
 /// # Safety
@@ -349,11 +364,7 @@ pub unsafe extern "C" fn logging_add_writer_configs(
     configs: *mut WriterConfigEnum,
     config_cnt: usize,
 ) -> isize {
-    println!("logging_add_writer_configs {configs:p}");
-    let configs = slice::from_raw_parts(configs, config_cnt);
-    println!("logging_add_writer_configs #");
-    println!("logging_add_writer_configs {:p}", configs);
-    match logging.add_writer_configs(configs) {
+    match logging.add_writer_configs(slice::from_raw_parts(configs, config_cnt)) {
         Ok(r) => Box::into_raw(Box::new(r)) as isize,
         Err(err) => {
             eprintln!("logging_add_writer_configs failed: {err:?}");
@@ -371,11 +382,7 @@ pub unsafe extern "C" fn logging_add_writers(
     writers: *mut WriterEnum,
     writer_cnt: usize,
 ) -> *mut CusizeVec {
-    println!("logging_add_writers {writers:p}");
-    let writers = Vec::from_raw_parts(writers, writer_cnt, writer_cnt);
-    println!("logging_add_writers #");
-    println!("logging_add_writers {:p}", &writers);
-    let wids = logging.add_writers(writers);
+    let wids = logging.add_writers(Vec::from_raw_parts(writers, writer_cnt, writer_cnt));
     Box::into_raw(Box::new(CusizeVec {
         cnt: wids.len() as u32,
         values: wids,
@@ -391,10 +398,7 @@ pub unsafe extern "C" fn logging_remove_writers(
     wids: *mut usize,
     wid_cnt: usize,
 ) -> *mut CWriterEnumVec {
-    let v = Vec::from_raw_parts(wids, wid_cnt, wid_cnt);
-    println!("logging_remove_writers {wids:p}");
-    println!("logging_remove_writers #");
-    let writers = logging.remove_writers(v);
+    let writers = logging.remove_writers(Vec::from_raw_parts(wids, wid_cnt, wid_cnt));
     Box::into_raw(Box::new(CWriterEnumVec {
         cnt: writers.len() as u32,
         values: writers,
@@ -406,7 +410,6 @@ pub unsafe extern "C" fn logging_remove_writers(
 /// Add writer.
 #[no_mangle]
 pub unsafe extern "C" fn logging_enable(logging: &mut Logging, wid: usize) -> isize {
-    println!("logging_enable {wid}");
     match logging.enable(wid) {
         Ok(r) => Box::into_raw(Box::new(r)) as isize,
         Err(err) => {
@@ -421,7 +424,6 @@ pub unsafe extern "C" fn logging_enable(logging: &mut Logging, wid: usize) -> is
 /// Add writer.
 #[no_mangle]
 pub unsafe extern "C" fn logging_disable(logging: &mut Logging, wid: usize) -> isize {
-    println!("logging_disable {wid}");
     match logging.disable(wid) {
         Ok(r) => Box::into_raw(Box::new(r)) as isize,
         Err(err) => {
@@ -439,7 +441,6 @@ pub unsafe extern "C" fn logging_enable_type(
     logging: &mut Logging,
     typ: *mut WriterTypeEnum,
 ) -> isize {
-    println!("logging_enable_type {:p}", &typ);
     match logging.enable_type(*Box::from_raw(typ)) {
         Ok(r) => Box::into_raw(Box::new(r)) as isize,
         Err(err) => {
@@ -457,7 +458,6 @@ pub unsafe extern "C" fn logging_disable_type(
     logging: &mut Logging,
     typ: *mut WriterTypeEnum,
 ) -> isize {
-    println!("logging_disable_type {:p}", &typ);
     match logging.disable_type(*Box::from_raw(typ)) {
         Ok(r) => Box::into_raw(Box::new(r)) as isize,
         Err(err) => {
@@ -648,38 +648,28 @@ pub unsafe extern "C" fn logging_get_root_server_address_port(logging: &Logging)
 #[no_mangle]
 pub unsafe extern "C" fn logging_get_server_addresses_ports(
     logging: &Logging,
-) -> *const CusizeStringHashMap {
-    let values = logging.get_server_addresses_ports();
-    Box::into_raw(Box::new(CusizeStringHashMap {
-        cnt: values.len() as u32,
-        values: values,
-    }))
+) -> *const Cu32StringVec {
+    Box::into_raw(Box::new(Cu32StringVec::from(
+        logging.get_server_addresses_ports(),
+    )))
 }
 
 /// # Safety
 ///
 /// Get server configuration.
 #[no_mangle]
-pub unsafe extern "C" fn logging_get_server_addresses(
-    logging: &Logging,
-) -> *const CusizeStringHashMap {
-    let values = logging.get_server_addresses();
-    Box::into_raw(Box::new(CusizeStringHashMap {
-        cnt: values.len() as u32,
-        values: values,
-    }))
+pub unsafe extern "C" fn logging_get_server_addresses(logging: &Logging) -> *const Cu32StringVec {
+    Box::into_raw(Box::new(Cu32StringVec::from(
+        logging.get_server_addresses(),
+    )))
 }
 
 /// # Safety
 ///
 /// Get server configuration.
 #[no_mangle]
-pub unsafe extern "C" fn logging_get_server_ports(logging: &Logging) -> *const Cusizeu16HashMap {
-    let values = logging.get_server_ports();
-    Box::into_raw(Box::new(Cusizeu16HashMap {
-        cnt: values.len() as u32,
-        values: values,
-    }))
+pub unsafe extern "C" fn logging_get_server_ports(logging: &Logging) -> *const Cu32u16Vec {
+    Box::into_raw(Box::new(Cu32u16Vec::from(logging.get_server_ports())))
 }
 
 /// # Safety

@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include "cfastlogging.h"
+#include "h/cfastlogging.h"
 #include <string.h>
 
 // File: net_unencrypted_one_client.c
@@ -9,7 +9,7 @@
 int main(void)
 {
     // Server
-    WriterConfigEnum server_writers[1];
+    CWriterConfigEnum_t server_writers[1];
     server_writers[0] = console_writer_config_new(DEBUG, 1);
     Logging logging_server = logging_new(DEBUG,
                                          "LOGSRV",
@@ -17,7 +17,7 @@ int main(void)
                                          1,
                                          NULL,
                                          NULL);
-    ServerConfig server = server_config_new(DEBUG, "127.0.0.1", String, NONE);
+    CWriterTypeEnum_t server = server_config_new(DEBUG, "127.0.0.1", EncryptionMethod_NONE, NULL);
     printf("server_config=%p\n", server);
     logging_set_root_writer_config(logging_server, server);
     logging_sync_all(logging_server, 5.0);
@@ -32,7 +32,7 @@ int main(void)
                                          0,
                                          NULL,
                                          NULL);
-    ClientWriterConfig client_writer = client_writer_config_new(DEBUG, address, String, key);
+    CWriterTypeEnum_t client_writer = client_writer_config_new(DEBUG, address, EncryptionMethod_AuthKey, key);
     printf("client_writer=%p\n", client_writer);
     logging_set_root_writer_config(logging_server, client_writer);
     printf("Send logs\n");

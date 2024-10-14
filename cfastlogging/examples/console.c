@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include "cfastlogging.h"
+#include "h/cfastlogging.h"
 #include <string.h>
 
 // File: console.c
@@ -8,7 +8,7 @@
 // Sample library usage.
 int main(void)
 {
-    WriterConfigEnum writers[1];
+    CWriterConfigEnum_t writers[1];
     writers[0] = console_writer_config_new(DEBUG, 1);
     Logging logging = logging_new(DEBUG,
                                   NULL,

@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include "cfastlogging.h"
+#include "h/cfastlogging.h"
 #include <string.h>
 
 // File: file.c
@@ -8,8 +8,8 @@
 // Sample library usage.
 int main(void)
 {
-    WriterConfigEnum writers[1];
-    CompressionMethodEnum compression = Store;
+    CWriterConfigEnum_t writers[1];
+    CCompressionMethodEnum_t compression = CompressionMethodEnum_Store;
     writers[0] = file_writer_config_new(DEBUG,
                                         "/tmp/cfastlogging.log",
                                         1024,

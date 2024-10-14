@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include "cfastlogging.h"
+#include "h/cfastlogging.h"
 #include <string.h>
 
 // File: console_static.c

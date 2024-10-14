@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include "cfastlogging.h"
+#include "h/cfastlogging.h"
 #include <string.h>
 
 // File: file_add_writer.c
@@ -14,17 +14,16 @@ int main(void)
                                   0, // Array size / Number of writers
                                   NULL,
                                   NULL);
-    CompressionMethodEnum compression = Store;
-    WriterConfigEnum file = file_writer_config_new(DEBUG,
-                                                   "/tmp/cfastlogging.log",
-                                                   1024,
-                                                   3,
-                                                   -1,
-                                                   -1,
-                                                   compression);
+    CCompressionMethodEnum_t compression = CompressionMethodEnum_Store;
+    CWriterConfigEnum_t file = file_writer_config_new(DEBUG,
+                                                    "/tmp/cfastlogging.log",
+                                                    1024,
+                                                    3,
+                                                    -1,
+                                                    -1,
+                                                    compression);
 
     logging_add_writer_config(logging, file);
-    printf("ADDED\n");
     logging_trace(logging, "Trace Message");
     logging_debug(logging, "Debug Message");
     logging_info(logging, "Info Message");

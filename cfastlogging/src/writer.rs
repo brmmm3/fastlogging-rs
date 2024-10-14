@@ -13,6 +13,14 @@ use once_cell::sync::Lazy;
 
 use crate::util::{char2string, option_char2string};
 
+#[repr(C)]
+#[derive(Debug, Clone, PartialEq)]
+pub enum CEncryptionMethodEnum {
+    NONE,
+    AuthKey,
+    AES,
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn console_writer_config_new(
     level: c_uchar,
@@ -33,7 +41,6 @@ pub unsafe extern "C" fn file_writer_config_new(
     time: c_longlong,
     compression: *mut CompressionMethodEnum,
 ) -> *mut WriterConfigEnum {
-    println!("file_writer_config_enum_new");
     let timeout = if timeout < 0 {
         None
     } else {
@@ -44,13 +51,11 @@ pub unsafe extern "C" fn file_writer_config_new(
     } else {
         Some(SystemTime::now().add(Duration::from_secs(time as u64)))
     };
-    println!("#1");
     let compression = if compression.is_null() {
         None
     } else {
         Some(*Box::from_raw(compression))
     };
-    println!("#2 {compression:?}");
     Box::into_raw(Box::new(WriterConfigEnum::File(
         FileWriterConfig::new(
             level,
@@ -69,10 +74,10 @@ pub unsafe extern "C" fn file_writer_config_new(
 pub unsafe extern "C" fn client_writer_config_new(
     level: c_uchar,
     address: *const c_char,
-    encryption: c_uchar,
+    encryption: CEncryptionMethodEnum,
     key: *const c_char,
 ) -> *mut WriterConfigEnum {
-    let key = if encryption == 0 || key.is_null() {
+    let key = if encryption == CEncryptionMethodEnum::NONE || key.is_null() {
         EncryptionMethod::NONE
     } else {
         let key = (unsafe { CStr::from_ptr(key) })
@@ -80,7 +85,7 @@ pub unsafe extern "C" fn client_writer_config_new(
             .unwrap()
             .as_bytes()
             .to_vec();
-        if encryption == 1 {
+        if encryption == CEncryptionMethodEnum::AuthKey {
             EncryptionMethod::AuthKey(key)
         } else {
             EncryptionMethod::AES(key)
@@ -97,10 +102,10 @@ pub unsafe extern "C" fn client_writer_config_new(
 pub unsafe extern "C" fn server_config_new(
     level: c_uchar,
     address: *const c_char,
-    encryption: c_uchar,
+    encryption: CEncryptionMethodEnum,
     key: *const c_char,
 ) -> *mut WriterConfigEnum {
-    let key = if encryption == 0 || key.is_null() {
+    let key = if encryption == CEncryptionMethodEnum::NONE || key.is_null() {
         EncryptionMethod::NONE
     } else {
         let key = (unsafe { CStr::from_ptr(key) })
@@ -108,7 +113,7 @@ pub unsafe extern "C" fn server_config_new(
             .unwrap()
             .as_bytes()
             .to_vec();
-        if encryption == 1 {
+        if encryption == CEncryptionMethodEnum::AuthKey {
             EncryptionMethod::AuthKey(key)
         } else {
             EncryptionMethod::AES(key)
