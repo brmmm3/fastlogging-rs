@@ -29,14 +29,14 @@ pub enum ClientTypeEnum {
 #[repr(C)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClientWriterConfig {
-    pub(crate) enabled: bool,
-    pub(crate) level: u8,
-    pub(crate) domain_filter: Option<String>,
-    pub(crate) message_filter: Option<String>,
-    pub(crate) address: String,
-    pub(crate) port: u16,
-    pub(crate) key: EncryptionMethod,
-    pub(crate) debug: u8,
+    pub enabled: bool,
+    pub level: u8,
+    pub domain_filter: Option<String>,
+    pub message_filter: Option<String>,
+    pub address: String,
+    pub port: u16,
+    pub key: EncryptionMethod,
+    pub debug: u8,
 }
 
 impl ClientWriterConfig {
@@ -184,11 +184,11 @@ fn client_writer_thread(
 
 #[derive(Debug)]
 pub struct ClientWriter {
-    pub(crate) config: Arc<Mutex<NetConfig>>,
+    pub config: Arc<Mutex<NetConfig>>,
     tx: Sender<ClientTypeEnum>,
     sync_rx: Receiver<u8>,
     thr: Option<JoinHandle<()>>,
-    pub(crate) debug: u8,
+    pub debug: u8,
 }
 
 impl ClientWriter {
