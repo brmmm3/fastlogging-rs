@@ -1,4 +1,4 @@
-#include "cppfastlogging.hpp"
+#include "h/cppfastlogging.hpp"
 
 using namespace logging;
 
@@ -21,17 +21,13 @@ void *loggerThreadFun(void *vargp)
 int main(void)
 {
     pthread_t thread_id;
-    ExtConfig *ext_config = new ExtConfig(MessageStructEnum::String, 1, 1, 1, 1, 1);
+    ExtConfig *ext_config = new ExtConfig(CMessageStructEnum_t::String, 1, 1, 1, 1, 1);
     ConsoleWriterConfig *console = new ConsoleWriterConfig(DEBUG, 1);
+    WriterConfig configs[] = {ConsoleWriterConfig(DEBUG, 1)};
     Logging *logging = new Logging(DEBUG,
-                                   NULL,
-                                   ext_config,
-                                   console,
-                                   NULL,
-                                   NULL,
-                                   NULL,
-                                   -1,
-                                   NULL);
+                                   "root",
+                                   configs,
+                                   ext_config);
     Logger *logger = new Logger(DEBUG, "LoggerThread", 1, 1);
     logging->add_logger(logger);
     pthread_create(&thread_id, NULL, loggerThreadFun, (void *)logger);

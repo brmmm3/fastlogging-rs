@@ -1,4 +1,4 @@
-#include "cppfastlogging.hpp"
+#include "h/cppfastlogging.hpp"
 
 using namespace logging;
 
@@ -7,15 +7,11 @@ using namespace logging;
 // Sample library usage.
 int main(void)
 {
-    Logging *logging = new Logging(DEBUG,
-                                   NULL,
-                                   NULL,
-                                   NULL,
-                                   NULL,
-                                   NULL,
-                                   NULL,
-                                   0,
-                                   NULL);
+    WriterConfig configs[] = {SyslogWriterConfig(DEBUG,
+                                                 "hostname",
+                                                 "pname",
+                                                 1234)};
+    Logging *logging = new Logging(DEBUG, "root", configs);
     logging->trace("Trace Message");
     logging->debug("Debug Message");
     logging->info("Info Message");

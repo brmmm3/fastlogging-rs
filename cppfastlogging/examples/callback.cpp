@@ -1,4 +1,4 @@
-#include "cppfastlogging.hpp"
+#include "h/cppfastlogging.hpp"
 
 using namespace logging;
 
@@ -11,17 +11,8 @@ void writer_callback(uint8_t level, const char *domain, const char *message) {
 // Sample library usage.
 int main(void)
 {
-    Logging *logging = new Logging(DEBUG,
-                                   NULL,
-                                   NULL,
-                                   NULL,
-                                   NULL,
-                                   NULL,
-                                   NULL,
-                                   -1,
-                                   NULL);
-    CallbackWriterConfigEnum *callback = new CallbackWriterConfigEnum(DEBUG, writer_callback);
-    logging->add_writer(callback->writer);
+    CallbackWriterConfig configs[] = {CallbackWriterConfig(DEBUG, writer_callback)};
+    Logging *logging = new Logging(DEBUG, "root", configs);
     logging->trace("Trace Message");
     logging->debug("Debug Message");
     logging->info("Info Message");

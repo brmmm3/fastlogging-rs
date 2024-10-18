@@ -1,4 +1,4 @@
-#include "cppfastlogging.hpp"
+#include "h/cppfastlogging.hpp"
 
 using namespace logging;
 
@@ -7,23 +7,15 @@ using namespace logging;
 // Sample library usage.
 int main(void)
 {
-    Logging *logging = new Logging(DEBUG,
-                                   NULL,
-                                   NULL,
-                                   NULL,
-                                   NULL,
-                                   NULL,
-                                   NULL,
-                                   -1,
-                                   NULL);
-    FileWriterConfigEnum *file = new FileWriterConfigEnum(DEBUG,
-                                                          "/tmp/cfastlogging.log",
-                                                          1024,
-                                                          3,
-                                                          -1,
-                                                          -1,
-                                                          CompressionMethodEnum::Store);
-    logging->add_writer(file->writer);
+    Logging *logging = new Logging();
+    FileWriterConfig *file = new FileWriterConfig(DEBUG,
+                                                  "/tmp/cfastlogging.log",
+                                                  1024,
+                                                  3,
+                                                  -1,
+                                                  -1,
+                                                  CCompressionMethodEnum_t::Store);
+    logging->add_writer(file);
     logging->trace("Trace Message");
     logging->debug("Debug Message");
     logging->info("Info Message");
