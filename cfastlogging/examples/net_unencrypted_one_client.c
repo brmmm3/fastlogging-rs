@@ -36,6 +36,7 @@ int main(void)
     printf("client_writer=%p\n", client_writer);
     logging_set_root_writer_config(logging_server, client_writer);
     printf("Send logs\n");
+    // Test logging
     logging_trace(logging_client, "Trace Message");
     logging_debug(logging_client, "Debug Message");
     logging_info(logging_client, "Info Message");

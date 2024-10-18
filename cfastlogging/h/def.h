@@ -161,4 +161,8 @@ typedef struct Cu32u16Vec {
     uint16_t *values;
 } Cu32u16Vec_t;
 
+typedef void *Logging;
+
+typedef void *Logger;
+
 #endif

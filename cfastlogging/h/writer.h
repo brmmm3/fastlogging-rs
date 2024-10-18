@@ -6,7 +6,8 @@
 
 // Console writer
 
-CWriterConfigEnum_t console_writer_config_new(uint8_t level, int8_t colors);
+CWriterConfigEnum_t console_writer_config_new(uint8_t level,
+                                              int8_t colors);
 
 // File writer
 

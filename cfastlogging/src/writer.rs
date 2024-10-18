@@ -13,6 +13,7 @@ use once_cell::sync::Lazy;
 
 use crate::util::{char2string, option_char2string};
 
+#[allow(dead_code)]
 #[repr(C)]
 #[derive(Debug, Clone, PartialEq)]
 pub enum CEncryptionMethodEnum {
