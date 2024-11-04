@@ -8,7 +8,7 @@
 // Sample library usage.
 int main(void)
 {
-    CWriterConfigEnum_t writers[1];
+    CWriterConfigEnum writers[1];
     writers[0] = syslog_writer_config_new(DEBUG, "HOSTNAME", "PNAME", 1234);
     Logging logging = logging_new(DEBUG,
                                   NULL,

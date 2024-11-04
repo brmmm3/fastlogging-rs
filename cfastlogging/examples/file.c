@@ -8,8 +8,8 @@
 // Sample library usage.
 int main(void)
 {
-    CWriterConfigEnum_t writers[1];
-    CCompressionMethodEnum_t compression = CompressionMethodEnum_Store;
+    CWriterConfigEnum writers[1];
+    CCompressionMethodEnum compression = CompressionMethodEnum_Store;
     writers[0] = file_writer_config_new(DEBUG,
                                         "/tmp/cfastlogging.log",
                                         1024,

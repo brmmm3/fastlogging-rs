@@ -14,14 +14,14 @@ int main(void)
                                   0, // Array size / Number of writers
                                   NULL,
                                   NULL);
-    CCompressionMethodEnum_t compression = CompressionMethodEnum_Store;
-    CWriterConfigEnum_t file = file_writer_config_new(DEBUG,
+    CCompressionMethodEnum compression = CompressionMethodEnum_Store;
+    CWriterConfigEnum file = file_writer_config_new(DEBUG,
                                                     "/tmp/cfastlogging.log",
                                                     1024,
-                                                    3,
-                                                    -1,
-                                                    -1,
-                                                    compression);
+                                                     3,
+                                                     -1,
+                                                     -1,
+                                                     compression);
 
     logging_add_writer_config(logging, file);
     logging_trace(logging, "Trace Message");

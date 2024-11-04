@@ -8,7 +8,7 @@
 // Sample library usage.
 int main(void)
 {
-    CExtConfig_t *config = ext_config_new(MessageStructEnum_Xml, 1, 0, 1, 0, 1);
+    CExtConfig *config = ext_config_new(MessageStructEnum_Xml, 1, 0, 1, 0, 1);
     printf("config.structured=%d\n", config->structured);
     printf("config.hostname=%d\n", config->hostname);
     printf("config.pname=%d\n", config->pname);

@@ -14,7 +14,7 @@ int main(void)
                                   0,
                                   NULL,
                                   NULL);
-    CWriterConfigEnum_t console = console_writer_config_new(DEBUG, 1);
+    CWriterConfigEnum console = console_writer_config_new(DEBUG, 1);
     logging_add_writer_config(logging, console);
     logging_trace(logging, "Trace Message");
     logging_debug(logging, "Debug Message");

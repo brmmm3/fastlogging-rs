@@ -9,7 +9,8 @@ use fastlogging::{
     WriterConfigEnum, WriterEnum, WriterTypeEnum,
 };
 
-use crate::util::{char2string, option_char2string};
+use crate::util::char2string;
+use crate::{CEncryptionMethodEnum, CKeyStruct};
 
 #[repr(C)]
 pub struct CServerConfig {
@@ -138,8 +139,16 @@ pub unsafe extern "C" fn ext_config_new(
 ///
 /// Create new logging instance.
 #[no_mangle]
-pub unsafe extern "C" fn logging_init() -> *mut Logging {
-    Box::into_raw(Box::new(fastlogging::logging_init().unwrap()))
+pub unsafe extern "C" fn logging_init_root() {
+    fastlogging::logging_init_root();
+}
+
+/// # Safety
+///
+/// Create new logging instance.
+#[no_mangle]
+pub unsafe extern "C" fn logging_new_default() -> *mut Logging {
+    Box::into_raw(Box::new(fastlogging::logging_new_default().unwrap()))
 }
 
 /// # Safety
@@ -149,8 +158,8 @@ pub unsafe extern "C" fn logging_init() -> *mut Logging {
 pub unsafe extern "C" fn logging_new(
     level: c_char, // Global log level
     domain: *const c_char,
-    writers_ptr: *mut *mut WriterConfigEnum, // This is a Vec<WriterConfigEnum>
-    writers_cnt: c_uint,
+    configs_ptr: *mut *mut WriterConfigEnum, // This is a Vec<WriterConfigEnum>
+    configs_cnt: c_uint,
     ext_config: *mut ExtConfig,
     config_path: *const c_char, // Optional path to config file
 ) -> *mut Logging {
@@ -159,10 +168,10 @@ pub unsafe extern "C" fn logging_new(
     } else {
         char2string(domain)
     };
-    let writers = if writers_ptr.is_null() {
+    let configs = if configs_ptr.is_null() {
         Vec::new()
     } else {
-        let writers = slice::from_raw_parts(writers_ptr, writers_cnt as usize);
+        let writers = slice::from_raw_parts(configs_ptr, configs_cnt as usize);
         writers
             .into_iter()
             .map(|w| *Box::from_raw(*w))
@@ -173,16 +182,13 @@ pub unsafe extern "C" fn logging_new(
     } else {
         Some(*Box::from_raw(ext_config))
     };
-    Box::into_raw(Box::new(
-        Logging::new(
-            level as u8,
-            domain,
-            writers,
-            ext_config,
-            option_char2string(config_path).map(PathBuf::from),
-        )
-        .unwrap(),
-    ))
+    let config_path = if config_path.is_null() {
+        None
+    } else {
+        Some(PathBuf::from(char2string(config_path)))
+    };
+    let logging = Logging::new(level as u8, domain, configs, ext_config, config_path).unwrap();
+    Box::into_raw(Box::new(logging))
 }
 
 /// # Safety
@@ -288,7 +294,7 @@ pub unsafe extern "C" fn logging_set_root_writer_config(
     config: *mut WriterConfigEnum,
 ) -> isize {
     match logging.set_root_writer_config(&*Box::from_raw(config)) {
-        Ok(r) => Box::into_raw(Box::new(r)) as isize,
+        Ok(_r) => 0,
         Err(err) => {
             eprintln!("logging_set_root_writer_config failed: {err:?}");
             err.as_int() as isize
@@ -321,7 +327,8 @@ pub unsafe extern "C" fn logging_add_writer_config(
     logging: &mut Logging,
     config: *mut WriterConfigEnum,
 ) -> isize {
-    match logging.add_writer_config(&*Box::from_raw(config)) {
+    let config = *Box::from_raw(config);
+    match logging.add_writer_config(&config) {
         Ok(r) => Box::into_raw(Box::new(r)) as isize,
         Err(err) => {
             eprintln!("logging_add_writer_config failed: {err:?}");
@@ -398,7 +405,7 @@ pub unsafe extern "C" fn logging_remove_writers(
     wids: *mut usize,
     wid_cnt: usize,
 ) -> *mut CWriterEnumVec {
-    let writers = logging.remove_writers(Vec::from_raw_parts(wids, wid_cnt, wid_cnt));
+    let writers = logging.remove_writers(Some(Vec::from_raw_parts(wids, wid_cnt, wid_cnt)));
     Box::into_raw(Box::new(CWriterEnumVec {
         cnt: writers.len() as u32,
         values: writers,
@@ -676,8 +683,16 @@ pub unsafe extern "C" fn logging_get_server_ports(logging: &Logging) -> *const C
 ///
 /// Get server authentification key.
 #[no_mangle]
-pub unsafe extern "C" fn logging_get_server_auth_key(logging: &Logging) -> *const c_char {
-    logging.get_server_auth_key().key_cloned().unwrap().as_ptr() as *const c_char
+pub unsafe extern "C" fn logging_get_server_auth_key(logging: &Logging) -> *mut CKeyStruct {
+    let mut key = logging.get_server_auth_key().key_cloned().unwrap();
+    key.shrink_to_fit();
+    let c_key = CKeyStruct {
+        typ: CEncryptionMethodEnum::AuthKey,
+        len: key.len() as c_uint,
+        key: key.as_ptr(),
+    };
+    std::mem::forget(key);
+    Box::into_raw(Box::new(c_key))
 }
 
 /// # Safety

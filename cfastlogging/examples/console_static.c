@@ -8,7 +8,7 @@
 // Sample library usage.
 int main(void)
 {
-    Logging logging = logging_init();
+    Logging logging = logging_new_default();
     logging_trace(logging, "Trace Message");
     logging_debug(logging, "Debug Message");
     logging_info(logging, "Info Message");

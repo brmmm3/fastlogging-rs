@@ -1,4 +1,5 @@
-use std::ffi::{c_char, c_int, c_longlong, c_uchar, c_uint, c_ulong, CStr, CString};
+use core::slice;
+use std::ffi::{c_char, c_int, c_longlong, c_uchar, c_uint, c_ulong, CString};
 use std::ops::Add;
 use std::path::PathBuf;
 use std::ptr;
@@ -13,13 +14,20 @@ use once_cell::sync::Lazy;
 
 use crate::util::{char2string, option_char2string};
 
-#[allow(dead_code)]
 #[repr(C)]
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum CEncryptionMethodEnum {
     NONE,
     AuthKey,
     AES,
+}
+
+#[repr(C)]
+#[derive(Debug, Clone, PartialEq)]
+pub struct CKeyStruct {
+    pub typ: CEncryptionMethodEnum,
+    pub len: c_uint,
+    pub key: *const u8,
 }
 
 #[no_mangle]
@@ -75,18 +83,14 @@ pub unsafe extern "C" fn file_writer_config_new(
 pub unsafe extern "C" fn client_writer_config_new(
     level: c_uchar,
     address: *const c_char,
-    encryption: CEncryptionMethodEnum,
-    key: *const c_char,
+    key: *mut CKeyStruct,
 ) -> *mut WriterConfigEnum {
-    let key = if encryption == CEncryptionMethodEnum::NONE || key.is_null() {
+    let key = if key.is_null() {
         EncryptionMethod::NONE
     } else {
-        let key = (unsafe { CStr::from_ptr(key) })
-            .to_str()
-            .unwrap()
-            .as_bytes()
-            .to_vec();
-        if encryption == CEncryptionMethodEnum::AuthKey {
+        let c_key = *Box::from_raw(key);
+        let key = unsafe { slice::from_raw_parts(c_key.key, c_key.len as usize) }.to_vec();
+        if c_key.typ == CEncryptionMethodEnum::AuthKey {
             EncryptionMethod::AuthKey(key)
         } else {
             EncryptionMethod::AES(key)
@@ -103,18 +107,14 @@ pub unsafe extern "C" fn client_writer_config_new(
 pub unsafe extern "C" fn server_config_new(
     level: c_uchar,
     address: *const c_char,
-    encryption: CEncryptionMethodEnum,
-    key: *const c_char,
+    key: *mut CKeyStruct,
 ) -> *mut WriterConfigEnum {
-    let key = if encryption == CEncryptionMethodEnum::NONE || key.is_null() {
+    let key = if key.is_null() {
         EncryptionMethod::NONE
     } else {
-        let key = (unsafe { CStr::from_ptr(key) })
-            .to_str()
-            .unwrap()
-            .as_bytes()
-            .to_vec();
-        if encryption == CEncryptionMethodEnum::AuthKey {
+        let c_key = *Box::from_raw(key);
+        let key = unsafe { slice::from_raw_parts(c_key.key, c_key.len as usize) }.to_vec();
+        if c_key.typ == CEncryptionMethodEnum::AuthKey {
             EncryptionMethod::AuthKey(key)
         } else {
             EncryptionMethod::AES(key)

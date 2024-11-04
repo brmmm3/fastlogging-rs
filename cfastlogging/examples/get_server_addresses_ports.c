@@ -9,33 +9,33 @@
 int main(void)
 {
     // Server
-    CWriterConfigEnum_t server_writers[2];
+    CWriterConfigEnum server_writers[2];
     server_writers[0] = console_writer_config_new(DEBUG, 1);
-    server_writers[1] = server_config_new(DEBUG, "127.0.0.1", EncryptionMethod_NONE, NULL);
+    server_writers[1] = server_config_new(DEBUG, "127.0.0.1", NULL);
     Logging logging_server = logging_new(DEBUG,
                                          "LOGSRV",
                                          server_writers,
                                          1,
                                          NULL,
                                          NULL);
-    CWriterConfigEnum_t server = server_config_new(DEBUG, "127.0.0.1", EncryptionMethod_NONE, NULL);
+    CWriterConfigEnum server = server_config_new(DEBUG, "127.0.0.1", NULL);
     printf("server_config=%p\n", server);
     logging_set_root_writer_config(logging_server, server);
     logging_sync_all(logging_server, 5.0);
     // Show addresses and ports
-    const Cu32u16Vec_t *ports = logging_get_server_ports(logging_server);
+    const Cu32u16Vec *ports = logging_get_server_ports(logging_server);
     printf("ports->cnt=%d\n", ports->cnt);
     for (int i = 0; i < ports->cnt; i++) {
         printf("ports->key[%d]=%d\n", i, ports->keys[i]);
         printf("ports->value[%d]=%d\n", i, ports->values[i]);
     }
-    const Cu32StringVec_t *addresses = logging_get_server_addresses(logging_server);
+    const Cu32StringVec *addresses = logging_get_server_addresses(logging_server);
     printf("addresses->cnt=%d\n", addresses->cnt);
     for (int i = 0; i < addresses->cnt; i++) {
         printf("addresses->key[%d]=%d\n", i, addresses->keys[i]);
         printf("addresses->value[%d]=%s\n", i, addresses->values[i]);
     }
-    const Cu32StringVec_t *addresses_ports = logging_get_server_addresses_ports(logging_server);
+    const Cu32StringVec *addresses_ports = logging_get_server_addresses_ports(logging_server);
     printf("addresses_ports->cnt=%d\n", addresses_ports->cnt);
     for (int i = 0; i < addresses_ports->cnt; i++) {
         printf("addresses_ports->key[%d]=%d\n", i, addresses_ports->keys[i]);

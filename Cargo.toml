@@ -2,7 +2,14 @@
 
 resolver = "2"
 
-members = ["fastlogging", "pyfastlogging", "jfastlogging", "cfastlogging"]
+members = [
+    "fastlogging",
+    "pyfastlogging",
+    "cfastlogging",
+    #"cppfastlogging",
+    #"gofastlogging",
+    #"jfastlogging",
+]
 
 [profile.release]
 codegen-units = 1
