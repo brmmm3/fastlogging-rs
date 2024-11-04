@@ -234,7 +234,7 @@ impl ConfigFile {
                 WriterConfigEnum::Console(console_config) => {
                     let configs = instance.get_filtered_writer_configs(WriterTypeEnum::Console);
                     if merge == FileMerge::MergeReplace {
-                        instance.remove_writers(configs.into_keys().collect::<Vec<_>>());
+                        instance.remove_writers(Some(configs.into_keys().collect::<Vec<_>>()));
                     } else if merge == FileMerge::Merge && configs.is_empty() {
                         instance.add_writer(WriterEnum::Console(ConsoleWriter::new(
                             console_config.clone(),
@@ -247,7 +247,7 @@ impl ConfigFile {
                         file_config.path.to_str().unwrap().to_string(),
                     ));
                     if merge == FileMerge::MergeReplace {
-                        instance.remove_writers(configs.into_keys().collect::<Vec<_>>());
+                        instance.remove_writers(Some(configs.into_keys().collect::<Vec<_>>()));
                     } else if merge == FileMerge::Merge && configs.is_empty() {
                         instance.add_writer(WriterEnum::File(FileWriter::new(
                             file_config.clone(),
@@ -260,7 +260,7 @@ impl ConfigFile {
                         client_config.get_address_port(),
                     ));
                     if merge == FileMerge::MergeReplace {
-                        instance.remove_writers(configs.into_keys().collect::<Vec<_>>());
+                        instance.remove_writers(Some(configs.into_keys().collect::<Vec<_>>()));
                     } else if merge == FileMerge::Merge && configs.is_empty() {
                         instance.add_writer(WriterEnum::Client(ClientWriter::new(
                             client_config.clone(),
@@ -273,7 +273,7 @@ impl ConfigFile {
                         server_config.get_address_port(),
                     ));
                     if merge == FileMerge::MergeReplace {
-                        instance.remove_writers(configs.into_keys().collect::<Vec<_>>());
+                        instance.remove_writers(Some(configs.into_keys().collect::<Vec<_>>()));
                     } else if merge == FileMerge::Merge && configs.is_empty() {
                         instance.add_writer(WriterEnum::Server(LoggingServer::new(
                             server_config.clone(),
@@ -285,7 +285,7 @@ impl ConfigFile {
                 WriterConfigEnum::Callback(callback_config) => {
                     let configs = instance.get_filtered_writer_configs(WriterTypeEnum::Callback);
                     if merge == FileMerge::MergeReplace {
-                        instance.remove_writers(configs.into_keys().collect::<Vec<_>>());
+                        instance.remove_writers(Some(configs.into_keys().collect::<Vec<_>>()));
                     } else if merge == FileMerge::Merge && configs.is_empty() {
                         instance.add_writer(WriterEnum::Callback(CallbackWriter::new(
                             callback_config.clone(),
@@ -296,7 +296,7 @@ impl ConfigFile {
                 WriterConfigEnum::Syslog(syslog_config) => {
                     let configs = instance.get_filtered_writer_configs(WriterTypeEnum::Syslog);
                     if merge == FileMerge::MergeReplace {
-                        instance.remove_writers(configs.into_keys().collect::<Vec<_>>());
+                        instance.remove_writers(Some(configs.into_keys().collect::<Vec<_>>()));
                     } else if merge == FileMerge::Merge && configs.is_empty() {
                         instance.add_writer(WriterEnum::Syslog(SyslogWriter::new(
                             syslog_config.clone(),

@@ -47,14 +47,19 @@ mod windows;
 pub use windows::getppid;
 
 /// Initialize fastlogging with default console writer.
-pub fn logging_init() -> Result<Logging, LoggingError> {
+pub fn logging_new_default() -> Result<Logging, LoggingError> {
     Logging::new(
         NOTSET,
         "root",
-        vec![ConsoleWriterConfig::new(TRACE, false).into()],
+        vec![ConsoleWriterConfig::new(NOTSET, false).into()],
         None,
         None,
     )
+}
+
+/// Shutdown fastlogging.
+pub fn logging_init_root() {
+    drop(ROOT_LOGGER.lock().unwrap());
 }
 
 /// Shutdown fastlogging.
@@ -121,7 +126,7 @@ pub fn add_writers(writers: Vec<WriterEnum>) -> Vec<usize> {
 }
 
 /// Remove list of writer. `wids` contains list of writer IDs. The return value is a list of removed writers.
-pub fn remove_writers(wids: Vec<usize>) -> Vec<WriterEnum> {
+pub fn remove_writers(wids: Option<Vec<usize>>) -> Vec<WriterEnum> {
     ROOT_LOGGER.lock().unwrap().remove_writers(wids)
 }
 

@@ -402,7 +402,7 @@ impl Logging {
         let stop = instance.stop.clone();
         let (sync_tx, sync_rx) = bounded(1);
         let instance = Arc::new(Mutex::new(instance));
-        Ok(Self {
+        let logging = Self {
             level,
             domain,
             instance: instance.clone(),
@@ -426,7 +426,8 @@ impl Logging {
                         }
                     })?,
             ),
-        })
+        };
+        Ok(logging)
     }
 
     pub fn init() -> Result<Self, LoggingError> {
@@ -500,7 +501,7 @@ impl Logging {
         if let Err(err) = self.server_tx.send(LoggingTypeEnum::Stop) {
             eprintln!("Failed to send STOP signal to broker thread: {err:?}");
         }
-        if let Some(thr) = self.thr.take() {
+        let result = if let Some(thr) = self.thr.take() {
             thr.join().map_err(|e| {
                 LoggingError::JoinError(
                     "Logging".to_string(),
@@ -509,7 +510,8 @@ impl Logging {
             })
         } else {
             Ok(())
-        }
+        };
+        result
     }
 
     pub fn set_level(&mut self, wid: usize, level: u8) -> Result<(), LoggingError> {
@@ -624,7 +626,7 @@ impl Logging {
         self.instance.lock().unwrap().add_writers(writers)
     }
 
-    pub fn remove_writers(&mut self, wids: Vec<usize>) -> Vec<WriterEnum> {
+    pub fn remove_writers(&mut self, wids: Option<Vec<usize>>) -> Vec<WriterEnum> {
         self.instance.lock().unwrap().remove_writers(wids)
     }
 

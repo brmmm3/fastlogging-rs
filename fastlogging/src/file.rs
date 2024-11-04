@@ -63,11 +63,11 @@ impl From<i32> for CompressionMethodEnum {
 #[repr(C)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileWriterConfig {
-    pub(crate) enabled: bool,
-    pub(crate) level: u8, // Log level
-    pub(crate) domain_filter: Option<String>,
-    pub(crate) message_filter: Option<String>,
-    pub(crate) path: PathBuf,           // Log file path
+    pub enabled: bool,
+    pub level: u8, // Log level
+    pub domain_filter: Option<String>,
+    pub message_filter: Option<String>,
+    pub path: PathBuf,                  // Log file path
     size: usize,                        // Maximum size of log file. 0 means no size limit.
     backlog: usize,                     // Maximum number of backup files.
     timeout: Option<Duration>,          // Maximum log file age in seconds.

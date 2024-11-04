@@ -34,13 +34,13 @@ pub enum ConsoleTargetEnum {
 #[repr(C)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConsoleWriterConfig {
-    pub(crate) enabled: bool,
-    pub(crate) level: u8, // Log level
-    pub(crate) domain_filter: Option<String>,
-    pub(crate) message_filter: Option<String>,
-    pub(crate) colors: bool,
-    pub(crate) target: ConsoleTargetEnum,
-    pub(crate) debug: u8,
+    pub enabled: bool,
+    pub level: u8, // Log level
+    pub domain_filter: Option<String>,
+    pub message_filter: Option<String>,
+    pub colors: bool,
+    pub target: ConsoleTargetEnum,
+    pub debug: u8,
 }
 
 impl ConsoleWriterConfig {

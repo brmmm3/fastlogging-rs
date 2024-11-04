@@ -22,10 +22,11 @@ fn main() -> Result<(), LoggingError> {
         None,
         None,
     )?;
+    // Set root writer
     logging_server.set_root_writer_config(
         &ServerConfig::new(DEBUG, "127.0.0.1", EncryptionMethod::NONE).into(),
     )?;
-    logging_server.set_debug(3);
+    //logging_server.set_debug(3);
     logging_server.sync_all(5.0).unwrap();
     // Client
     let mut logging_client = Logging::new(
@@ -34,7 +35,7 @@ fn main() -> Result<(), LoggingError> {
         vec![
             ClientWriterConfig::new(
                 DEBUG,
-                logging_server.get_server_addresses().get(&0).unwrap(),
+                logging_server.get_root_server_address_port().unwrap(),
                 logging_server.get_server_auth_key(),
             )
             .into(),
@@ -43,7 +44,7 @@ fn main() -> Result<(), LoggingError> {
         None,
         None,
     )?;
-    logging_client.set_debug(3);
+    //logging_client.set_debug(3);
     println!("Send logs");
     logging_client.trace("Trace Message".to_string()).unwrap();
     logging_client.debug("Debug Message".to_string()).unwrap();
