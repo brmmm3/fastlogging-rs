@@ -14,7 +14,7 @@ int main(void)
                                                   3,
                                                   -1,
                                                   -1,
-                                                  CCompressionMethodEnum_t::Store);
+                                                  CompressionMethod::Store);
     logging->add_writer(file);
     logging->trace("Trace Message");
     logging->debug("Debug Message");

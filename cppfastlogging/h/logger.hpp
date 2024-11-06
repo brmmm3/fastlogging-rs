@@ -26,6 +26,8 @@ extern "C"
 
     void logger_set_domain(rust::Logger *logger, const char *domain);
 
+    // Logger calls
+
     intptr_t logger_trace(const rust::Logger *logger, const char *message);
 
     intptr_t logger_debug(const rust::Logger *logger, const char *message);

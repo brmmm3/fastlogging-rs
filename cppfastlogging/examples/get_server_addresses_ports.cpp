@@ -8,12 +8,11 @@ using namespace logging;
 int main(void)
 {
     // Server
-    WriterConfig configs[] = {ConsoleWriterConfig(DEBUG, 1),
-                              ServerConfig(DEBUG, "127.0.0.1", CEncryptionMethodEnum_t::NONE, NULL)};
+    WriterConfig configs[] = {ConsoleWriterConfig(DEBUG, 1), ServerConfig(DEBUG, "127.0.0.1", NULL)};
     Logging *logging_server = new Logging(DEBUG,
                                           "LOGSRV",
                                           configs);
-    WriterConfig *server = new ServerConfig(DEBUG, "127.0.0.1", CEncryptionMethodEnum_t::NONE, NULL);
+    WriterConfig *server = new ServerConfig(DEBUG, "127.0.0.1", NULL);
     printf("server_config=%p\n", server);
     logging_server->set_root_writer_config(server);
     logging_server->sync_all(5.0);

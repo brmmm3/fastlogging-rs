@@ -7,14 +7,13 @@ using namespace logging;
 // Sample library usage.
 int main(void)
 {
-    Logging *logging = new Logging();
-    logging->trace("Trace Message");
-    logging->debug("Debug Message");
-    logging->info("Info Message");
-    logging->success("Success Message");
-    logging->warn("Warning Message");
-    logging->error("Error Message");
-    logging->fatal("Fatal Message");
-    delete logging;
+    Logging logging = Init();
+    logging.trace("Trace Message");
+    logging.debug("Debug Message");
+    logging.info("Info Message");
+    logging.success("Success Message");
+    logging.warn("Warning Message");
+    logging.error("Error Message");
+    logging.fatal("Fatal Message");
     return 0;
 }

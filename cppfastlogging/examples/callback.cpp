@@ -11,7 +11,7 @@ void writer_callback(uint8_t level, const char *domain, const char *message) {
 // Sample library usage.
 int main(void)
 {
-    CallbackWriterConfig configs[] = {CallbackWriterConfig(DEBUG, writer_callback)};
+    WriterConfig configs[] = {CallbackWriterConfig(DEBUG, writer_callback)};
     Logging *logging = new Logging(DEBUG, "root", configs);
     logging->trace("Trace Message");
     logging->debug("Debug Message");

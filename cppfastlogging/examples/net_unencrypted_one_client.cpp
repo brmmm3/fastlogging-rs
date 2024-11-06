@@ -8,26 +8,18 @@ using namespace logging;
 int main(void)
 {
     // Server
-    WriterConfig configs[] = {ConsoleWriterConfig(DEBUG, 1),
-                              ServerConfig(DEBUG, "127.0.0.1", CEncryptionMethodEnum_t::NONE, NULL)};
-    Logging *logging_server = new Logging(DEBUG,
-                                          "LOGSRV",
-                                          configs);
-    WriterConfig *server = new ServerConfig(DEBUG, "127.0.0.1", CEncryptionMethodEnum_t::NONE, NULL);
-    printf("server_config=%p\n", server);
+    WriterConfig server_writers[] = {ConsoleWriterConfig(DEBUG, 1),
+                                     FileWriterConfig(DEBUG, "/tmp/cfastlogging.log", 1024, 3)};
+    Logging *logging_server = new Logging(DEBUG, "LOGSRV", server_writers);
+    WriterConfig *server = new ServerConfig(DEBUG, "127.0.0.1");
     logging_server->set_root_writer_config(server);
     logging_server->sync_all(5.0);
-    const char *address = logging_server->get_root_server_address_port();
-    printf("address=%s\n", address);
-    const char *key = logging_server->get_server_auth_key();
-    printf("key=%s\n", key);
     // Client
-    Logging *logging_client = new Logging(DEBUG,
-                                          "LOGCLIENT",
-                                          configs);
-    CWriterTypeEnum_t client_writer = client_writer_config_new(DEBUG, address, CEncryptionMethodEnum_t::AuthKey, key);
-    printf("client_writer=%p\n", client_writer);
-    logging_server->set_root_writer_config(client_writer);
+    const char *address_port = logging_server->get_root_server_address_port();
+    printf("address=%s\n", address_port);
+    rust::KeyStruct *key = logging_server->get_server_auth_key();
+    WriterConfig client_writers[] = {ClientWriterConfig(DEBUG, address_port, key)};
+    Logging *logging_client = new Logging(DEBUG, "LOGCLIENT", client_writers);
     printf("Send logs\n");
     // Test logging
     logging_client->trace("Trace Message");

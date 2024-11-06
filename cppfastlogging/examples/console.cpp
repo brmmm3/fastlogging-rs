@@ -8,14 +8,13 @@ using namespace logging;
 int main(void)
 {
     WriterConfig configs[] = {ConsoleWriterConfig(DEBUG, 1)};
-    Logging *logging = new Logging(DEBUG, "root", configs);
-    logging->trace("Trace Message");
-    logging->debug("Debug Message");
-    logging->info("Info Message");
-    logging->success("Success Message");
-    logging->warn("Warning Message");
-    logging->error("Error Message");
-    logging->fatal("Fatal Message");
-    delete logging;
+    Logging logging = Logging(DEBUG, "root", configs);
+    logging.trace("Trace Message");
+    logging.debug("Debug Message");
+    logging.info("Info Message");
+    logging.success("Success Message");
+    logging.warn("Warning Message");
+    logging.error("Error Message");
+    logging.fatal("Fatal Message");
     return 0;
 }

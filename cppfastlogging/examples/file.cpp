@@ -13,7 +13,7 @@ int main(void)
                                                3,
                                                -1,
                                                -1,
-                                               CCompressionMethodEnum_t::Store)};
+                                               CompressionMethod::Store)};
     Logging *logging = new Logging(DEBUG, "root", configs);
     logging->trace("Trace Message");
     logging->debug("Debug Message");

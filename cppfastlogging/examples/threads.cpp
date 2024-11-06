@@ -21,7 +21,7 @@ void *loggerThreadFun(void *vargp)
 int main(void)
 {
     pthread_t thread_id;
-    ExtConfig *ext_config = new ExtConfig(CMessageStructEnum_t::String, 1, 1, 1, 1, 1);
+    ExtConfig *ext_config = new ExtConfig(MessageStruct::String, 1, 1, 1, 1, 1);
     ConsoleWriterConfig *console = new ConsoleWriterConfig(DEBUG, 1);
     WriterConfig configs[] = {ConsoleWriterConfig(DEBUG, 1)};
     Logging *logging = new Logging(DEBUG,
