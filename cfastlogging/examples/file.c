@@ -8,19 +8,17 @@
 // Sample library usage.
 int main(void)
 {
-    CWriterConfigEnum writers[1];
-    CCompressionMethodEnum compression = CompressionMethodEnum_Store;
-    writers[0] = file_writer_config_new(DEBUG,
-                                        "/tmp/cfastlogging.log",
-                                        1024,
-                                        3,
-                                        -1,
-                                        -1,
-                                        compression);
+    struct WriterConfigEnum *configs[] = { file_writer_config_new(DEBUG,
+                                                                  "/tmp/cfastlogging.log",
+                                                                  1024,
+                                                                  3,
+                                                                  -1,
+                                                                  -1,
+                                                                  CompressionMethodEnum_Store) };
+    struct WriterConfigEnums writers = { .cnt=1, .wids=NULL, .configs=configs };
     Logging logging = logging_new(DEBUG,
                                   NULL,
-                                  writers, // Pointer to writers array
-                                  1, // Array size / Number of writers
+                                  &writers,
                                   NULL,
                                   NULL);
     logging_trace(logging, "Trace Message");

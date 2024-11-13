@@ -8,12 +8,13 @@
 // Sample library usage.
 int main(void)
 {
-    CWriterConfigEnum writers[1];
-    writers[0] = console_writer_config_new(DEBUG, 1);
+    struct WriterConfigEnum *configs[] = { console_writer_config_new(DEBUG, 1) };
+    struct WriterConfigEnums writers = { .cnt=1, .wids=NULL, .configs=configs };
+    printf("C writers.cnt=%d\n", writers.cnt);
+    printf("C writers.configs=%p\n", writers.configs);
     Logging logging = logging_new(DEBUG,
                                   NULL,
-                                  writers, // Pointer to writers array
-                                  1, // Array size / Number of writers
+                                  &writers,
                                   NULL,
                                   NULL);
     logging_trace(logging, "Trace Message");

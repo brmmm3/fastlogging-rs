@@ -3,22 +3,21 @@
 #include "h/cfastlogging.h"
 #include <string.h>
 
-// File: net_unencrypted_one_client.c
+// File: get_server_addresses_ports.c
 //
 // Sample library usage.
 int main(void)
 {
     // Server
-    CWriterConfigEnum server_writers[2];
-    server_writers[0] = console_writer_config_new(DEBUG, 1);
-    server_writers[1] = server_config_new(DEBUG, "127.0.0.1", NULL);
+    struct WriterConfigEnum *server_configs[] = { console_writer_config_new(DEBUG, 1),
+                                                  server_config_new(DEBUG, "127.0.0.1", NULL) };
+    struct WriterConfigEnums server_writers = { .cnt=1, .wids=NULL, .configs=server_configs };
     Logging logging_server = logging_new(DEBUG,
                                          "LOGSRV",
-                                         server_writers,
-                                         1,
+                                         &server_writers,
                                          NULL,
                                          NULL);
-    CWriterConfigEnum server = server_config_new(DEBUG, "127.0.0.1", NULL);
+    WriterConfigEnum *server = server_config_new(DEBUG, "127.0.0.1", NULL);
     printf("server_config=%p\n", server);
     logging_set_root_writer_config(logging_server, server);
     logging_sync_all(logging_server, 5.0);

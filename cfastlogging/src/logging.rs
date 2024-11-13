@@ -1,49 +1,20 @@
-use core::slice;
 use std::collections::HashMap;
-use std::ffi::{c_char, c_double, c_uchar, c_uint, c_ushort, CStr, CString};
+use std::ffi::{c_char, c_double, c_uchar, c_uint, c_ushort, c_void, CStr, CString};
 use std::path::PathBuf;
 use std::ptr::null;
+use std::slice;
 
 use fastlogging::{
-    EncryptionMethod, ExtConfig, LevelSyms, Logger, Logging, MessageStructEnum, ServerConfig,
-    WriterConfigEnum, WriterEnum, WriterTypeEnum,
+    EncryptionMethod, ExtConfig, LevelSyms, Logger, Logging, MessageStructEnum, WriterEnum,
 };
 
 use crate::util::char2string;
-use crate::{CEncryptionMethodEnum, CKeyStruct};
-
-#[repr(C)]
-pub struct CServerConfig {
-    level: u8,
-    address: *const c_char,
-    port: u16,
-    key: EncryptionMethod,
-}
+use crate::{EncryptionMethodEnum, KeyStruct};
 
 #[repr(C)]
 pub struct CusizeVec {
     cnt: c_uint,
-    values: Vec<usize>,
-}
-
-#[repr(C)]
-pub struct CWriterEnumVec {
-    cnt: c_uint,
-    values: Vec<WriterEnum>,
-}
-
-#[repr(C)]
-pub struct CWriterConfigEnumHashMap {
-    cnt: c_uint,
-    keys: Vec<usize>,
-    values: Vec<WriterConfigEnum>,
-}
-
-#[repr(C)]
-pub struct CServerConfigHashMap {
-    cnt: c_uint,
-    keys: Vec<usize>,
-    values: Vec<ServerConfig>,
+    values: *const c_uint,
 }
 
 #[repr(C)]
@@ -93,6 +64,269 @@ impl From<HashMap<usize, u16>> for Cu32u16Vec {
             values: c_ports,
         }
     }
+}
+
+#[repr(C)]
+pub struct ServerConfig {
+    level: u8,
+    address: *const c_char,
+    port: u16,
+    key: *mut KeyStruct,
+}
+
+#[repr(C)]
+pub struct ServerConfigs {
+    cnt: c_uint,
+    keys: *const u32,
+    values: *const ServerConfig,
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum WriterEnumTyp {
+    Root,
+    Console,
+    File,
+    Client,
+    Server,
+    Callback,
+    Syslog,
+}
+
+pub fn writer_config_as_void(config: fastlogging::WriterConfigEnum) -> *const c_void {
+    match config {
+        fastlogging::WriterConfigEnum::Root(root_config) => {
+            Box::into_raw(Box::new(root_config)) as *const c_void
+        }
+        fastlogging::WriterConfigEnum::Console(console_writer_config) => {
+            Box::into_raw(Box::new(console_writer_config)) as *const c_void
+        }
+        fastlogging::WriterConfigEnum::File(file_writer_config) => {
+            Box::into_raw(Box::new(file_writer_config)) as *const c_void
+        }
+        fastlogging::WriterConfigEnum::Client(client_writer_config) => {
+            Box::into_raw(Box::new(client_writer_config)) as *const c_void
+        }
+        fastlogging::WriterConfigEnum::Server(server_config) => {
+            Box::into_raw(Box::new(server_config)) as *const c_void
+        }
+        fastlogging::WriterConfigEnum::Callback(callback_writer_config) => {
+            Box::into_raw(Box::new(callback_writer_config)) as *const c_void
+        }
+        fastlogging::WriterConfigEnum::Syslog(syslog_writer_config) => {
+            Box::into_raw(Box::new(syslog_writer_config)) as *const c_void
+        }
+    }
+}
+
+impl From<fastlogging::WriterConfigEnum> for WriterEnumTyp {
+    fn from(config: fastlogging::WriterConfigEnum) -> Self {
+        match config {
+            fastlogging::WriterConfigEnum::Root(_) => Self::Root,
+            fastlogging::WriterConfigEnum::Console(_) => Self::Console,
+            fastlogging::WriterConfigEnum::File(_) => Self::File,
+            fastlogging::WriterConfigEnum::Client(_) => Self::Client,
+            fastlogging::WriterConfigEnum::Server(_) => Self::Server,
+            fastlogging::WriterConfigEnum::Callback(_) => Self::Callback,
+            fastlogging::WriterConfigEnum::Syslog(_) => Self::Syslog,
+        }
+    }
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum WriterTypeEnumTyp {
+    Root,
+    Console,
+    File,
+    Files,
+    Client,
+    Clients,
+    Server,
+    Servers,
+    Callback,
+    Syslog,
+}
+
+#[repr(C)]
+pub struct WriterTypeEnum {
+    typ: WriterTypeEnumTyp,
+    value: *const c_char,
+}
+
+impl WriterTypeEnum {
+    pub fn c_into_rust(&self) -> fastlogging::WriterTypeEnum {
+        match self.typ {
+            WriterTypeEnumTyp::Root => fastlogging::WriterTypeEnum::Root,
+            WriterTypeEnumTyp::Console => fastlogging::WriterTypeEnum::Console,
+            WriterTypeEnumTyp::File => fastlogging::WriterTypeEnum::File(char2string(self.value)),
+            WriterTypeEnumTyp::Files => fastlogging::WriterTypeEnum::Files,
+            WriterTypeEnumTyp::Client => {
+                fastlogging::WriterTypeEnum::Client(char2string(self.value))
+            }
+            WriterTypeEnumTyp::Clients => fastlogging::WriterTypeEnum::Clients,
+            WriterTypeEnumTyp::Server => {
+                fastlogging::WriterTypeEnum::Server(char2string(self.value))
+            }
+            WriterTypeEnumTyp::Servers => fastlogging::WriterTypeEnum::Servers,
+            WriterTypeEnumTyp::Callback => fastlogging::WriterTypeEnum::Callback,
+            WriterTypeEnumTyp::Syslog => fastlogging::WriterTypeEnum::Syslog,
+        }
+    }
+}
+
+impl From<fastlogging::WriterTypeEnum> for WriterTypeEnum {
+    fn from(config: fastlogging::WriterTypeEnum) -> Self {
+        match config {
+            fastlogging::WriterTypeEnum::Root => Self {
+                typ: WriterTypeEnumTyp::Root,
+                value: null(),
+            },
+            fastlogging::WriterTypeEnum::Console => Self {
+                typ: WriterTypeEnumTyp::Console,
+                value: null(),
+            },
+            fastlogging::WriterTypeEnum::File(value) => Self {
+                typ: WriterTypeEnumTyp::File,
+                value: CString::new(value)
+                    .expect("Error: CString::new()")
+                    .into_raw(),
+            },
+            fastlogging::WriterTypeEnum::Files => Self {
+                typ: WriterTypeEnumTyp::Files,
+                value: null(),
+            },
+            fastlogging::WriterTypeEnum::Client(value) => Self {
+                typ: WriterTypeEnumTyp::Client,
+                value: CString::new(value)
+                    .expect("Error: CString::new()")
+                    .into_raw(),
+            },
+            fastlogging::WriterTypeEnum::Clients => Self {
+                typ: WriterTypeEnumTyp::Clients,
+                value: null(),
+            },
+            fastlogging::WriterTypeEnum::Server(value) => Self {
+                typ: WriterTypeEnumTyp::Server,
+                value: CString::new(value)
+                    .expect("Error: CString::new()")
+                    .into_raw(),
+            },
+            fastlogging::WriterTypeEnum::Servers => Self {
+                typ: WriterTypeEnumTyp::Servers,
+                value: null(),
+            },
+            fastlogging::WriterTypeEnum::Callback => Self {
+                typ: WriterTypeEnumTyp::Callback,
+                value: null(),
+            },
+            fastlogging::WriterTypeEnum::Syslog => Self {
+                typ: WriterTypeEnumTyp::Syslog,
+                value: null(),
+            },
+        }
+    }
+}
+
+#[repr(C)]
+pub struct WriterTypeEnums {
+    cnt: c_uint,
+    types: *const WriterTypeEnum,
+}
+
+/*#[repr(C)]
+pub struct WriterEnum {
+    typ: WriterEnumTyp,
+    writer: *const c_void,
+}
+
+#[repr(C)]
+pub struct WriterEnums {
+    cnt: c_uint,
+    values: *const WriterEnum,
+}*/
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub struct WriterConfigEnum {
+    typ: WriterEnumTyp,
+    config: *const c_void,
+}
+
+impl WriterConfigEnum {
+    pub fn c_into_rust(&self) -> fastlogging::WriterConfigEnum {
+        match self.typ {
+            WriterEnumTyp::Root => fastlogging::WriterConfigEnum::Root(unsafe {
+                *Box::from_raw(self.config as *mut _)
+            }),
+            WriterEnumTyp::Console => fastlogging::WriterConfigEnum::Console(unsafe {
+                *Box::from_raw(self.config as *mut _)
+            }),
+            WriterEnumTyp::File => fastlogging::WriterConfigEnum::File(unsafe {
+                *Box::from_raw(self.config as *mut _)
+            }),
+            WriterEnumTyp::Client => fastlogging::WriterConfigEnum::Client(unsafe {
+                *Box::from_raw(self.config as *mut _)
+            }),
+            WriterEnumTyp::Server => fastlogging::WriterConfigEnum::Server(unsafe {
+                *Box::from_raw(self.config as *mut _)
+            }),
+            WriterEnumTyp::Callback => fastlogging::WriterConfigEnum::Callback(unsafe {
+                *Box::from_raw(self.config as *mut _)
+            }),
+            WriterEnumTyp::Syslog => fastlogging::WriterConfigEnum::Syslog(unsafe {
+                *Box::from_raw(self.config as *mut _)
+            }),
+        }
+    }
+}
+
+impl From<fastlogging::WriterConfigEnum> for WriterConfigEnum {
+    fn from(config: fastlogging::WriterConfigEnum) -> Self {
+        match config {
+            fastlogging::WriterConfigEnum::Root(root_config) => Self {
+                typ: WriterEnumTyp::Root,
+                config: Box::into_raw(Box::new(root_config)) as *const c_void,
+            },
+            fastlogging::WriterConfigEnum::Console(console_writer_config) => Self {
+                typ: WriterEnumTyp::Console,
+                config: Box::into_raw(Box::new(console_writer_config)) as *const c_void,
+            },
+            fastlogging::WriterConfigEnum::File(file_writer_config) => Self {
+                typ: WriterEnumTyp::File,
+                config: Box::into_raw(Box::new(file_writer_config)) as *const c_void,
+            },
+            fastlogging::WriterConfigEnum::Client(client_writer_config) => Self {
+                typ: WriterEnumTyp::Client,
+                config: Box::into_raw(Box::new(client_writer_config)) as *const c_void,
+            },
+            fastlogging::WriterConfigEnum::Server(server_config) => Self {
+                typ: WriterEnumTyp::Server,
+                config: Box::into_raw(Box::new(server_config)) as *const c_void,
+            },
+            fastlogging::WriterConfigEnum::Callback(callback_writer_config) => Self {
+                typ: WriterEnumTyp::Callback,
+                config: Box::into_raw(Box::new(callback_writer_config)) as *const c_void,
+            },
+            fastlogging::WriterConfigEnum::Syslog(syslog_writer_config) => Self {
+                typ: WriterEnumTyp::Syslog,
+                config: Box::into_raw(Box::new(syslog_writer_config)) as *const c_void,
+            },
+        }
+    }
+}
+
+#[repr(C)]
+pub struct WriterConfigEnums {
+    cnt: c_uint,
+    wids: *const c_uint,
+    configs: *const WriterConfigEnum,
+}
+
+#[repr(C)]
+pub struct WriterEnums {
+    cnt: c_uint,
+    writers: *const WriterEnum,
 }
 
 #[inline]
@@ -158,8 +392,7 @@ pub unsafe extern "C" fn logging_new_default() -> *mut Logging {
 pub unsafe extern "C" fn logging_new(
     level: c_char, // Global log level
     domain: *const c_char,
-    configs_ptr: *mut *mut WriterConfigEnum, // This is a Vec<WriterConfigEnum>
-    configs_cnt: c_uint,
+    configs: *mut WriterConfigEnums, // This is a Vec<WriterConfigEnum>
     ext_config: *mut ExtConfig,
     config_path: *const c_char, // Optional path to config file
 ) -> *mut Logging {
@@ -168,14 +401,16 @@ pub unsafe extern "C" fn logging_new(
     } else {
         char2string(domain)
     };
-    let configs = if configs_ptr.is_null() {
+    let configs = if configs.is_null() {
         Vec::new()
     } else {
-        let writers = slice::from_raw_parts(configs_ptr, configs_cnt as usize);
-        writers
-            .into_iter()
-            .map(|w| *Box::from_raw(*w))
-            .collect::<Vec<_>>()
+        let configs = &mut *configs;
+        let configs_configs: &[WriterConfigEnum] =
+            slice::from_raw_parts(configs.configs as *mut _, configs.cnt as usize);
+        println!("*****");
+        println!("configs.cnt={}", configs.cnt);
+        println!("configs.configs={:p}", configs.configs);
+        configs_configs.to_vec()
     };
     let ext_config = if ext_config.is_null() {
         None
@@ -213,7 +448,7 @@ pub unsafe extern "C" fn logging_apply_config(logging: &mut Logging, path: *cons
 ///
 /// Shutdown logging.
 #[no_mangle]
-pub unsafe extern "C" fn logging_shutdown(logging: &mut Logging, now: u8) -> isize {
+pub unsafe extern "C" fn logging_shutdown(logging: &mut Logging, now: i8) -> isize {
     let result = if let Err(err) = logging.shutdown(now != 0) {
         eprintln!("logging_shutdown failed: {err:?}");
         err.as_int() as isize
@@ -293,7 +528,8 @@ pub unsafe extern "C" fn logging_set_root_writer_config(
     logging: &mut Logging,
     config: *mut WriterConfigEnum,
 ) -> isize {
-    match logging.set_root_writer_config(&*Box::from_raw(config)) {
+    let config = *Box::from_raw(config);
+    match logging.set_root_writer_config(&config.c_into_rust()) {
         Ok(_r) => 0,
         Err(err) => {
             eprintln!("logging_set_root_writer_config failed: {err:?}");
@@ -368,10 +604,20 @@ pub unsafe extern "C" fn logging_remove_writer(
 #[no_mangle]
 pub unsafe extern "C" fn logging_add_writer_configs(
     logging: &mut Logging,
-    configs: *mut WriterConfigEnum,
-    config_cnt: usize,
+    configs: *mut WriterConfigEnums,
 ) -> isize {
-    match logging.add_writer_configs(slice::from_raw_parts(configs, config_cnt)) {
+    let configs = *Box::from_raw(configs);
+    let configs: Vec<WriterConfigEnum> = Vec::from_raw_parts(
+        configs.configs as *mut _,
+        configs.cnt as usize,
+        configs.cnt as usize,
+    );
+    let configs: Vec<fastlogging::WriterConfigEnum> = configs
+        .into_iter()
+        .map(|w| w.c_into_rust())
+        .collect::<Vec<_>>();
+
+    match logging.add_writer_configs(configs.as_slice()) {
         Ok(r) => Box::into_raw(Box::new(r)) as isize,
         Err(err) => {
             eprintln!("logging_add_writer_configs failed: {err:?}");
@@ -386,13 +632,17 @@ pub unsafe extern "C" fn logging_add_writer_configs(
 #[no_mangle]
 pub unsafe extern "C" fn logging_add_writers(
     logging: &mut Logging,
-    writers: *mut WriterEnum,
-    writer_cnt: usize,
+    writers: *mut WriterEnums,
 ) -> *mut CusizeVec {
-    let wids = logging.add_writers(Vec::from_raw_parts(writers, writer_cnt, writer_cnt));
+    let writers = *Box::from_raw(writers);
+    let wids = logging.add_writers(Vec::from_raw_parts(
+        writers.writers as *mut _,
+        writers.cnt as usize,
+        writers.cnt as usize,
+    ));
     Box::into_raw(Box::new(CusizeVec {
         cnt: wids.len() as u32,
-        values: wids,
+        values: wids.as_ptr() as *const u32,
     }))
 }
 
@@ -402,14 +652,26 @@ pub unsafe extern "C" fn logging_add_writers(
 #[no_mangle]
 pub unsafe extern "C" fn logging_remove_writers(
     logging: &mut Logging,
-    wids: *mut usize,
-    wid_cnt: usize,
-) -> *mut CWriterEnumVec {
-    let writers = logging.remove_writers(Some(Vec::from_raw_parts(wids, wid_cnt, wid_cnt)));
-    Box::into_raw(Box::new(CWriterEnumVec {
-        cnt: writers.len() as u32,
-        values: writers,
-    }))
+    wids: *mut c_uint,
+    wid_cnt: c_uint,
+) -> *mut WriterConfigEnums {
+    let wids = Vec::from_raw_parts(wids as *mut usize, wid_cnt as usize, wid_cnt as usize);
+    let writers = logging.remove_writers(Some(wids.clone()));
+    let configs = writers
+        .into_iter()
+        .map(|w| WriterConfigEnum {
+            typ: WriterEnumTyp::from(w.config().clone()),
+            config: writer_config_as_void(w.config()),
+        })
+        .collect::<Vec<_>>();
+    let result = Box::into_raw(Box::new(WriterConfigEnums {
+        cnt: configs.len() as u32,
+        wids: wids.as_ptr() as *const u32,
+        configs: configs.as_ptr(),
+    }));
+    std::mem::forget(wids);
+    std::mem::forget(configs);
+    result
 }
 
 /// # Safety
@@ -448,7 +710,8 @@ pub unsafe extern "C" fn logging_enable_type(
     logging: &mut Logging,
     typ: *mut WriterTypeEnum,
 ) -> isize {
-    match logging.enable_type(*Box::from_raw(typ)) {
+    let typ = *Box::from_raw(typ);
+    match logging.enable_type(typ.c_into_rust()) {
         Ok(r) => Box::into_raw(Box::new(r)) as isize,
         Err(err) => {
             eprintln!("logging_enable failed: {err:?}");
@@ -465,7 +728,8 @@ pub unsafe extern "C" fn logging_disable_type(
     logging: &mut Logging,
     typ: *mut WriterTypeEnum,
 ) -> isize {
-    match logging.disable_type(*Box::from_raw(typ)) {
+    let typ = *Box::from_raw(typ);
+    match logging.disable_type(typ.c_into_rust()) {
         Ok(r) => Box::into_raw(Box::new(r)) as isize,
         Err(err) => {
             eprintln!("logging_disable_type failed: {err:?}");
@@ -480,11 +744,15 @@ pub unsafe extern "C" fn logging_disable_type(
 #[no_mangle]
 pub unsafe extern "C" fn logging_sync(
     logging: &Logging,
-    types: *mut WriterTypeEnum,
-    type_cnt: c_uint,
+    types: *mut WriterTypeEnums,
     timeout: c_double,
 ) -> isize {
-    let types = Vec::from_raw_parts(types, type_cnt as usize, type_cnt as usize);
+    let types = *Box::from_raw(types);
+    let types = Vec::from_raw_parts(
+        types.types as *mut _,
+        types.cnt as usize,
+        types.cnt as usize,
+    );
     if let Err(err) = logging.sync(types, timeout) {
         eprintln!("logging_sync failed: {err:?}");
         err.as_int() as isize
@@ -572,7 +840,10 @@ pub unsafe extern "C" fn logging_get_writer_config(
     wid: c_uint,
 ) -> *const WriterConfigEnum {
     match logging.get_writer_config(wid as usize) {
-        Some(config) => &config,
+        Some(config) => Box::into_raw(Box::new(WriterConfigEnum {
+            typ: WriterEnumTyp::from(config.clone()),
+            config: writer_config_as_void(config),
+        })),
         None => null(),
     }
 }
@@ -581,20 +852,24 @@ pub unsafe extern "C" fn logging_get_writer_config(
 ///
 /// Get configuration.
 #[no_mangle]
-pub unsafe extern "C" fn logging_get_writer_configs(
-    logging: &Logging,
-) -> *const CWriterConfigEnumHashMap {
-    let mut configs = CWriterConfigEnumHashMap {
-        cnt: 0,
-        keys: Vec::new(),
-        values: Vec::new(),
-    };
+pub unsafe extern "C" fn logging_get_writer_configs(logging: &Logging) -> *const WriterConfigEnums {
+    let mut wids = Vec::new();
+    let mut configs = Vec::new();
     for (k, v) in logging.get_writer_configs().into_iter() {
-        configs.keys.push(k);
-        configs.values.push(v);
+        wids.push(k);
+        configs.push(WriterConfigEnum {
+            typ: WriterEnumTyp::from(v.clone()),
+            config: writer_config_as_void(v),
+        });
     }
-    configs.cnt = configs.keys.len() as u32;
-    Box::into_raw(Box::new(configs))
+    let results = WriterConfigEnums {
+        cnt: wids.len() as u32,
+        wids: wids.as_ptr() as *const u32,
+        configs: configs.as_ptr(),
+    };
+    std::mem::forget(wids);
+    std::mem::forget(configs);
+    Box::into_raw(Box::new(results))
 }
 
 /// # Safety
@@ -604,17 +879,24 @@ pub unsafe extern "C" fn logging_get_writer_configs(
 pub unsafe extern "C" fn logging_get_server_config(
     logging: &Logging,
     wid: usize,
-) -> *mut CServerConfig {
+) -> *mut ServerConfig {
     match logging.get_server_config(wid) {
-        Ok(c) => Box::into_raw(Box::new(CServerConfig {
-            level: c.level,
-            address: CString::new(c.address)
-                .expect("Error: CString::new()")
-                .into_raw(),
-            port: c.port,
-            key: c.key,
-        })),
-        Err(_err) => null::<CServerConfig>() as *mut _,
+        Ok(c) => {
+            let key = KeyStruct {
+                typ: EncryptionMethodEnum::from(&c.key),
+                len: c.key.len() as c_uint,
+                key: Box::into_raw(Box::new(c.key.key_cloned())) as *const u8,
+            };
+            Box::into_raw(Box::new(ServerConfig {
+                level: c.level,
+                address: CString::new(c.address)
+                    .expect("Error: CString::new()")
+                    .into_raw(),
+                port: c.port,
+                key: Box::into_raw(Box::new(key)),
+            }))
+        }
+        Err(_err) => null::<ServerConfig>() as *mut _,
     }
 }
 
@@ -622,19 +904,35 @@ pub unsafe extern "C" fn logging_get_server_config(
 ///
 /// Get configuration.
 #[no_mangle]
-pub unsafe extern "C" fn logging_get_server_configs(
-    logging: &Logging,
-) -> *const CServerConfigHashMap {
-    let mut configs = CServerConfigHashMap {
-        cnt: 0,
-        keys: Vec::new(),
-        values: Vec::new(),
-    };
+pub unsafe extern "C" fn logging_get_server_configs(logging: &Logging) -> *const ServerConfigs {
+    let mut keys = Vec::new();
+    let mut values = Vec::new();
     for (k, v) in logging.get_server_configs().into_iter() {
-        configs.keys.push(k);
-        configs.values.push(v);
+        println!("k={k}");
+        println!("v={v:?}");
+        keys.push(k as u32);
+        let key = KeyStruct {
+            typ: EncryptionMethodEnum::from(&v.key),
+            len: v.key.len() as c_uint,
+            key: Box::into_raw(Box::new(v.key.key_cloned())) as *const u8,
+        };
+        let config = ServerConfig {
+            level: v.level,
+            address: CString::new(v.address)
+                .expect("Error: CString::new()")
+                .into_raw() as *const c_char,
+            port: v.port,
+            key: Box::into_raw(Box::new(key)),
+        };
+        values.push(config);
     }
-    configs.cnt = configs.keys.len() as u32;
+    let configs = ServerConfigs {
+        cnt: keys.len() as u32,
+        keys: keys.as_ptr(),
+        values: values.as_ptr(),
+    };
+    std::mem::forget(keys);
+    std::mem::forget(values);
     Box::into_raw(Box::new(configs))
 }
 
@@ -642,9 +940,9 @@ pub unsafe extern "C" fn logging_get_server_configs(
 ///
 /// Get server configuration.
 #[no_mangle]
-pub unsafe extern "C" fn logging_get_root_server_address_port(logging: &Logging) -> *const char {
+pub unsafe extern "C" fn logging_get_root_server_address_port(logging: &Logging) -> *const c_char {
     match logging.get_root_server_address_port() {
-        Some(s) => CString::new(s).expect("Error: CString::new()").into_raw() as *const char,
+        Some(s) => CString::new(s).expect("Error: CString::new()").into_raw() as *const c_char,
         None => null(),
     }
 }
@@ -683,11 +981,11 @@ pub unsafe extern "C" fn logging_get_server_ports(logging: &Logging) -> *const C
 ///
 /// Get server authentification key.
 #[no_mangle]
-pub unsafe extern "C" fn logging_get_server_auth_key(logging: &Logging) -> *mut CKeyStruct {
+pub unsafe extern "C" fn logging_get_server_auth_key(logging: &Logging) -> *mut KeyStruct {
     let mut key = logging.get_server_auth_key().key_cloned().unwrap();
     key.shrink_to_fit();
-    let c_key = CKeyStruct {
-        typ: CEncryptionMethodEnum::AuthKey,
+    let c_key = KeyStruct {
+        typ: EncryptionMethodEnum::AuthKey,
         len: key.len() as c_uint,
         key: key.as_ptr(),
     };

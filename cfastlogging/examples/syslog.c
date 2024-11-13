@@ -8,12 +8,11 @@
 // Sample library usage.
 int main(void)
 {
-    CWriterConfigEnum writers[1];
-    writers[0] = syslog_writer_config_new(DEBUG, "HOSTNAME", "PNAME", 1234);
+    struct WriterConfigEnum *configs[] = { syslog_writer_config_new(DEBUG, "HOSTNAME", "PNAME", 1234) };
+    struct WriterConfigEnums writers = { .cnt=1, .wids=NULL, .configs=configs };
     Logging logging = logging_new(DEBUG,
                                   NULL,
-                                  writers,
-                                  1,
+                                  &writers,
                                   NULL,
                                   NULL);
     logging_trace(logging, "Trace Message");

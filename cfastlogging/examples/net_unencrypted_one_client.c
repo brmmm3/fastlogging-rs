@@ -9,37 +9,34 @@
 int main(void)
 {
     // Server
-    CWriterConfigEnum server_writers[2];
-    server_writers[0] = console_writer_config_new(DEBUG, 1);
-    CCompressionMethodEnum compression = CompressionMethodEnum_Store;
-    server_writers[1] = file_writer_config_new(DEBUG,
-                                               "/tmp/cfastlogging.log",
-                                               1024,
-                                               3,
-                                               -1,
-                                               -1,
-                                               compression);
+    struct WriterConfigEnum *server_configs[] = { console_writer_config_new(DEBUG, 1),
+                                                  file_writer_config_new(DEBUG,
+                                                                          "/tmp/cfastlogging.log",
+                                                                          1024,
+                                                                          3,
+                                                                          -1,
+                                                                          -1,
+                                                                          CompressionMethodEnum_Store) };
+    struct WriterConfigEnums server_writers = { .cnt=1, .wids=NULL, .configs=server_configs };
     Logging logging_server = logging_new(DEBUG,
                                          "LOGSRV",
-                                         server_writers,
-                                         2,
+                                         &server_writers,
                                          NULL,
                                          NULL);
     // Set root writer
-    CWriterTypeEnum server = server_config_new(DEBUG, "127.0.0.1", NULL);
+    WriterConfigEnum *server = server_config_new(DEBUG, "127.0.0.1", NULL);
     logging_set_root_writer_config(logging_server, server);
     //logging_set_debug(logging_server, 3);
     logging_sync_all(logging_server, 5.0);
     // Client
     const char *address_port = logging_get_root_server_address_port(logging_server);
     printf("address_port=%s\n", address_port);
-    CKeyStruct *key = logging_get_server_auth_key(logging_server);
-    CWriterConfigEnum client_writers[1];
-    client_writers[0] = client_writer_config_new(DEBUG, address_port, key);
+    KeyStruct *key = logging_get_server_auth_key(logging_server);
+    struct WriterConfigEnum *client_configs[] = { client_writer_config_new(DEBUG, address_port, key) };
+    struct WriterConfigEnums client_writers = { .cnt=1, .wids=NULL, .configs=client_configs };
     Logging logging_client = logging_new(DEBUG,
                                          "LOGCLIENT",
-                                         client_writers,
-                                         1,
+                                         &client_writers,
                                          NULL,
                                          NULL);
     //logging_set_debug(logging_client, 3);

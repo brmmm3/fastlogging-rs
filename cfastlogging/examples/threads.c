@@ -24,13 +24,12 @@ void *loggerThreadFun(void *vargp)
 int main(void)
 {
     pthread_t thread_id;
-    CWriterConfigEnum writers[1];
-    writers[0] = console_writer_config_new(DEBUG, 1);
-    CExtConfig *ext_config = ext_config_new(CompressionMethodEnum_Store, 1, 1, 1, 1, 1);
+    struct WriterConfigEnum *configs[] = { console_writer_config_new(DEBUG, 1) };
+    struct WriterConfigEnums writers = { .cnt=1, .wids=NULL, .configs=configs };
+    ExtConfig *ext_config = ext_config_new(CompressionMethodEnum_Store, 1, 1, 1, 1, 1);
     Logging logging = logging_new(DEBUG,
                                   NULL,
-                                  writers,
-                                  1,
+                                  &writers,
                                   ext_config,
                                   NULL);
     Logger logger = logger_new_ext(DEBUG, "LoggerThread", 1, 1);

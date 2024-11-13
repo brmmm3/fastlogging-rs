@@ -16,16 +16,26 @@ use crate::util::{char2string, option_char2string};
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub enum CEncryptionMethodEnum {
+pub enum EncryptionMethodEnum {
     NONE,
     AuthKey,
     AES,
 }
 
+impl From<&EncryptionMethod> for EncryptionMethodEnum {
+    fn from(key: &EncryptionMethod) -> Self {
+        match key {
+            EncryptionMethod::NONE => EncryptionMethodEnum::NONE,
+            EncryptionMethod::AuthKey(_key) => EncryptionMethodEnum::AuthKey,
+            EncryptionMethod::AES(_key) => EncryptionMethodEnum::AES,
+        }
+    }
+}
+
 #[repr(C)]
 #[derive(Debug, Clone, PartialEq)]
-pub struct CKeyStruct {
-    pub typ: CEncryptionMethodEnum,
+pub struct KeyStruct {
+    pub typ: EncryptionMethodEnum,
     pub len: c_uint,
     pub key: *const u8,
 }
@@ -83,14 +93,14 @@ pub unsafe extern "C" fn file_writer_config_new(
 pub unsafe extern "C" fn client_writer_config_new(
     level: c_uchar,
     address: *const c_char,
-    key: *mut CKeyStruct,
+    key: *mut KeyStruct,
 ) -> *mut WriterConfigEnum {
     let key = if key.is_null() {
         EncryptionMethod::NONE
     } else {
         let c_key = *Box::from_raw(key);
         let key = unsafe { slice::from_raw_parts(c_key.key, c_key.len as usize) }.to_vec();
-        if c_key.typ == CEncryptionMethodEnum::AuthKey {
+        if c_key.typ == EncryptionMethodEnum::AuthKey {
             EncryptionMethod::AuthKey(key)
         } else {
             EncryptionMethod::AES(key)
@@ -107,14 +117,14 @@ pub unsafe extern "C" fn client_writer_config_new(
 pub unsafe extern "C" fn server_config_new(
     level: c_uchar,
     address: *const c_char,
-    key: *mut CKeyStruct,
+    key: *mut KeyStruct,
 ) -> *mut WriterConfigEnum {
     let key = if key.is_null() {
         EncryptionMethod::NONE
     } else {
         let c_key = *Box::from_raw(key);
         let key = unsafe { slice::from_raw_parts(c_key.key, c_key.len as usize) }.to_vec();
-        if c_key.typ == CEncryptionMethodEnum::AuthKey {
+        if c_key.typ == EncryptionMethodEnum::AuthKey {
             EncryptionMethod::AuthKey(key)
         } else {
             EncryptionMethod::AES(key)
