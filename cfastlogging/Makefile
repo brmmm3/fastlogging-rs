@@ -16,6 +16,7 @@ build:
 	$(GCC_BIN) -o ./bin/net_unencrypted_one_client ./examples/net_unencrypted_one_client.c -I. -L. -l:../target/release/libcfastlogging.so
 	$(GCC_BIN) -o ./bin/syslog ./examples/syslog.c -I. -L. -l:../target/release/libcfastlogging.so
 	$(GCC_BIN) -o ./bin/get_server_addresses_ports ./examples/get_server_addresses_ports.c -I. -L. -l:../target/release/libcfastlogging.so
+	$(GCC_BIN) -o ./bin/get_server_configs ./examples/get_server_configs.c -I. -L. -l:../target/release/libcfastlogging.so
 	$(GCC_BIN) -o ./bin/ext_config ./examples/ext_config.c -I. -L. -l:../target/release/libcfastlogging.so
 	$(GCC_BIN) -o ./bin/console_static ./examples/console_static.c -I. -L. -l:../target/release/libcfastlogging.so
 
@@ -52,6 +53,7 @@ build-debug:
 	$(GCC_BIN) -o ./bin/net_unencrypted_one_client ./examples/net_unencrypted_one_client.c -I. -L. -l:../target/debug/libcfastlogging.so
 	$(GCC_BIN) -o ./bin/syslog ./examples/syslog.c -I. -L. -l:../target/debug/libcfastlogging.so
 	$(GCC_BIN) -o ./bin/get_server_addresses_ports ./examples/get_server_addresses_ports.c -I. -L. -l:../target/debug/libcfastlogging.so
+	$(GCC_BIN) -o ./bin/get_server_configs ./examples/get_server_configs.c -I. -L. -l:../target/debug/libcfastlogging.so
 	$(GCC_BIN) -o ./bin/ext_config ./examples/ext_config.c -I. -L. -l:../target/debug/libcfastlogging.so
 	$(GCC_BIN) -o ./bin/console_static ./examples/console_static.c -I. -L. -l:../target/debug/libcfastlogging.so
 

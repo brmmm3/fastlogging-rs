@@ -21,6 +21,20 @@
 #define TRACE 5
 #define NOTSET 0
 
+typedef struct Cu32StringVec
+{
+    uint32_t cnt;
+    uint32_t *keys;
+    char **values;
+} Cu32StringVec;
+
+typedef struct Cu32u16Vec
+{
+    uint32_t cnt;
+    uint32_t *keys;
+    uint16_t *values;
+} Cu32u16Vec;
+
 // Simple enum
 typedef enum CLevelSyms: uint8_t
 {
@@ -105,6 +119,11 @@ typedef struct CWriter
 
 typedef void* CWriterEnum;
 
+typedef struct CWriterEnumVec {
+    uint32_t cnt;
+    CWriterEnum *values;
+} CWriterEnumVec;
+
 // Simple enum
 typedef enum CMessageStructEnum: uint8_t
 {
@@ -120,7 +139,8 @@ typedef enum CEncryptionMethodEnum: uint8_t
     EncryptionMethod_AES = 2
 } CEncryptionMethodEnum;
 
-typedef struct CExtConfig {
+typedef struct CExtConfig
+{
     CMessageStructEnum structured;  // enum MessageStructEnum
     int8_t hostname;
     int8_t pname;
@@ -129,14 +149,22 @@ typedef struct CExtConfig {
     int8_t tid;
 } CExtConfig;
 
-typedef struct CClientWriterConfig {
+typedef struct CKeyStruct
+{
+    CEncryptionMethodEnum typ;
+    uint32_t len;
+    const char *key;
+} CKeyStruct;
+
+typedef struct CClientWriterConfig
+{
     int8_t enabled;
     uint8_t level;
     const char *domain_filter;
     const char *message_filter;
     const char *address;
     uint16_t port;
-    int8_t key;  // EncryptionMethod,
+    CKeyStruct *key;  // EncryptionMethod,
     uint8_t debug;
 } CClientWriterConfig;
 
@@ -145,27 +173,16 @@ typedef struct CServerConfig
     uint8_t level;
     const char *address;
     uint16_t port;
-    CEncryptionMethodEnum encryption;
-    const char *key;
+    CKeyStruct *key;
+    const char *port_file;
 } CServerConfig;
 
-typedef struct Cu32StringVec {
+typedef struct CServerConfigs
+{
     uint32_t cnt;
     uint32_t *keys;
-    char **values;
-} Cu32StringVec;
-
-typedef struct Cu32u16Vec {
-    uint32_t cnt;
-    uint32_t *keys;
-    uint16_t *values;
-} Cu32u16Vec;
-
-typedef struct CKeyStruct {
-    uint typ;
-    uint len;
-    const char *key;
-} CKeyStruct;
+    CServerConfig *values;
+} CServerConfigs;
 
 typedef void *Logging;
 

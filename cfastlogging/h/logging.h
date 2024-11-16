@@ -53,7 +53,7 @@ int logging_add_writer_configs(Logging logging, CWriterConfigEnum **configs, uin
 
 int logging_add_writers(Logging logging, CWriterEnum **writers, uint32_t writer_cnt);
 
-int logging_remove_writers(Logging logging, uint32_t *wids, uint32_t wid_cnt);
+CWriterEnumVec *logging_remove_writers(Logging logging, uint32_t *wids, uint32_t wid_cnt);
 
 int logging_enable(Logging logging, uint32_t wid);
 
@@ -79,13 +79,13 @@ int logging_set_encryption(Logging logging, CWriterTypeEnum writer, CEncryptionM
 
 void logging_set_debug(Logging logging, uint32_t debug);
 
-CWriterConfigEnum logging_get_config(Logging logging, CWriterTypeEnum writer);
+const CWriterConfigEnum *logging_get_config(Logging logging, CWriterTypeEnum writer);
 
-CWriterConfigEnum *logging_get_writer_configs(Logging logging);
+const CWriterConfigEnum *logging_get_writer_configs(Logging logging);
 
-CServerConfig *logging_get_server_config(Logging logging);
+const CServerConfig *logging_get_server_config(Logging logging);
 
-CServerConfig *logging_get_server_configs(Logging logging);
+const CServerConfigs *logging_get_server_configs(Logging logging);
 
 const char *logging_get_root_server_address_port(Logging logging);
 

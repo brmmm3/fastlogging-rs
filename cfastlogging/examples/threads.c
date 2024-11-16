@@ -24,8 +24,7 @@ void *loggerThreadFun(void *vargp)
 int main(void)
 {
     pthread_t thread_id;
-    CWriterConfigEnum writers[1];
-    writers[0] = console_writer_config_new(DEBUG, 1);
+    CWriterConfigEnum writers[] = { console_writer_config_new(DEBUG, 1) };
     CExtConfig *ext_config = ext_config_new(CompressionMethodEnum_Store, 1, 1, 1, 1, 1);
     Logging logging = logging_new(DEBUG,
                                   NULL,

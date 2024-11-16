@@ -321,7 +321,6 @@ impl LoggingInstance {
                 .map(|k| *k)
                 .collect::<Vec<_>>()
         });
-        println!("remove_writers: {wids:?}");
         wids.into_iter()
             .filter_map(|wid| self.remove_writer(wid))
             .collect::<Vec<_>>()

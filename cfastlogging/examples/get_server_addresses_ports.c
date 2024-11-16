@@ -9,9 +9,8 @@
 int main(void)
 {
     // Server
-    CWriterConfigEnum server_writers[2];
-    server_writers[0] = console_writer_config_new(DEBUG, 1);
-    server_writers[1] = server_config_new(DEBUG, "127.0.0.1", NULL);
+    CWriterConfigEnum server_writers[] = { console_writer_config_new(DEBUG, 1),
+                                           server_config_new(DEBUG, "127.0.0.1", NULL) };
     Logging logging_server = logging_new(DEBUG,
                                          "LOGSRV",
                                          server_writers,

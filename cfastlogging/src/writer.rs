@@ -22,6 +22,16 @@ pub enum CEncryptionMethodEnum {
     AES,
 }
 
+impl From<&EncryptionMethod> for CEncryptionMethodEnum {
+    fn from(key: &EncryptionMethod) -> Self {
+        match key {
+            EncryptionMethod::NONE => CEncryptionMethodEnum::NONE,
+            EncryptionMethod::AuthKey(_key) => CEncryptionMethodEnum::AuthKey,
+            EncryptionMethod::AES(_key) => CEncryptionMethodEnum::AES,
+        }
+    }
+}
+
 #[repr(C)]
 #[derive(Debug, Clone, PartialEq)]
 pub struct CKeyStruct {

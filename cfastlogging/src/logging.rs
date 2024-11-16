@@ -13,37 +13,111 @@ use crate::util::char2string;
 use crate::{CEncryptionMethodEnum, CKeyStruct};
 
 #[repr(C)]
-pub struct CServerConfig {
-    level: u8,
-    address: *const c_char,
-    port: u16,
-    key: EncryptionMethod,
-}
-
-#[repr(C)]
 pub struct CusizeVec {
     cnt: c_uint,
     values: Vec<usize>,
 }
 
 #[repr(C)]
-pub struct CWriterEnumVec {
-    cnt: c_uint,
-    values: Vec<WriterEnum>,
+pub enum CWriterEnum {
+    Root,
+    Console,
+    File,
+    Client,
+    Server,
+    Callback,
+    Syslog,
+}
+
+impl From<WriterEnum> for CWriterEnum {
+    fn from(value: WriterEnum) -> Self {
+        match value {
+            WriterEnum::Root => CWriterEnum::Root,
+            WriterEnum::Console(_console_writer) => CWriterEnum::Console,
+            WriterEnum::File(_file_writer) => CWriterEnum::File,
+            WriterEnum::Client(_client_writer) => CWriterEnum::Client,
+            WriterEnum::Server(_logging_server) => CWriterEnum::Server,
+            WriterEnum::Callback(_callback_writer) => CWriterEnum::Callback,
+            WriterEnum::Syslog(_syslog_writer) => CWriterEnum::Syslog,
+        }
+    }
 }
 
 #[repr(C)]
-pub struct CWriterConfigEnumHashMap {
+pub struct CWriterEnumVec {
+    cnt: c_uint,
+    values: *const CWriterEnum,
+}
+
+#[repr(C)]
+pub struct CWriterConfigEnums {
     cnt: c_uint,
     keys: Vec<usize>,
     values: Vec<WriterConfigEnum>,
 }
 
 #[repr(C)]
-pub struct CServerConfigHashMap {
+pub struct CEncryptionMethod {
+    typ: CEncryptionMethodEnum,
+    len: u32,
+    key: *const u8,
+}
+
+impl From<EncryptionMethod> for CEncryptionMethod {
+    fn from(value: EncryptionMethod) -> Self {
+        match value {
+            EncryptionMethod::NONE => CEncryptionMethod {
+                typ: CEncryptionMethodEnum::NONE,
+                len: 0,
+                key: null(),
+            },
+            EncryptionMethod::AuthKey(key) => CEncryptionMethod {
+                typ: CEncryptionMethodEnum::AuthKey,
+                len: key.len() as u32,
+                key: Box::into_raw(Box::new(key)) as *const u8,
+            },
+            EncryptionMethod::AES(key) => CEncryptionMethod {
+                typ: CEncryptionMethodEnum::AES,
+                len: key.len() as u32,
+                key: Box::into_raw(Box::new(key)) as *const u8,
+            },
+        }
+    }
+}
+
+#[repr(C)]
+pub struct CServerConfig {
+    level: u8,
+    address: *const char,
+    port: u16,
+    key: *const CEncryptionMethod,
+    port_file: *const char,
+}
+
+impl From<ServerConfig> for CServerConfig {
+    fn from(config: ServerConfig) -> Self {
+        CServerConfig {
+            level: config.level,
+            address: CString::new(config.address)
+                .expect("Error: CString::new()")
+                .into_raw() as *const char,
+            port: config.port,
+            key: Box::into_raw(Box::new(config.key.into())),
+            port_file: match config.port_file {
+                Some(v) => CString::new(v.to_str().unwrap())
+                    .expect("Error: CString::new()")
+                    .into_raw() as *const char,
+                None => null(),
+            },
+        }
+    }
+}
+
+#[repr(C)]
+pub struct CServerConfigs {
     cnt: c_uint,
-    keys: Vec<usize>,
-    values: Vec<ServerConfig>,
+    keys: *const u32,
+    values: *const CServerConfig,
 }
 
 #[repr(C)]
@@ -402,13 +476,23 @@ pub unsafe extern "C" fn logging_add_writers(
 #[no_mangle]
 pub unsafe extern "C" fn logging_remove_writers(
     logging: &mut Logging,
-    wids: *mut usize,
-    wid_cnt: usize,
+    wids: *mut u32,
+    wid_cnt: u32,
 ) -> *mut CWriterEnumVec {
-    let writers = logging.remove_writers(Some(Vec::from_raw_parts(wids, wid_cnt, wid_cnt)));
+    let wids: Option<&[u32]> = if wids as *const _ != null() {
+        Some(slice::from_raw_parts(wids, wid_cnt as usize))
+    } else {
+        None
+    };
+    let wids = wids.map(|w| w.into_iter().map(|w| *w as usize).collect::<Vec<usize>>());
+    let writers = logging.remove_writers(wids);
+    let writers = writers
+        .into_iter()
+        .map(|w| w.into())
+        .collect::<Vec<CWriterEnum>>();
     Box::into_raw(Box::new(CWriterEnumVec {
         cnt: writers.len() as u32,
-        values: writers,
+        values: Box::into_raw(Box::new(writers)) as *const CWriterEnum,
     }))
 }
 
@@ -583,8 +667,8 @@ pub unsafe extern "C" fn logging_get_writer_config(
 #[no_mangle]
 pub unsafe extern "C" fn logging_get_writer_configs(
     logging: &Logging,
-) -> *const CWriterConfigEnumHashMap {
-    let mut configs = CWriterConfigEnumHashMap {
+) -> *const CWriterConfigEnums {
+    let mut configs = CWriterConfigEnums {
         cnt: 0,
         keys: Vec::new(),
         values: Vec::new(),
@@ -606,14 +690,7 @@ pub unsafe extern "C" fn logging_get_server_config(
     wid: usize,
 ) -> *mut CServerConfig {
     match logging.get_server_config(wid) {
-        Ok(c) => Box::into_raw(Box::new(CServerConfig {
-            level: c.level,
-            address: CString::new(c.address)
-                .expect("Error: CString::new()")
-                .into_raw(),
-            port: c.port,
-            key: c.key,
-        })),
+        Ok(c) => Box::into_raw(Box::new(c.into())),
         Err(_err) => null::<CServerConfig>() as *mut _,
     }
 }
@@ -622,19 +699,21 @@ pub unsafe extern "C" fn logging_get_server_config(
 ///
 /// Get configuration.
 #[no_mangle]
-pub unsafe extern "C" fn logging_get_server_configs(
-    logging: &Logging,
-) -> *const CServerConfigHashMap {
-    let mut configs = CServerConfigHashMap {
-        cnt: 0,
-        keys: Vec::new(),
-        values: Vec::new(),
-    };
-    for (k, v) in logging.get_server_configs().into_iter() {
-        configs.keys.push(k);
-        configs.values.push(v);
+pub unsafe extern "C" fn logging_get_server_configs(logging: &Logging) -> *const CServerConfigs {
+    let mut keys: Vec<u32> = Vec::new();
+    let mut values: Vec<CServerConfig> = Vec::new();
+    let configs = logging.get_server_configs();
+    for (k, c) in configs.into_iter() {
+        keys.push(k as u32);
+        values.push(c.into());
     }
-    configs.cnt = configs.keys.len() as u32;
+    let configs = CServerConfigs {
+        cnt: keys.len() as u32,
+        keys: keys.as_ptr(),
+        values: values.as_ptr(),
+    };
+    std::mem::forget(keys);
+    std::mem::forget(values);
     Box::into_raw(Box::new(configs))
 }
 

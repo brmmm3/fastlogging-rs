@@ -8,8 +8,7 @@
 // Sample library usage.
 int main(void)
 {
-    CWriterConfigEnum writers[1];
-    writers[0] = console_writer_config_new(DEBUG, 1);
+    CWriterConfigEnum writers[] = { console_writer_config_new(DEBUG, 1) };
     Logging logging = logging_new(DEBUG,
                                   NULL,
                                   writers, // Pointer to writers array

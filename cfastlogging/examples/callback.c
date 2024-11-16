@@ -12,8 +12,7 @@ void writer_callback(uint8_t level, const char *domain, const char *message) {
 // Sample library usage.
 int main(void)
 {
-    CWriterConfigEnum writers[1];
-    writers[0] = callback_writer_config_new(DEBUG, writer_callback);
+    CWriterConfigEnum writers[] = { callback_writer_config_new(DEBUG, writer_callback) };
     //WriterConfigEnum callback_writer = callback_writer_config_enum_new(DEBUG, NULL);
     Logging logging = logging_new(DEBUG,
                                   NULL,

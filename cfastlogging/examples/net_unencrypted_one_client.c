@@ -9,16 +9,14 @@
 int main(void)
 {
     // Server
-    CWriterConfigEnum server_writers[2];
-    server_writers[0] = console_writer_config_new(DEBUG, 1);
-    CCompressionMethodEnum compression = CompressionMethodEnum_Store;
-    server_writers[1] = file_writer_config_new(DEBUG,
-                                               "/tmp/cfastlogging.log",
-                                               1024,
-                                               3,
-                                               -1,
-                                               -1,
-                                               compression);
+    CWriterConfigEnum server_writers[] = { console_writer_config_new(DEBUG, 1),
+                                           file_writer_config_new(DEBUG,
+                                                                  "/tmp/cfastlogging.log",
+                                                                  1024,
+                                                                  3,
+                                                                  -1,
+                                                                  -1,
+                                                                  CompressionMethodEnum_Store) };
     Logging logging_server = logging_new(DEBUG,
                                          "LOGSRV",
                                          server_writers,
