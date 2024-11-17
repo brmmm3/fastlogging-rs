@@ -287,7 +287,7 @@ pub unsafe extern "C" fn logging_apply_config(logging: &mut Logging, path: *cons
 ///
 /// Shutdown logging.
 #[no_mangle]
-pub unsafe extern "C" fn logging_shutdown(logging: &mut Logging, now: u8) -> isize {
+pub unsafe extern "C" fn logging_shutdown(logging: &mut Logging, now: i8) -> isize {
     let result = if let Err(err) = logging.shutdown(now != 0) {
         eprintln!("logging_shutdown failed: {err:?}");
         err.as_int() as isize
