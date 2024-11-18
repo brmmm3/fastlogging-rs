@@ -79,9 +79,9 @@ int logging_set_encryption(Logging logging, CWriterTypeEnum writer, CEncryptionM
 
 void logging_set_debug(Logging logging, uint32_t debug);
 
-const CWriterConfigEnum *logging_get_config(Logging logging, CWriterTypeEnum writer);
+const CWriterConfigEnum *logging_get_writer_config(Logging logging, uint32_t wid);
 
-const CWriterConfigEnum *logging_get_writer_configs(Logging logging);
+const CWriterConfigEnums *logging_get_writer_configs(Logging logging);
 
 const CServerConfig *logging_get_server_config(Logging logging);
 
