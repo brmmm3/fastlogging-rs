@@ -28,23 +28,23 @@ extern "C"
 
     // Logger calls
 
-    intptr_t logger_trace(const rust::Logger *logger, const char *message);
+    int logger_trace(const rust::Logger *logger, const char *message);
 
-    intptr_t logger_debug(const rust::Logger *logger, const char *message);
+    int logger_debug(const rust::Logger *logger, const char *message);
 
-    intptr_t logger_info(const rust::Logger *logger, const char *message);
+    int logger_info(const rust::Logger *logger, const char *message);
 
-    intptr_t logger_success(const rust::Logger *logger, const char *message);
+    int logger_success(const rust::Logger *logger, const char *message);
 
-    intptr_t logger_warning(const rust::Logger *logger, const char *message);
+    int logger_warning(const rust::Logger *logger, const char *message);
 
-    intptr_t logger_error(const rust::Logger *logger, const char *message);
+    int logger_error(const rust::Logger *logger, const char *message);
 
-    intptr_t logger_critical(const rust::Logger *logger, const char *message);
+    int logger_critical(const rust::Logger *logger, const char *message);
 
-    intptr_t logger_fatal(const rust::Logger *logger, const char *message);
+    int logger_fatal(const rust::Logger *logger, const char *message);
 
-    intptr_t logger_exception(const rust::Logger *logger, const char *message);
+    int logger_exception(const rust::Logger *logger, const char *message);
 
     class Logger
     {

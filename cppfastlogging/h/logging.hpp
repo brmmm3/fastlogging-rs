@@ -66,11 +66,11 @@ extern "C"
 
     void logging_remove_writer(rust::Logging *logging, uint32_t wid);
 
-    int logging_add_writer_configs(rust::Logging *logging, rust::WriterConfigEnum **configs, uint32_t config_cnt);
+    int logging_add_writer_configs(rust::Logging *logging, rust::WriterConfigEnums *configs);
 
-    int logging_add_writers(rust::Logging *logging, rust::WriterEnum **writers, uint32_t writer_cnt);
+    int logging_add_writers(rust::Logging *logging, rust::WriterEnums *writers);
 
-    int logging_remove_writers(rust::Logging *logging, uint32_t *wids, uint32_t wid_cnt);
+    WriterEnumVec *logging_remove_writers(rust::Logging *logging, uint32_t *wids, uint32_t wid_cnt);
 
     int logging_enable(rust::Logging *logging, uint32_t wid);
 
@@ -80,7 +80,7 @@ extern "C"
 
     int logging_disable_type(rust::Logging *logging, rust::WriterTypeEnum typ);
 
-    intptr_t logging_sync(rust::Logging *logging, rust::WriterTypeEnum *types, uint32_t type_cnt, double timeout);
+    intptr_t logging_sync(rust::Logging *logging, rust::WriterTypeEnums *types, double timeout);
 
     intptr_t logging_sync_all(rust::Logging *logging, double timeout);
 
@@ -96,13 +96,13 @@ extern "C"
 
     void logging_set_debug(rust::Logging *logging, uint32_t debug);
 
-    rust::WriterConfigEnum *logging_get_config(rust::Logging *logging, rust::WriterTypeEnum writer);
+    rust::WriterConfigEnum *logging_get_writer_config(rust::Logging *logging, uint32_t wid);
 
-    rust::WriterConfigEnum *logging_get_writer_configs(rust::Logging *logging);
+    rust::WriterConfigEnums *logging_get_writer_configs(rust::Logging *logging);
 
     rust::ServerConfig *logging_get_server_config(rust::Logging *logging);
 
-    rust::ServerConfig **logging_get_server_configs(rust::Logging *logging);
+    rust::ServerConfigs *logging_get_server_configs(rust::Logging *logging);
 
     const char *logging_get_root_server_address_port(rust::Logging *logging);
 
@@ -229,6 +229,11 @@ namespace logging
             this->logging = logging;
         }
 
+        int apply_config(const char *path)
+        {
+            return logging_apply_config(logging, path);
+        }
+
         int shutdown(bool now)
         {
             return logging_shutdown(logging, (uint8_t)now);
@@ -269,9 +274,14 @@ namespace logging
             logging_set_root_writer_config(logging, writer->config);
         }
 
-        int add_writer(WriterConfig *writer)
+        int add_writer_config(WriterConfig *config)
         {
-            return logging_add_writer_config(logging, writer->config);
+            return logging_add_writer_config(logging, config);
+        }
+
+        int add_writer(rust::WriterEnum *writer)
+        {
+            return logging_add_writer(logging, writer);
         }
 
         void remove_writer(uint32_t wid)
@@ -337,17 +347,27 @@ namespace logging
 
         // Config
 
-        rust::WriterConfigEnum *get_config(rust::WriterTypeEnum writer)
+        void set_debug(uint8_t debug)
         {
-            return logging_get_config(logging, writer);
+            logging_set_debug(debug);
         }
 
-        rust::ServerConfig *get_server_config()
+        rust::WriterConfigEnum *get_writer_config(uint32_t wid)
         {
-            return logging_get_server_config(logging);
+            return logging_get_writer_config(logging, wid);
         }
 
-        rust::ServerConfig **get_server_configs()
+        rust::WriterConfigEnums *get_writer_configs()
+        {
+            return logging_get_writer_configs(logging);
+        }
+
+        rust::ServerConfig *get_server_config(uint32_t wid)
+        {
+            return logging_get_server_config(logging, wid);
+        }
+
+        rust::ServerConfigs *get_server_configs()
         {
             return logging_get_server_configs(logging);
         }

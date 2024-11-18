@@ -57,13 +57,13 @@ namespace rust {
     };
 
     /* Complex enum
-    typedef enum CFileTypeEnum: uint8_t
+    typedef enum FileTypeEnum: uint8_t
     {
         Message = 0,
         Sync = 1,
         Rotate = 2,
         Stop = 3
-    } CFileTypeEnum;*/
+    } FileTypeEnum;*/
 
     typedef void* FileTypeEnum;
 
@@ -77,7 +77,7 @@ namespace rust {
     };
 
     /* Complex enum
-    typedef enum CWriterTypeEnum: uint8_t
+    typedef enum WriterTypeEnum: uint8_t
     {
         Root = 0,
         Console = 1,
@@ -88,12 +88,12 @@ namespace rust {
         Server = 6,
         Servers = 7,
         Syslog = 8
-    } CWriterTypeEnum;*/
+    } WriterTypeEnum;*/
 
-    //typedef void* WriterTypeEnum;
+    typedef void* WriterTypeEnum;
 
     /* Complex enum
-    typedef enum CWriterConfigEnum: uint8_t
+    typedef enum WriterConfigEnum: uint8_t
     {
         Root = 0,
         Console = 1,
@@ -102,18 +102,18 @@ namespace rust {
         Server = 4,
         Callback = 5,
         Syslog = 6
-    } CWriterConfigEnum;
+    } WriterConfigEnum;
 
     typedef struct CWriterConfig
     {
-        CWriterConfigEnum typ;
+        WriterConfigEnum typ;
         void *config;
     } CWriterConfig;*/
 
-    //typedef void* WriterConfigEnum;
+    typedef void* WriterConfigEnum;
 
     /* Complex enum
-    typedef enum CWriterEnum: uint8_t
+    typedef enum WriterEnum: uint8_t
     {
         Root = 0,
         Console = 1,
@@ -130,7 +130,12 @@ namespace rust {
         void *writer;
     } CWriter_t;*/
 
-    //typedef void* WriterEnum;
+    typedef void* WriterEnum;
+
+    typedef struct WriterEnumVec {
+        uint32_t cnt;
+        WriterEnum *values;
+    } WriterEnumVec;
 
     // Simple enum
     enum class MessageStructEnum: uint8_t
@@ -156,6 +161,13 @@ namespace rust {
         int8_t tid;
     } ExtConfig;
 
+    typedef struct KeyStruct
+    {
+        EncryptionMethodEnum typ;
+        uint32_t len;
+        const char *key;
+    } KeyStruct;
+
     typedef struct ClientWriterConfig {
         int8_t enabled;
         uint8_t level;
@@ -163,7 +175,7 @@ namespace rust {
         const char *message_filter;
         const char *address;
         uint16_t port;
-        int8_t key;  // EncryptionMethod,
+        KeyStruct *key;  // EncryptionMethod,
         uint8_t debug;
     } ClientWriterConfig;
 
@@ -172,9 +184,16 @@ namespace rust {
         uint8_t level;
         const char *address;
         uint16_t port;
-        EncryptionMethodEnum encryption;
-        const char *key;
+        KeyStruct *key;
+        const char *port_File;
     } ServerConfig;
+
+    typedef struct ServerConfigs
+    {
+        uint32_t cnt;
+        uint32_t *keys;
+        ServerConfig *values;
+    } ServerConfigs;
 }
 
 typedef struct Cu32StringVec {
