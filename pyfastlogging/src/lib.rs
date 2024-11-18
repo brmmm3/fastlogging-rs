@@ -1,7 +1,6 @@
 use std::{collections::HashMap, path::PathBuf};
 
 use pyo3::{exceptions::PyException, prelude::*};
-use writer::{CallbackWriterConfig, ExtConfig, RootConfig, SyslogWriterConfig};
 
 mod def;
 pub use def::{EncryptionMethod, LevelSyms, WriterConfigEnum, WriterTypeEnum};
