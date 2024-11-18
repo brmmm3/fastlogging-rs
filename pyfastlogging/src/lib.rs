@@ -5,6 +5,7 @@ use pyo3::{exceptions::PyException, prelude::*};
 mod def;
 pub use def::{EncryptionMethod, LevelSyms, WriterConfigEnum, WriterTypeEnum};
 mod writer;
+use writer::{CallbackWriterConfig, ExtConfig, RootConfig, SyslogWriterConfig};
 pub use writer::{ClientWriterConfig, ConsoleWriterConfig, FileWriterConfig, ServerConfig};
 mod error;
 pub use error::LoggingError;

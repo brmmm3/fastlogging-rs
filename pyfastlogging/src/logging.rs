@@ -12,10 +12,7 @@ use pyo3::types::PyBytes;
 
 use crate::def::{EncryptionMethod, LevelSyms, WriterConfigEnum, WriterTypeEnum};
 use crate::logger::Logger;
-use crate::writer::{
-    CallbackWriterConfig, ClientWriterConfig, ConsoleWriterConfig, ExtConfig, FileWriterConfig,
-    RootConfig, ServerConfig, SyslogWriterConfig,
-};
+use crate::writer::{ExtConfig, ServerConfig};
 use crate::LoggingError;
 
 #[pyclass]
@@ -133,31 +130,34 @@ impl Logging {
             .remove_logger(&mut logger.borrow_mut(py).instance)
     }
 
-    pub fn add_writer(&mut self, config: PyObject, py: Python) -> Result<usize, LoggingError> {
-        let config = if let Ok(config) = config.extract::<RootConfig>(py) {
-            fastlogging::WriterConfigEnum::Root(config.0)
-        } else if let Ok(config) = config.extract::<ConsoleWriterConfig>(py) {
-            fastlogging::WriterConfigEnum::Console(config.0)
-        } else if let Ok(config) = config.extract::<FileWriterConfig>(py) {
-            fastlogging::WriterConfigEnum::File(config.0)
-        } else if let Ok(config) = config.extract::<ClientWriterConfig>(py) {
-            fastlogging::WriterConfigEnum::Client(config.0)
-        } else if let Ok(config) = config.extract::<ServerConfig>(py) {
-            fastlogging::WriterConfigEnum::Server(config.0)
-        } else if let Ok(config) = config.extract::<SyslogWriterConfig>(py) {
-            fastlogging::WriterConfigEnum::Syslog(config.0)
-        } else if let Ok(config) = config.extract::<CallbackWriterConfig>(py) {
-            fastlogging::WriterConfigEnum::Callback(config.0)
-        } else {
-            return Err(LoggingError(fastlogging::LoggingError::InvalidValue(
-                "writer has invalid argument type".to_string(),
-            )));
-        };
-        Ok(self.instance.add_writer_config(&config)?)
+    pub fn set_root_writer(&mut self, config: WriterConfigEnum) -> Result<(), LoggingError> {
+        Ok(self.instance.set_root_writer_config(&config.into())?)
+    }
+
+    pub fn add_writer(&mut self, config: WriterConfigEnum) -> Result<usize, LoggingError> {
+        Ok(self.instance.add_writer_config(&config.into())?)
     }
 
     pub fn remove_writer(&mut self, wid: usize) -> Option<WriterConfigEnum> {
         self.instance.remove_writer(wid).map(|c| c.config().into())
+    }
+
+    pub fn add_writers(
+        &mut self,
+        configs: Vec<WriterConfigEnum>,
+    ) -> Result<Vec<usize>, LoggingError> {
+        Ok(self
+            .instance
+            .add_writer_configs(&configs.into_iter().map(|c| c.into()).collect::<Vec<_>>())?)
+    }
+
+    #[pyo3(signature=(wids=None,))]
+    pub fn remove_writers(&mut self, wids: Option<Vec<usize>>) -> Vec<WriterConfigEnum> {
+        self.instance
+            .remove_writers(wids)
+            .into_iter()
+            .map(|c| c.config().into())
+            .collect::<Vec<_>>()
     }
 
     pub fn enable(&self, wid: usize) -> Result<(), LoggingError> {
