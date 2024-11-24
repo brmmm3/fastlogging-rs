@@ -3,6 +3,7 @@
 
 #include "def.h"
 #include "writer.h"
+#include "root.h"
 #include "logging.h"
 #include "logger.h"
 

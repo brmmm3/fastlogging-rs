@@ -1,6 +1,6 @@
 use core::slice;
 use std::collections::HashMap;
-use std::ffi::{c_char, c_double, c_uchar, c_uint, c_ushort, CStr, CString};
+use std::ffi::{c_char, c_double, c_uchar, c_uint, c_ushort, CString};
 use std::path::PathBuf;
 use std::ptr::null;
 
@@ -14,8 +14,8 @@ use crate::{CEncryptionMethodEnum, CKeyStruct};
 
 #[repr(C)]
 pub struct CusizeVec {
-    cnt: c_uint,
-    values: Vec<usize>,
+    pub cnt: c_uint,
+    pub values: Vec<usize>,
 }
 
 #[repr(C)]
@@ -44,16 +44,16 @@ impl From<WriterEnum> for CWriterEnum {
 }
 
 #[repr(C)]
-pub struct CWriterEnumVec {
-    cnt: c_uint,
-    values: *const CWriterEnum,
+pub struct CWriterEnums {
+    pub cnt: c_uint,
+    pub values: *const CWriterEnum,
 }
 
 #[repr(C)]
 pub struct CWriterConfigEnums {
-    cnt: c_uint,
-    keys: Vec<usize>,
-    values: Vec<WriterConfigEnum>,
+    pub cnt: c_uint,
+    pub keys: Vec<usize>,
+    pub values: Vec<WriterConfigEnum>,
 }
 
 #[repr(C)]
@@ -115,9 +115,9 @@ impl From<ServerConfig> for CServerConfig {
 
 #[repr(C)]
 pub struct CServerConfigs {
-    cnt: c_uint,
-    keys: *const u32,
-    values: *const CServerConfig,
+    pub cnt: c_uint,
+    pub keys: *const u32,
+    pub values: *const CServerConfig,
 }
 
 #[repr(C)]
@@ -169,14 +169,14 @@ impl From<HashMap<usize, u16>> for Cu32u16Vec {
     }
 }
 
-#[inline]
+/*#[inline]
 fn cchar2vec(s: *const c_char) -> Vec<u8> {
     (unsafe { CStr::from_ptr(s) })
         .to_str()
         .unwrap()
         .as_bytes()
         .to_vec()
-}
+}*/
 
 /// # Safety
 ///
@@ -208,14 +208,6 @@ pub unsafe extern "C" fn ext_config_new(
 
 /// For further reading ...
 /// [](https://internals.rust-lang.org/t/precise-semantics-of-no-mangle/4098)
-
-/// # Safety
-///
-/// Create new logging instance.
-#[no_mangle]
-pub unsafe extern "C" fn logging_init_root() {
-    fastlogging::logging_init_root();
-}
 
 /// # Safety
 ///
@@ -478,7 +470,7 @@ pub unsafe extern "C" fn logging_remove_writers(
     logging: &mut Logging,
     wids: *mut u32,
     wid_cnt: u32,
-) -> *mut CWriterEnumVec {
+) -> *mut CWriterEnums {
     let wids: Option<&[u32]> = if wids as *const _ != null() {
         Some(slice::from_raw_parts(wids, wid_cnt as usize))
     } else {
@@ -490,7 +482,7 @@ pub unsafe extern "C" fn logging_remove_writers(
         .into_iter()
         .map(|w| w.into())
         .collect::<Vec<CWriterEnum>>();
-    Box::into_raw(Box::new(CWriterEnumVec {
+    Box::into_raw(Box::new(CWriterEnums {
         cnt: writers.len() as u32,
         values: Box::into_raw(Box::new(writers)) as *const CWriterEnum,
     }))
@@ -619,15 +611,18 @@ pub unsafe extern "C" fn logging_rotate(logging: &Logging, path: *mut PathBuf) -
 pub unsafe extern "C" fn logging_set_encryption(
     logging: &mut Logging,
     wid: c_uint,
-    encryption: c_uchar,
-    key: *const c_char,
+    key: *mut CKeyStruct,
 ) -> isize {
-    let key = if encryption == 0 || key.is_null() {
+    let key = if key.is_null() {
         EncryptionMethod::NONE
-    } else if encryption == 1 {
-        EncryptionMethod::AuthKey(cchar2vec(key))
     } else {
-        EncryptionMethod::AES(cchar2vec(key))
+        let c_key = *Box::from_raw(key);
+        let key = unsafe { slice::from_raw_parts(c_key.key, c_key.len as usize) }.to_vec();
+        if c_key.typ == CEncryptionMethodEnum::AuthKey {
+            EncryptionMethod::AuthKey(key)
+        } else {
+            EncryptionMethod::AES(key)
+        }
     };
     if let Err(err) = logging.set_encryption(wid as usize, key) {
         eprintln!("logging_set_encryption failed: {err:?}");
@@ -779,7 +774,10 @@ pub unsafe extern "C" fn logging_get_server_auth_key(logging: &Logging) -> *mut 
 /// Get configuration as string.
 #[no_mangle]
 pub unsafe extern "C" fn logging_get_config_string(logging: &Logging) -> *const c_char {
-    logging.get_config_string().as_ptr() as *const c_char
+    let config = logging.get_config_string();
+    let ptr = config.as_ptr() as *const c_char;
+    std::mem::forget(config);
+    ptr
 }
 
 /// # Safety

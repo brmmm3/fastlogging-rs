@@ -44,7 +44,7 @@ int main(void)
     // Remove ROOT writer
     printf("Remove ROOT writer.\n");
     uint32_t remove_writers[] = { 0 };
-    CWriterEnumVec *writers = logging_remove_writers(logging_server, remove_writers, 1);
+    CWriterEnums *writers = logging_remove_writers(logging_server, remove_writers, 1);
     // Show configs
     const CServerConfigs *configs2 = logging_get_server_configs(logging_server);
     printf("configs2=%p\n", configs);

@@ -43,16 +43,13 @@ typedef enum CLevelSyms: uint8_t
     LevelSyms_Str = 2
 } CLevelSyms;
 
-/* Complex enum
 typedef enum CFileTypeEnum: uint8_t
 {
     FileTypeEnum_Message = 0,
     FileTypeEnum_Sync = 1,
     FileTypeEnum_Rotate = 2,
     FileTypeEnum_Stop = 3
-} CFileTypeEnum;*/
-
-typedef void* CFileTypeEnum;
+} CFileTypeEnum;
 
 // Simple enum
 typedef enum CCompressionMethodEnum: uint8_t
@@ -99,6 +96,11 @@ typedef struct CWriterConfig
 
 typedef void* CWriterConfigEnum;
 
+typedef struct CWriterConfigEnums {
+    uint32_t cnt;
+    CWriterConfigEnum *values;
+} CWriterConfigEnums;
+
 /* Complex enum
 typedef enum CWriterEnum: uint8_t
 {
@@ -119,10 +121,10 @@ typedef struct CWriter
 
 typedef void* CWriterEnum;
 
-typedef struct CWriterEnumVec {
+typedef struct CWriterEnums {
     uint32_t cnt;
     CWriterEnum *values;
-} CWriterEnumVec;
+} CWriterEnums;
 
 // Simple enum
 typedef enum CMessageStructEnum: uint8_t

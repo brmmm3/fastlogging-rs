@@ -12,14 +12,12 @@ CExtConfig *ext_config_new(CMessageStructEnum structured,
 
 // Logging module
 
-void logging_init_root();
-
 Logging logging_new_default();
 
 Logging logging_new(uint8_t level,
                     const char *domain,
                     CWriterConfigEnum *configs_ptr , // This is a Vec<WriterConfigEnum>
-                    uint32_t config_cnt,
+                    uint32_t configs_cnt,
                     CExtConfig *ext_config,
                     const char *config_path);
 
@@ -49,11 +47,11 @@ int logging_add_writer(Logging logging, CWriterEnum config);
 
 int logging_remove_writer(Logging logging, uint32_t wid);
 
-int logging_add_writer_configs(Logging logging, CWriterConfigEnum **configs, uint32_t config_cnt);
+int logging_add_writer_configs(Logging logging, CWriterConfigEnums *configs, uint32_t config_cnt);
 
-int logging_add_writers(Logging logging, CWriterEnum **writers, uint32_t writer_cnt);
+int logging_add_writers(Logging logging, CWriterEnums *writers, uint32_t writer_cnt);
 
-CWriterEnumVec *logging_remove_writers(Logging logging, uint32_t *wids, uint32_t wid_cnt);
+CWriterEnums *logging_remove_writers(Logging logging, uint32_t *wids, uint32_t wid_cnt);
 
 int logging_enable(Logging logging, uint32_t wid);
 
@@ -73,7 +71,7 @@ int logging_rotate(Logging logging, const char *path);
 
 // Network
 
-int logging_set_encryption(Logging logging, CWriterTypeEnum writer, CEncryptionMethodEnum encryption, char *key);
+int logging_set_encryption(Logging logging, uint32_t wid, const CKeyStruct *key);
 
 // Config
 
