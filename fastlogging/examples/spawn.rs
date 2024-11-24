@@ -4,15 +4,15 @@ use std::{
     time::Duration,
 };
 
-use fastlogging::{get_parent_pid, LoggingError};
+use fastlogging::{root, LoggingError};
 
 fn run_parent(child: u32) -> Result<(), LoggingError> {
     println!("# {} Run parent. Child has pid {child}.", process::id());
-    fastlogging::debug("Debug Message from parent")?;
-    fastlogging::info("Info Message from parent")?;
-    fastlogging::warning("Warning Message from parent")?;
-    fastlogging::error("Error Message from parent")?;
-    fastlogging::fatal("Fatal Message from parent")?;
+    root::debug("Debug Message from parent")?;
+    root::info("Info Message from parent")?;
+    root::warning("Warning Message from parent")?;
+    root::error("Error Message from parent")?;
+    root::fatal("Fatal Message from parent")?;
     println!("# {} Parent finished", process::id());
     Ok(())
 }
@@ -20,11 +20,11 @@ fn run_parent(child: u32) -> Result<(), LoggingError> {
 fn run_child(ppid: u32) -> Result<(), LoggingError> {
     println!("# {} Run child. Parent has pid {ppid}.", process::id());
     thread::sleep(Duration::from_millis(20));
-    fastlogging::debug("Debug Message from child")?;
-    fastlogging::info("Info Message from child")?;
-    fastlogging::warning("Warning Message from child")?;
-    fastlogging::error("Error Message from child")?;
-    fastlogging::fatal("Fatal Message from child")?;
+    root::debug("Debug Message from child")?;
+    root::info("Info Message from child")?;
+    root::warning("Warning Message from child")?;
+    root::error("Error Message from child")?;
+    root::fatal("Fatal Message from child")?;
     println!("# {} Child finished", process::id());
     Ok(())
 }
@@ -32,7 +32,7 @@ fn run_child(ppid: u32) -> Result<(), LoggingError> {
 fn main() -> Result<(), LoggingError> {
     println!("\n# {} Start main", process::id());
     //fastlogging::set_debug(3);
-    if let Some(ppid) = get_parent_pid() {
+    if let Some(ppid) = root::get_parent_pid() {
         // This is the child
         run_child(ppid)?;
     } else {
@@ -44,12 +44,12 @@ fn main() -> Result<(), LoggingError> {
         child.wait()?;
     }
     println!("# {} Continue main", process::id());
-    fastlogging::debug("Debug Message from main")?;
+    root::debug("Debug Message from main")?;
     thread::sleep(Duration::from_millis(10));
     println!("# {} SyncAll main", process::id());
-    fastlogging::sync_all(0.1)?;
+    root::sync_all(0.1)?;
     println!("# {} Shutdown main", process::id());
-    fastlogging::shutdown(false)?;
+    root::shutdown(false)?;
     println!("# {} Finished main\n", process::id());
     Ok(())
 }
