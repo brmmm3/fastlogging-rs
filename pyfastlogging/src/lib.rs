@@ -1,264 +1,17 @@
-use std::{collections::HashMap, path::PathBuf};
-
-use pyo3::{exceptions::PyException, prelude::*};
+use pyo3::prelude::*;
 
 mod def;
 pub use def::{EncryptionMethod, LevelSyms, WriterConfigEnum, WriterTypeEnum};
 mod writer;
-use writer::{CallbackWriterConfig, ExtConfig, RootConfig, SyslogWriterConfig};
+use writer::{CallbackWriterConfig, ExtConfig};
 pub use writer::{ClientWriterConfig, ConsoleWriterConfig, FileWriterConfig, ServerConfig};
 mod error;
 pub use error::LoggingError;
 mod logger;
 mod logging;
+pub mod root;
 
 /// Python layer for fastlogging.
-
-/// Shutdown fastlogging module.
-#[pyfunction]
-fn root_init() {
-    fastlogging::root::root_init();
-}
-
-/// Shutdown fastlogging module.
-#[pyfunction]
-#[pyo3(signature=(now=None,))]
-fn shutdown(now: Option<bool>) -> Result<(), LoggingError> {
-    Ok(fastlogging::root::shutdown(now.unwrap_or_default())?)
-}
-
-/// Set log level for writer with ID `wid` to `level`.
-#[pyfunction]
-fn set_level(wid: usize, level: u8) -> Result<(), LoggingError> {
-    Ok(fastlogging::root::set_level(wid, level)?)
-}
-
-/// Set logging domain.
-#[pyfunction]
-fn set_domain(domain: String) {
-    fastlogging::root::set_domain(domain)
-}
-
-/// Configure log level symbols. For valid values see [LevelSyms].
-#[pyfunction]
-fn set_level2sym(level2sym: &Bound<'_, LevelSyms>) {
-    fastlogging::root::set_level2sym(&level2sym.borrow().0)
-}
-
-/// Set extended configuration. For details see [ExtConfig].
-#[pyfunction]
-fn set_ext_config(ext_config: &Bound<'_, ExtConfig>) {
-    fastlogging::root::set_ext_config(&ext_config.borrow().0)
-}
-
-#[pyfunction]
-fn add_logger(logger: Py<logger::Logger>, py: Python) {
-    fastlogging::root::add_logger(&mut logger.borrow_mut(py).instance)
-}
-
-#[pyfunction]
-fn remove_logger(logger: Py<logger::Logger>, py: Python) {
-    fastlogging::root::remove_logger(&mut logger.borrow_mut(py).instance)
-}
-
-#[pyfunction]
-fn add_writer(config: PyObject, py: Python) -> PyResult<usize> {
-    let config = if let Ok(config) = config.extract::<RootConfig>(py) {
-        fastlogging::WriterConfigEnum::Root(config.0)
-    } else if let Ok(config) = config.extract::<ConsoleWriterConfig>(py) {
-        fastlogging::WriterConfigEnum::Console(config.0)
-    } else if let Ok(config) = config.extract::<FileWriterConfig>(py) {
-        fastlogging::WriterConfigEnum::File(config.0)
-    } else if let Ok(config) = config.extract::<ClientWriterConfig>(py) {
-        fastlogging::WriterConfigEnum::Client(config.0)
-    } else if let Ok(config) = config.extract::<ServerConfig>(py) {
-        fastlogging::WriterConfigEnum::Server(config.0)
-    } else if let Ok(config) = config.extract::<SyslogWriterConfig>(py) {
-        fastlogging::WriterConfigEnum::Syslog(config.0)
-    } else if let Ok(config) = config.extract::<CallbackWriterConfig>(py) {
-        fastlogging::WriterConfigEnum::Callback(config.0)
-    } else {
-        return Err(PyException::new_err(
-            "writer has invalid argument type".to_string(),
-        ));
-    };
-    fastlogging::root::add_writer_config(&config).map_err(|e| PyException::new_err(e.to_string()))
-}
-
-#[pyfunction]
-fn remove_writer(wid: usize) -> Option<WriterConfigEnum> {
-    fastlogging::root::remove_writer(wid).map(|w| w.config().into())
-}
-
-#[pyfunction]
-fn enable(wid: usize) -> Result<(), LoggingError> {
-    Ok(fastlogging::root::enable(wid)?)
-}
-
-#[pyfunction]
-fn disable(wid: usize) -> Result<(), LoggingError> {
-    Ok(fastlogging::root::disable(wid)?)
-}
-
-#[pyfunction]
-fn enable_type(typ: WriterTypeEnum) -> Result<(), LoggingError> {
-    Ok(fastlogging::root::enable_type(typ.into())?)
-}
-
-#[pyfunction]
-fn disable_type(typ: WriterTypeEnum) -> Result<(), LoggingError> {
-    Ok(fastlogging::root::disable_type(typ.into())?)
-}
-
-#[pyfunction]
-#[pyo3(signature=(types, timeout=None))]
-fn sync(types: Vec<WriterTypeEnum>, timeout: Option<f64>) -> Result<(), LoggingError> {
-    Ok(fastlogging::root::sync(
-        types.into_iter().map(|t| t.into()).collect::<Vec<_>>(),
-        timeout.unwrap_or(1.0),
-    )?)
-}
-
-#[pyfunction]
-#[pyo3(signature=(timeout=None))]
-fn sync_all(timeout: Option<f64>) -> Result<(), LoggingError> {
-    Ok(fastlogging::root::sync_all(timeout.unwrap_or_default())?)
-}
-
-#[pyfunction]
-#[pyo3(signature=(path=None))]
-fn rotate(path: Option<PathBuf>) -> Result<(), LoggingError> {
-    Ok(fastlogging::root::rotate(path)?)
-}
-
-// Network
-
-#[pyfunction]
-fn set_encryption(wid: usize, key: EncryptionMethod) -> Result<(), LoggingError> {
-    Ok(fastlogging::root::set_encryption(wid, key.into())?)
-}
-
-// Config
-
-/// Set debug mode.
-#[pyfunction]
-pub fn set_debug(debug: u8) {
-    fastlogging::root::set_debug(debug);
-}
-
-/// Get configuration for writer with ID `wid`.
-#[pyfunction]
-fn get_writer_config(wid: usize) -> Option<WriterConfigEnum> {
-    fastlogging::root::get_writer_config(wid).map(|w| w.into())
-}
-
-#[pyfunction]
-fn get_server_config(wid: usize) -> Result<ServerConfig, LoggingError> {
-    Ok(fastlogging::root::get_server_config(wid)?.into())
-}
-
-#[pyfunction]
-fn get_server_configs() -> HashMap<usize, ServerConfig> {
-    fastlogging::root::get_server_configs()
-        .into_iter()
-        .map(|(k, v)| (k, v.into()))
-        .collect::<HashMap<_, _>>()
-}
-
-#[pyfunction]
-fn get_server_addresses_ports() -> HashMap<usize, String> {
-    fastlogging::root::get_server_addresses_ports()
-}
-
-#[pyfunction]
-fn get_server_addresses() -> HashMap<usize, String> {
-    fastlogging::root::get_server_addresses()
-}
-
-#[pyfunction]
-fn get_server_ports() -> HashMap<usize, u16> {
-    fastlogging::root::get_server_ports()
-}
-
-#[pyfunction]
-fn get_server_auth_key() -> EncryptionMethod {
-    fastlogging::root::get_server_auth_key().into()
-}
-
-#[pyfunction]
-fn get_config_string() -> String {
-    fastlogging::root::get_config_string()
-}
-
-#[pyfunction]
-#[pyo3(signature=(path=None,))]
-fn save_config(path: Option<PathBuf>) -> Result<(), LoggingError> {
-    Ok(fastlogging::root::save_config(path.as_deref())?)
-}
-
-/// Get process ID of parent process.
-#[pyfunction]
-pub fn get_parent_pid() -> Option<u32> {
-    fastlogging::root::get_parent_pid()
-}
-
-#[pyfunction]
-pub fn get_parent_server_address() -> Option<ClientWriterConfig> {
-    fastlogging::root::get_parent_server_address().map(|v| v.into())
-}
-
-#[pyfunction]
-pub fn get_parent_pid_server_address() -> Option<(u32, ClientWriterConfig)> {
-    fastlogging::root::get_parent_pid_server_address().map(|(ppid, config)| (ppid, config.into()))
-}
-
-// Logging methods
-
-#[pyfunction]
-fn trace(obj: PyObject) -> Result<(), LoggingError> {
-    Ok(fastlogging::root::trace(obj.to_string())?)
-}
-
-#[pyfunction]
-fn debug(obj: PyObject) -> Result<(), LoggingError> {
-    Ok(fastlogging::root::debug(obj.to_string())?)
-}
-
-#[pyfunction]
-fn info(obj: PyObject) -> Result<(), LoggingError> {
-    Ok(fastlogging::root::info(obj.to_string())?)
-}
-
-#[pyfunction]
-fn success(obj: PyObject) -> Result<(), LoggingError> {
-    Ok(fastlogging::root::success(obj.to_string())?)
-}
-
-#[pyfunction]
-fn warning(obj: PyObject) -> Result<(), LoggingError> {
-    Ok(fastlogging::root::warning(obj.to_string())?)
-}
-
-#[pyfunction]
-#[pyo3(name = "error")]
-fn error_func(obj: PyObject) -> Result<(), LoggingError> {
-    Ok(fastlogging::root::error(obj.to_string())?)
-}
-
-#[pyfunction]
-fn critical(obj: PyObject) -> Result<(), LoggingError> {
-    Ok(fastlogging::root::critical(obj.to_string())?)
-}
-
-#[pyfunction]
-fn fatal(obj: PyObject) -> Result<(), LoggingError> {
-    Ok(fastlogging::root::fatal(obj.to_string())?)
-}
-
-#[pyfunction]
-fn exception(obj: PyObject) -> Result<(), LoggingError> {
-    Ok(fastlogging::root::exception(obj.to_string())?)
-}
 
 /// This function is called when Python interpreter exits. The fastlogging module is shutdown.
 #[pyfunction]
@@ -295,46 +48,46 @@ fn init(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<CallbackWriterConfig>()?;
     m.add_class::<logging::Logging>()?;
     m.add_class::<logger::Logger>()?;
-    m.add_function(wrap_pyfunction!(root_init, m)?)?;
-    m.add_function(wrap_pyfunction!(shutdown, m)?)?;
-    m.add_function(wrap_pyfunction!(set_level, m)?)?;
-    m.add_function(wrap_pyfunction!(set_domain, m)?)?;
-    m.add_function(wrap_pyfunction!(set_level2sym, m)?)?;
-    m.add_function(wrap_pyfunction!(set_ext_config, m)?)?;
-    m.add_function(wrap_pyfunction!(add_logger, m)?)?;
-    m.add_function(wrap_pyfunction!(remove_logger, m)?)?;
-    m.add_function(wrap_pyfunction!(add_writer, m)?)?;
-    m.add_function(wrap_pyfunction!(remove_writer, m)?)?;
-    m.add_function(wrap_pyfunction!(enable, m)?)?;
-    m.add_function(wrap_pyfunction!(disable, m)?)?;
-    m.add_function(wrap_pyfunction!(enable_type, m)?)?;
-    m.add_function(wrap_pyfunction!(disable_type, m)?)?;
-    m.add_function(wrap_pyfunction!(sync, m)?)?;
-    m.add_function(wrap_pyfunction!(sync_all, m)?)?;
-    m.add_function(wrap_pyfunction!(rotate, m)?)?;
-    m.add_function(wrap_pyfunction!(set_encryption, m)?)?;
-    m.add_function(wrap_pyfunction!(set_debug, m)?)?;
-    m.add_function(wrap_pyfunction!(get_writer_config, m)?)?;
-    m.add_function(wrap_pyfunction!(get_server_config, m)?)?;
-    m.add_function(wrap_pyfunction!(get_server_configs, m)?)?;
-    m.add_function(wrap_pyfunction!(get_server_addresses_ports, m)?)?;
-    m.add_function(wrap_pyfunction!(get_server_addresses, m)?)?;
-    m.add_function(wrap_pyfunction!(get_server_ports, m)?)?;
-    m.add_function(wrap_pyfunction!(get_server_auth_key, m)?)?;
-    m.add_function(wrap_pyfunction!(get_config_string, m)?)?;
-    m.add_function(wrap_pyfunction!(save_config, m)?)?;
-    m.add_function(wrap_pyfunction!(get_parent_pid, m)?)?;
-    m.add_function(wrap_pyfunction!(get_parent_server_address, m)?)?;
-    m.add_function(wrap_pyfunction!(get_parent_pid_server_address, m)?)?;
-    m.add_function(wrap_pyfunction!(trace, m)?)?;
-    m.add_function(wrap_pyfunction!(debug, m)?)?;
-    m.add_function(wrap_pyfunction!(info, m)?)?;
-    m.add_function(wrap_pyfunction!(success, m)?)?;
-    m.add_function(wrap_pyfunction!(warning, m)?)?;
-    m.add_function(wrap_pyfunction!(error_func, m)?)?;
-    m.add_function(wrap_pyfunction!(critical, m)?)?;
-    m.add_function(wrap_pyfunction!(fatal, m)?)?;
-    m.add_function(wrap_pyfunction!(exception, m)?)?;
+    m.add_function(wrap_pyfunction!(root::root_init, m)?)?;
+    m.add_function(wrap_pyfunction!(root::shutdown, m)?)?;
+    m.add_function(wrap_pyfunction!(root::set_level, m)?)?;
+    m.add_function(wrap_pyfunction!(root::set_domain, m)?)?;
+    m.add_function(wrap_pyfunction!(root::set_level2sym, m)?)?;
+    m.add_function(wrap_pyfunction!(root::set_ext_config, m)?)?;
+    m.add_function(wrap_pyfunction!(root::add_logger, m)?)?;
+    m.add_function(wrap_pyfunction!(root::remove_logger, m)?)?;
+    m.add_function(wrap_pyfunction!(root::add_writer, m)?)?;
+    m.add_function(wrap_pyfunction!(root::remove_writer, m)?)?;
+    m.add_function(wrap_pyfunction!(root::enable, m)?)?;
+    m.add_function(wrap_pyfunction!(root::disable, m)?)?;
+    m.add_function(wrap_pyfunction!(root::enable_type, m)?)?;
+    m.add_function(wrap_pyfunction!(root::disable_type, m)?)?;
+    m.add_function(wrap_pyfunction!(root::sync, m)?)?;
+    m.add_function(wrap_pyfunction!(root::sync_all, m)?)?;
+    m.add_function(wrap_pyfunction!(root::rotate, m)?)?;
+    m.add_function(wrap_pyfunction!(root::set_encryption, m)?)?;
+    m.add_function(wrap_pyfunction!(root::set_debug, m)?)?;
+    m.add_function(wrap_pyfunction!(root::get_writer_config, m)?)?;
+    m.add_function(wrap_pyfunction!(root::get_server_config, m)?)?;
+    m.add_function(wrap_pyfunction!(root::get_server_configs, m)?)?;
+    m.add_function(wrap_pyfunction!(root::get_server_addresses_ports, m)?)?;
+    m.add_function(wrap_pyfunction!(root::get_server_addresses, m)?)?;
+    m.add_function(wrap_pyfunction!(root::get_server_ports, m)?)?;
+    m.add_function(wrap_pyfunction!(root::get_server_auth_key, m)?)?;
+    m.add_function(wrap_pyfunction!(root::get_config_string, m)?)?;
+    m.add_function(wrap_pyfunction!(root::save_config, m)?)?;
+    m.add_function(wrap_pyfunction!(root::get_parent_pid, m)?)?;
+    m.add_function(wrap_pyfunction!(root::get_parent_server_address, m)?)?;
+    m.add_function(wrap_pyfunction!(root::get_parent_pid_server_address, m)?)?;
+    m.add_function(wrap_pyfunction!(root::trace, m)?)?;
+    m.add_function(wrap_pyfunction!(root::debug, m)?)?;
+    m.add_function(wrap_pyfunction!(root::info, m)?)?;
+    m.add_function(wrap_pyfunction!(root::success, m)?)?;
+    m.add_function(wrap_pyfunction!(root::warning, m)?)?;
+    m.add_function(wrap_pyfunction!(root::error_func, m)?)?;
+    m.add_function(wrap_pyfunction!(root::critical, m)?)?;
+    m.add_function(wrap_pyfunction!(root::fatal, m)?)?;
+    m.add_function(wrap_pyfunction!(root::exception, m)?)?;
     let fun: Py<PyAny> = PyModule::import_bound(py, "atexit")?
         .getattr("register")?
         .into();

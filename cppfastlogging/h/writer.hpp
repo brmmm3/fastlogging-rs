@@ -23,7 +23,7 @@ namespace rust
     struct Servers {};
     struct Callback {};
     struct Syslog {};
-    using WriterTypeEnum =std::variant<Root, Console, File, Files, Client, Clients, Server, Servers, Callback, Syslog>;
+    using WriterTypeEnum = std::variant<Root, Console, File, Files, Client, Clients, Server, Servers, Callback, Syslog>;
 
     struct RootConfig {
         uint8_t level;

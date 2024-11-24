@@ -4,11 +4,11 @@ package main
 
 /*
 #cgo LDFLAGS: -L. -L../../lib -lcfastlogging
-#include "../../lib/cfastlogging.h"
+#include "../../h/cfastlogging.h"
 */
 import "C"
 import (
-	"examples/logging"
+	logging "gofastlogging/fastlogging"
 	"unsafe"
 )
 
@@ -17,10 +17,9 @@ func CallbackWriter(level C.char, domain *C.char, message *C.char) {
 }
 
 func main() {
-	logger := logging.New(logging.DEBUG, nil, nil, nil, nil, nil, nil, -1, nil)
 	fn := CallbackWriter
-	callback := logging.CallbackWriterConfigNew(logging.DEBUG, uintptr(unsafe.Pointer(&fn)))
-	logger.AddWriter(logging.WriterConfigEnum(&callback))
+	writers := []logging.WriterConfigEnum{logging.CallbackWriterConfigNew(logging.DEBUG, uintptr(unsafe.Pointer(&fn)))}
+	logger := logging.New(logging.DEBUG, nil, writers, nil, nil)
 	logger.Trace("Trace message")
 	logger.Debug("Debug message")
 	logger.Info("Info Message")

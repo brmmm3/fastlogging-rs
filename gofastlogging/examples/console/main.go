@@ -4,13 +4,14 @@ package main
 
 /*
 #cgo LDFLAGS: -L. -L../../lib -lcfastlogging
-#include "../../lib/cfastlogging.h"
+#include "../../h/cfastlogging.h"
 */
 import "C"
-import "examples/logging"
+import logging "gofastlogging/fastlogging"
 
 func main() {
-	logger := logging.New(logging.DEBUG, nil, nil, nil, nil, nil, nil, logging.DEBUG, nil)
+	writers := []logging.WriterConfigEnum{logging.ConsoleWriterConfigNew(logging.DEBUG, true)}
+	logger := logging.New(logging.DEBUG, nil, writers, nil, nil)
 	logger.Trace("Trace message")
 	logger.Debug("Debug message")
 	logger.Info("Info Message")

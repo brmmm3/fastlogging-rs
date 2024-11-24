@@ -90,7 +90,7 @@ namespace rust {
         Syslog = 8
     } WriterTypeEnum;*/
 
-    typedef void* WriterTypeEnum;
+    // typedef void* WriterTypeEnum;
 
     /* Complex enum
     typedef enum WriterConfigEnum: uint8_t
@@ -110,7 +110,7 @@ namespace rust {
         void *config;
     } CWriterConfig;*/
 
-    typedef void* WriterConfigEnum;
+    // typedef void* WriterConfigEnum;
 
     /* Complex enum
     typedef enum WriterEnum: uint8_t

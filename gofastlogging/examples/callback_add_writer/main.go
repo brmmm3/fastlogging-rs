@@ -7,16 +7,20 @@ package main
 #include "../../h/cfastlogging.h"
 */
 import "C"
-import logging "gofastlogging/fastlogging"
+import (
+	logging "gofastlogging/fastlogging"
+	"unsafe"
+)
+
+func CallbackWriter(level C.char, domain *C.char, message *C.char) {
+	println("%d %s %s", level, domain, message)
+}
 
 func main() {
-	var encryption logging.EncryptionMethodEnum = logging.NONE
-	key := logging.CreateRandomKey(encryption.Into())
-	writers := []logging.WriterConfigEnum{
-		logging.ConsoleWriterConfigNew(logging.DEBUG, true),
-		logging.ServerConfigNew(logging.DEBUG, "127.0.0.1", logging.KeyStruct{Key: key}),
-	}
-	logger := logging.New(logging.DEBUG, nil, writers, nil, nil)
+	logger := logging.New(logging.DEBUG, nil, nil, nil, nil)
+	fn := CallbackWriter
+	callback := logging.CallbackWriterConfigNew(logging.DEBUG, uintptr(unsafe.Pointer(&fn)))
+	logger.AddWriterConfig(callback)
 	logger.Trace("Trace message")
 	logger.Debug("Debug message")
 	logger.Info("Info Message")

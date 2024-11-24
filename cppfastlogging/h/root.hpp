@@ -1,5 +1,4 @@
-#ifndef CFASTLOGGING_ROOT_H
-#define CFASTLOGGING_ROOT_H
+#pragma once
 
 #include "def.h"
 
@@ -102,5 +101,3 @@ int root_critical(const char *message);
 int root_fatal(const char *message);
 
 int root_exception(const char *message);
-
-#endif

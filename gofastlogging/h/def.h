@@ -60,7 +60,6 @@ typedef enum CCompressionMethodEnum: uint8_t
     CompressionMethodEnum_Lzma = 3
 } CCompressionMethodEnum;
 
-/* Complex enum
 typedef enum CWriterTypeEnum: uint8_t
 {
     WriterTypeEnum_Root = 0,
@@ -72,9 +71,9 @@ typedef enum CWriterTypeEnum: uint8_t
     WriterTypeEnum_Server = 6,
     WriterTypeEnum_Servers = 7,
     WriterTypeEnum_Syslog = 8
-} CWriterTypeEnum;*/
+} CWriterTypeEnum;
 
-typedef void* CWriterTypeEnum;
+//typedef void* CWriterTypeEnum;
 
 /* Complex enum
 typedef enum CWriterConfigEnum: uint8_t
@@ -155,7 +154,7 @@ typedef struct CKeyStruct
 {
     CEncryptionMethodEnum typ;
     uint32_t len;
-    const uint8_t *key;
+    const char *key;
 } CKeyStruct;
 
 typedef struct CClientWriterConfig

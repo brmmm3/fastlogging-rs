@@ -27,7 +27,7 @@ extern "C"
                                     int8_t tname,
                                     int8_t tid);
 
-    void logging_init_root();
+    void root_init();
 
     rust::Logging *logging_new_default();
 
@@ -460,7 +460,7 @@ namespace logging
         }
     };
 
-    Logging Init()
+    Logging Default()
     {
         Logging logging = Logging();
         logging._intern_set_logging(logging_new_default());

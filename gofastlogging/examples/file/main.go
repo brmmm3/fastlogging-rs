@@ -4,20 +4,20 @@ package main
 
 /*
 #cgo LDFLAGS: -L. -L../../lib -lcfastlogging
-#include "../../lib/cfastlogging.h"
+#include "../../h/cfastlogging.h"
 */
 import "C"
-import "examples/logging"
+import logging "gofastlogging/fastlogging"
 
 func main() {
-	file := logging.FileWriterConfigNew(logging.DEBUG,
+	writers := []logging.WriterConfigEnum{logging.FileWriterConfigNew(logging.DEBUG,
 		"/tmp/gofastlogging.log",
 		1024,
 		3,
 		-1,
 		-1,
-		logging.Store)
-	logger := logging.New(logging.DEBUG, nil, nil, nil, &file, nil, nil, -1, nil)
+		logging.Store)}
+	logger := logging.New(logging.DEBUG, nil, writers, nil, nil)
 	logger.Trace("Trace message")
 	logger.Debug("Debug message")
 	logger.Info("Info Message")
