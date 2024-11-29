@@ -48,7 +48,7 @@ func FileWriterConfigNew(
 		C.uint32_t(backlog),
 		C.int32_t(timeout),
 		C.int64_t(time),
-		compression.into())
+		compression.Into())
 	return WriterConfigEnum{Config: config}
 }
 
@@ -57,8 +57,12 @@ func FileWriterConfigNew(
 func ClientWriterConfigNew(
 	level uint8,
 	address string,
-	key KeyStruct) WriterConfigEnum {
-	config := C.client_writer_config_new(C.uint8_t(level), C.CString(address), key.Key)
+	key *KeyStruct) WriterConfigEnum {
+	var c_key *C.CKeyStruct = nil
+	if key != nil {
+		c_key = key.Key
+	}
+	config := C.client_writer_config_new(C.uint8_t(level), C.CString(address), c_key)
 	return WriterConfigEnum{Config: config}
 }
 
@@ -67,8 +71,12 @@ func ClientWriterConfigNew(
 func ServerConfigNew(
 	level uint8,
 	address string,
-	key KeyStruct) WriterConfigEnum {
-	config := C.server_config_new(C.uint8_t(level), C.CString(address), key.Key)
+	key *KeyStruct) WriterConfigEnum {
+	var c_key *C.CKeyStruct = nil
+	if key != nil {
+		c_key = key.Key
+	}
+	config := C.server_config_new(C.uint8_t(level), C.CString(address), c_key)
 	return WriterConfigEnum{Config: config}
 }
 

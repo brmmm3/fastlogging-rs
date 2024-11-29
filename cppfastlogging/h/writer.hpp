@@ -10,6 +10,7 @@
 using namespace std;
 
 #include "def.hpp"
+#include "logger.hpp"
 
 namespace rust
 {
@@ -58,6 +59,11 @@ namespace rust
     struct SyslogWriterConfig {};
     using WriterConfigEnum = std::variant<RootConfig, ConsoleWriterConfig, FileWriterConfig, ClientWriterConfig, ServerConfig, CallbackWriterConfig, SyslogWriterConfig>;
 
+    typedef struct WriterConfigEnums {
+        uint32_t cnt;
+        WriterConfigEnum *values;
+    } WriterConfigEnums;
+
     template<typename T, typename... Ts>
     std::ostream& operator<<(std::ostream& os, const std::variant<T, Ts...>& v)
     {
@@ -67,14 +73,13 @@ namespace rust
         return os;
     }
 
-    struct WriterEnum;
+    //struct WriterEnum;
 
-
-    typedef struct KeyStruct {
+    /*typedef struct KeyStruct {
         unsigned int typ;
         unsigned int len;
         const char *key;
-    } KeyStruct;
+    } KeyStruct;*/
 } // namespace logging::rust
 
 extern "C"

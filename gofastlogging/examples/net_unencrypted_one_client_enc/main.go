@@ -27,16 +27,18 @@ func main() {
 	server_domain := "LOGSRV"
 	logging_server := logging.New(logging.DEBUG, &server_domain, server_writers, nil, nil)
 	// Set root writer
-	server := logging.ServerConfigNew(logging.DEBUG, "127.0.0.1", nil)
+	var encryption logging.EncryptionMethodEnum = logging.NONE
+	server_key := logging.CreateRandomKey(encryption.Into())
+	server := logging.ServerConfigNew(logging.DEBUG, "127.0.0.1", &logging.KeyStruct{Key: server_key})
 	logging_server.SetRootWriterConfig(server)
 	//logging_server.SetDebug(3)
 	logging_server.SyncAll(5.0)
 	// Client
 	address_port := logging_server.GetRootServerAddressPort()
 	fmt.Printf("address_port=%s\n", address_port)
-	key := logging_server.GetServerAuthKey()
+	auth_key := logging_server.GetServerAuthKey()
 	client_writers := []logging.WriterConfigEnum{
-		logging.ClientWriterConfigNew(logging.DEBUG, address_port, &key),
+		logging.ClientWriterConfigNew(logging.DEBUG, address_port, &auth_key),
 	}
 	client_domain := "LOGCLIENT"
 	logging_client := logging.New(logging.DEBUG, &client_domain, client_writers, nil, nil)

@@ -80,8 +80,7 @@ func AddWriters(writers logging.WriterEnums, writer_cnt uint32) int {
 }
 
 func RemoveWriters(wids []uint32, wid_cnt uint32) logging.WriterEnums {
-	writers := C.root_remove_writers((*C.uint32_t)(unsafe.Pointer(&wids[0])), C.uint32_t(wid_cnt))
-	return logging.WriterEnums{Writers: (*C.CWriterEnums)(unsafe.Pointer(writers))}
+	return logging.RemoveWriters(wids, wid_cnt)
 }
 
 func Enable(wid uint32) int {
@@ -127,11 +126,11 @@ func SetEncryption(wid uint32, key logging.KeyStruct) int {
 // Config
 
 func GetServerConfig() logging.ServerConfig {
-	return logging.ServerConfig{Config: (*C.CServerConfig)(unsafe.Pointer(C.root_get_server_config()))}
+	return logging.GetServerConfig()
 }
 
 func GetServerAuthKey() logging.KeyStruct {
-	return logging.KeyStruct{Key: (*C.CKeyStruct)(unsafe.Pointer(C.root_get_server_auth_key()))}
+	return logging.GetServerAuthKey()
 }
 
 func GetConfigString() string {

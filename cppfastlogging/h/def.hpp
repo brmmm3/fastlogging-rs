@@ -132,10 +132,10 @@ namespace rust {
 
     typedef void* WriterEnum;
 
-    typedef struct WriterEnumVec {
+    typedef struct WriterEnums {
         uint32_t cnt;
         WriterEnum *values;
-    } WriterEnumVec;
+    } WriterEnums;
 
     // Simple enum
     enum class MessageStructEnum: uint8_t

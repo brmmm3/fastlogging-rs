@@ -166,8 +166,62 @@ func (instance Logging) SetEncryption(address string, typ WriterTypeEnum, key Ke
 
 // Config
 
+func (instance Logging) SetDebug(debug uint32) {
+	C.logging_set_debug(instance.Logging, C.uint32_t(debug))
+}
+
 func (instance Logging) GetServerConfig() ServerConfig {
 	return ServerConfig{C.logging_get_server_config(instance.Logging)}
+}
+
+func (instance Logging) GetServerConfigs() ServerConfigs {
+	return ServerConfigs{C.logging_get_server_configs(instance.Logging)}
+}
+
+func (instance Logging) GetRootServerAddressPort() string {
+	return string(*(*string)(unsafe.Pointer(C.logging_get_root_server_address_port(instance.Logging))))
+}
+
+func (instance Logging) GetRootServerAddressesPorts() Cu32StringVec {
+	s := C.logging_get_server_addresses_ports(instance.Logging)
+	cnt := int(s.cnt)
+	c_keys := uintptr(unsafe.Pointer(s.keys))
+	c_values := uintptr(unsafe.Pointer(s.values))
+	var keys = []uint32{}
+	var values = []string{}
+	for i := 0; i < cnt; i++ {
+		keys = append(keys, uint32(*(*uint32)(unsafe.Pointer(c_keys + uintptr(i)*unsafe.Sizeof(*s.keys)))))
+		values = append(values, string(*(*string)(unsafe.Pointer(c_values + uintptr(i)*unsafe.Sizeof(*s.values)))))
+	}
+	return Cu32StringVec{Cnt: uint32(s.cnt), Keys: keys, Values: values}
+}
+
+func (instance Logging) GetRootServerAddresses() Cu32StringVec {
+	s := C.logging_get_server_addresses(instance.Logging)
+	cnt := int(s.cnt)
+	c_keys := uintptr(unsafe.Pointer(s.keys))
+	c_values := uintptr(unsafe.Pointer(s.values))
+	var keys = []uint32{}
+	var values = []string{}
+	for i := 0; i < cnt; i++ {
+		keys = append(keys, uint32(*(*uint32)(unsafe.Pointer(c_keys + uintptr(i)*unsafe.Sizeof(*s.keys)))))
+		values = append(values, string(*(*string)(unsafe.Pointer(c_values + uintptr(i)*unsafe.Sizeof(*s.values)))))
+	}
+	return Cu32StringVec{Cnt: uint32(s.cnt), Keys: keys, Values: values}
+}
+
+func (instance Logging) GetRootServerPorts() Cu32u16Vec {
+	s := C.logging_get_server_ports(instance.Logging)
+	cnt := int(s.cnt)
+	c_keys := uintptr(unsafe.Pointer(s.keys))
+	c_values := uintptr(unsafe.Pointer(s.values))
+	var keys = []uint32{}
+	var values = []uint16{}
+	for i := 0; i < cnt; i++ {
+		keys = append(keys, uint32(*(*uint32)(unsafe.Pointer(c_keys + uintptr(i)*unsafe.Sizeof(*s.keys)))))
+		values = append(values, uint16(*(*uint16)(unsafe.Pointer(c_values + uintptr(i)*unsafe.Sizeof(*s.values)))))
+	}
+	return Cu32u16Vec{Cnt: uint32(s.cnt), Keys: keys, Values: values}
 }
 
 func (instance Logging) GetServerAuthKey() KeyStruct {

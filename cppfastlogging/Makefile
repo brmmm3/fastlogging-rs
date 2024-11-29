@@ -8,78 +8,35 @@ clean:
 
 build:
 	$(CARGO_BIN) build --release
-	mkdir -p bin
-	$(GXX_BIN) -o ./bin/callback ./examples/callback.cpp -I. -L. -l:../target/release/libcfastlogging.so
+	@mkdir -p bin
+	$(GXX_BIN) -o ./bin/default ./examples/default.cpp -I. -L. -l:../target/release/libcfastlogging.so
 	$(GXX_BIN) -o ./bin/console ./examples/console.cpp -I. -L. -l:../target/release/libcfastlogging.so
 	$(GXX_BIN) -o ./bin/console_add_writer ./examples/console_add_writer.cpp -I. -L. -l:../target/release/libcfastlogging.so
 	$(GXX_BIN) -o ./bin/file ./examples/file.cpp -I. -L. -l:../target/release/libcfastlogging.so
 	$(GXX_BIN) -o ./bin/file_add_writer ./examples/file_add_writer.cpp -I. -L. -l:../target/release/libcfastlogging.so
+	$(GXX_BIN) -o ./bin/syslog ./examples/syslog.cpp -I. -L. -l:../target/release/libcfastlogging.so
+	$(GXX_BIN) -o ./bin/callback ./examples/callback.cpp -I. -L. -l:../target/release/libcfastlogging.so
 	$(GXX_BIN) -o ./bin/threads ./examples/threads.cpp -I. -L. -l:../target/release/libcfastlogging.so
 	$(GXX_BIN) -o ./bin/net_unencrypted_one_client ./examples/net_unencrypted_one_client.cpp -I. -L. -l:../target/release/libcfastlogging.so
-	$(GXX_BIN) -o ./bin/syslog ./examples/syslog.cpp -I. -L. -l:../target/release/libcfastlogging.so
 	$(GXX_BIN) -o ./bin/get_server_addresses_ports ./examples/get_server_addresses_ports.cpp -I. -L. -l:../target/release/libcfastlogging.so
+	$(GXX_BIN) -o ./bin/get_server_configs ./examples/get_server_configs.cpp -I. -L. -l:../target/release/libcfastlogging.so
 	$(GXX_BIN) -o ./bin/ext_config ./examples/ext_config.cpp -I. -L. -l:../target/release/libcfastlogging.so
-	$(GXX_BIN) -o ./bin/console_static ./examples/console_static.cpp -I. -L. -l:../target/release/libcfastlogging.so
-
-run-console-static:
-	LD_LIBRARY_PATH=../target/release ./bin/console_static
-
-run-console:
-	LD_LIBRARY_PATH=../target/release ./bin/console
-
-run-file:
-	LD_LIBRARY_PATH=../target/release ./bin/file
-
-run-threads:
-	LD_LIBRARY_PATH=../target/release ./bin/threads
-
-run-net:
-	LD_LIBRARY_PATH=../target/release ./bin/net_unencrypted_one_client
-
-run-syslog:
-	LD_LIBRARY_PATH=../target/release ./bin/syslog
-
-run-callback:
-	LD_LIBRARY_PATH=../target/release ./bin/callback
+	$(GXX_BIN) -o ./bin/console_root ./examples/console_root.cpp -I. -L. -l:../target/release/libcfastlogging.so
 
 build-debug:
 	$(CARGO_BIN) build
-	mkdir -p bin
-	$(GXX_BIN) -o ./bin/callback ./examples/callback.cpp -I. -L. -l:../target/debug/libcfastlogging.so
+	@mkdir -p bin
+	$(GXX_BIN) -o ./bin/default ./examples/default.cpp -I. -L. -l:../target/debug/libcfastlogging.so
 	$(GXX_BIN) -o ./bin/console ./examples/console.cpp -I. -L. -l:../target/debug/libcfastlogging.so
 	$(GXX_BIN) -o ./bin/console_add_writer ./examples/console_add_writer.cpp -I. -L. -l:../target/debug/libcfastlogging.so
 	$(GXX_BIN) -o ./bin/file ./examples/file.cpp -I. -L. -l:../target/debug/libcfastlogging.so
 	$(GXX_BIN) -o ./bin/file_add_writer ./examples/file_add_writer.cpp -I. -L. -l:../target/debug/libcfastlogging.so
+	$(GXX_BIN) -o ./bin/syslog ./examples/syslog.cpp -I. -L. -l:../target/debug/libcfastlogging.so
+	$(GXX_BIN) -o ./bin/callback ./examples/callback.cpp -I. -L. -l:../target/debug/libcfastlogging.so
 	$(GXX_BIN) -o ./bin/threads ./examples/threads.cpp -I. -L. -l:../target/debug/libcfastlogging.so
 	$(GXX_BIN) -o ./bin/net_unencrypted_one_client ./examples/net_unencrypted_one_client.cpp -I. -L. -l:../target/debug/libcfastlogging.so
-	$(GXX_BIN) -o ./bin/syslog ./examples/syslog.cpp -I. -L. -l:../target/debug/libcfastlogging.so
 	$(GXX_BIN) -o ./bin/get_server_addresses_ports ./examples/get_server_addresses_ports.cpp -I. -L. -l:../target/debug/libcfastlogging.so
+	$(GXX_BIN) -o ./bin/get_server_configs ./examples/get_server_configs.cpp -I. -L. -l:../target/debug/libcfastlogging.so
 	$(GXX_BIN) -o ./bin/ext_config ./examples/ext_config.cpp -I. -L. -l:../target/debug/libcfastlogging.so
-	$(GXX_BIN) -o ./bin/console_static ./examples/console_static.cpp -I. -L. -l:../target/debug/libcfastlogging.so
+	$(GXX_BIN) -o ./bin/console_root ./examples/console_root.cpp -I. -L. -l:../target/debug/libcfastlogging.so
 
-run-console-static-debug:
-	LD_LIBRARY_PATH=../target/debug ./bin/console_static
-
-run-console-debug:
-	LD_LIBRARY_PATH=../target/debug ./bin/console
-
-run-console-add-writer-debug:
-	LD_LIBRARY_PATH=../target/debug ./bin/console_add_writer
-
-run-file-debug:
-	LD_LIBRARY_PATH=../target/debug ./bin/file
-
-run-file-add-writer-debug:
-	LD_LIBRARY_PATH=../target/debug ./bin/file_add_writer
-
-run-threads-debug:
-	LD_LIBRARY_PATH=../target/debug ./bin/threads
-
-run-net-debug:
-	LD_LIBRARY_PATH=../target/debug ./bin/net_unencrypted_one_client
-
-run-syslog-debug:
-	LD_LIBRARY_PATH=../target/debug ./bin/syslog
-
-run-callback-debug:
-	LD_LIBRARY_PATH=../target/debug ./bin/callback

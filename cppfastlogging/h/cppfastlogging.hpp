@@ -8,6 +8,9 @@ using namespace std;
 #include "logging.hpp"
 #include "logger.hpp"
 
-CKeyStruct *create_key(CEncryptionMethodEnum typ, uint32_t len, const uint8_t *key);
+extern "C"
+{
+    CKeyStruct *create_key(CEncryptionMethodEnum typ, uint32_t len, const uint8_t *key);
 
-CKeyStruct *create_random_key(CEncryptionMethodEnum typ);
+    CKeyStruct *create_random_key(CEncryptionMethodEnum typ);
+}

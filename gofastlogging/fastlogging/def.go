@@ -5,6 +5,7 @@ package fastlogging
 #include "../h/cfastlogging.h"
 */
 import "C"
+import "unsafe"
 
 // Log-Levels
 const NOLOG = C.NOLOG
@@ -20,6 +21,18 @@ const DEBUG = C.DEBUG
 const TRACE = C.TRACE
 const NOTSET = C.NOTSET
 
+type Cu32StringVec struct {
+	Cnt    uint32
+	Keys   []uint32
+	Values []string
+}
+
+type Cu32u16Vec struct {
+	Cnt    uint32
+	Keys   []uint32
+	Values []uint16
+}
+
 type LevelSyms int
 
 const (
@@ -28,7 +41,7 @@ const (
 	Str
 )
 
-func (s LevelSyms) into() C.CLevelSyms {
+func (s LevelSyms) Into() C.CLevelSyms {
 	switch s {
 	case Sym:
 		return 0
@@ -49,7 +62,7 @@ const (
 	Stop
 )
 
-func (s FileTypeEnum) into() C.CFileTypeEnum {
+func (s FileTypeEnum) Into() C.CFileTypeEnum {
 	switch s {
 	case Message:
 		return 0
@@ -72,7 +85,7 @@ const (
 	Lzma
 )
 
-func (s CompressionMethodEnum) into() C.CCompressionMethodEnum {
+func (s CompressionMethodEnum) Into() C.CCompressionMethodEnum {
 	switch s {
 	case Store:
 		return 0
@@ -114,6 +127,10 @@ type WriterEnums struct {
 	Writers *C.CWriterEnums
 }
 
+func WriterEnumsNew(writers *C.CWriterEnums) WriterEnums {
+	return WriterEnums{Writers: writers}
+}
+
 type MessageStructEnum int
 
 const (
@@ -122,7 +139,7 @@ const (
 	Xml
 )
 
-func (s MessageStructEnum) into() C.CMessageStructEnum {
+func (s MessageStructEnum) Into() C.CMessageStructEnum {
 	switch s {
 	case String:
 		return 0
@@ -189,5 +206,18 @@ func (s ExtConfig) New(
 	if tid {
 		c_tid = 1
 	}
-	return ExtConfig{C.ext_config_new(structured.into(), c_hostname, c_pname, c_pid, c_tname, c_tid)}
+	return ExtConfig{C.ext_config_new(structured.Into(), c_hostname, c_pname, c_pid, c_tname, c_tid)}
+}
+
+func RemoveWriters(wids []uint32, wid_cnt uint32) WriterEnums {
+	writers := C.root_remove_writers((*C.uint32_t)(unsafe.Pointer(&wids[0])), C.uint32_t(wid_cnt))
+	return WriterEnumsNew(writers)
+}
+
+func GetServerConfig() ServerConfig {
+	return ServerConfig{Config: (*C.CServerConfig)(unsafe.Pointer(C.root_get_server_config()))}
+}
+
+func GetServerAuthKey() KeyStruct {
+	return KeyStruct{Key: (*C.CKeyStruct)(unsafe.Pointer(C.root_get_server_auth_key()))}
 }

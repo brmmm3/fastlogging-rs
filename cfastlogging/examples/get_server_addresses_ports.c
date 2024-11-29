@@ -3,7 +3,7 @@
 #include "h/cfastlogging.h"
 #include <string.h>
 
-// File: net_unencrypted_one_client.c
+// File: get_server_addresses_ports.c
 //
 // Sample library usage.
 int main(void)
