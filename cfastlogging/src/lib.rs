@@ -2,6 +2,7 @@ pub mod error;
 mod logging;
 use std::{ffi::c_uint, ptr::null};
 
+pub mod def;
 pub use logging::*;
 mod util;
 mod writer;
