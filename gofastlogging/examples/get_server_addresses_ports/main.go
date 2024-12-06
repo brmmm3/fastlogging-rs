@@ -25,22 +25,25 @@ func main() {
 	logger.SyncAll(5.0)
 	// Show addresses and ports
 	ports := logger.GetRootServerPorts()
-	fmt.Printf("ports->cnt=%d\n", ports.Cnt)
-	for i := 0; i < (int)(ports.Cnt); i++ {
-		fmt.Printf("ports->key[%d]=%d\n", i, ports.Keys[i])
-		fmt.Printf("ports->value[%d]=%d\n", i, ports.Values[i])
+	fmt.Print("GetRootServerPorts\n")
+	fmt.Printf("  ports->cnt=%d\n", len(ports))
+	for key, value := range ports {
+		fmt.Printf("  addresses_ports->key=%d\n", key)
+		fmt.Printf("  addresses_ports->value=%d\n", value)
 	}
 	addresses := logger.GetRootServerAddresses()
-	fmt.Printf("addresses->cnt=%d\n", addresses.Cnt)
-	for i := 0; i < (int)(addresses.Cnt); i++ {
-		fmt.Printf("addresses->key[%d]=%d\n", i, addresses.Keys[i])
-		fmt.Printf("addresses->value[%d]=%d\n", i, addresses.Values[i])
+	fmt.Print("GetRootServerAddresses\n")
+	fmt.Printf("  addresses->cnt=%d\n", len(addresses))
+	for key, value := range addresses {
+		fmt.Printf("  addresses_ports->key=%d\n", key)
+		fmt.Printf("  addresses_ports->value=%s\n", value)
 	}
 	addresses_ports := logger.GetRootServerAddressesPorts()
-	fmt.Printf("addresses_ports->cnt=%d\n", addresses_ports.Cnt)
-	for i := 0; i < (int)(addresses_ports.Cnt); i++ {
-		fmt.Printf("addresses_ports->key[%d]=%d\n", i, addresses_ports.Keys[i])
-		fmt.Printf("addresses_ports->value[%d]=%d\n", i, addresses_ports.Values[i])
+	fmt.Print("GetRootServerAddressesPorts\n")
+	fmt.Printf("addresses_ports->cnt=%d\n", len(addresses_ports))
+	for key, value := range addresses_ports {
+		fmt.Printf("  addresses_ports->key=%d\n", key)
+		fmt.Printf("  addresses_ports->value=%s\n", value)
 	}
 	// Test logging
 	logger.Info("Info Message")

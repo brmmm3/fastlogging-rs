@@ -224,7 +224,7 @@ pub unsafe extern "C" fn logging_new_default() -> *mut Logging {
 pub unsafe extern "C" fn logging_new(
     level: c_char, // Global log level
     domain: *const c_char,
-    configs_ptr: *mut *mut WriterConfigEnum, // This is a Vec<WriterConfigEnum>
+    configs_ptr: *const *mut WriterConfigEnum, // This is a Vec<WriterConfigEnum>
     configs_cnt: c_uint,
     ext_config: *mut ExtConfig,
     config_path: *const c_char, // Optional path to config file
@@ -238,10 +238,15 @@ pub unsafe extern "C" fn logging_new(
         Vec::new()
     } else {
         let writers = slice::from_raw_parts(configs_ptr, configs_cnt as usize);
-        writers
+        let writers = writers
             .into_iter()
             .map(|w| *Box::from_raw(*w))
-            .collect::<Vec<_>>()
+            .collect::<Vec<_>>();
+        writers
+        /*writers
+        .into_iter()
+        .map(|w| *Box::from_raw(*w))
+        .collect::<Vec<_>>()*/
     };
     let ext_config = if ext_config.is_null() {
         None

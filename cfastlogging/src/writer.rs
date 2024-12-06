@@ -123,11 +123,15 @@ pub unsafe extern "C" fn server_config_new(
         EncryptionMethod::NONE
     } else {
         let c_key = *Box::from_raw(key);
-        let key = unsafe { slice::from_raw_parts(c_key.key, c_key.len as usize) }.to_vec();
-        if c_key.typ == CEncryptionMethodEnum::AuthKey {
-            EncryptionMethod::AuthKey(key)
+        if c_key.typ == CEncryptionMethodEnum::NONE {
+            EncryptionMethod::NONE
         } else {
-            EncryptionMethod::AES(key)
+            let key = unsafe { slice::from_raw_parts(c_key.key, c_key.len as usize) }.to_vec();
+            if c_key.typ == CEncryptionMethodEnum::AuthKey {
+                EncryptionMethod::AuthKey(key)
+            } else {
+                EncryptionMethod::AES(key)
+            }
         }
     };
     Box::into_raw(Box::new(WriterConfigEnum::Server(ServerConfig::new(

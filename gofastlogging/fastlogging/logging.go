@@ -31,13 +31,12 @@ func New(
 		c_domain = C.CString(*domain)
 	}
 	var c_configs_ptr *C.CWriterConfigEnum = nil
-	if configs_ptr != nil {
-		var c_configs_arr = []C.CWriterConfigEnum{}
-		s := c_configs_arr[:0]
-		for _, value := range configs_ptr {
-			s = append(s, value.Config)
+	if configs_ptr != nil && len(configs_ptr) > 0 {
+		c_configs_arr := make([]C.CWriterConfigEnum, len(configs_ptr))
+		for i, value := range configs_ptr {
+			c_configs_arr[i] = value.Config
 		}
-		c_configs_ptr = unsafe.SliceData(c_configs_arr)
+		c_configs_ptr = (*C.CWriterConfigEnum)(unsafe.Pointer(&c_configs_arr[0]))
 	}
 	var c_ext_config *C.CExtConfig = nil
 	if ext_config != nil {
@@ -182,46 +181,43 @@ func (instance Logging) GetRootServerAddressPort() string {
 	return string(*(*string)(unsafe.Pointer(C.logging_get_root_server_address_port(instance.Logging))))
 }
 
-func (instance Logging) GetRootServerAddressesPorts() Cu32StringVec {
+func (instance Logging) GetRootServerAddressesPorts() map[uint32]string {
 	s := C.logging_get_server_addresses_ports(instance.Logging)
 	cnt := int(s.cnt)
 	c_keys := uintptr(unsafe.Pointer(s.keys))
 	c_values := uintptr(unsafe.Pointer(s.values))
-	var keys = []uint32{}
-	var values = []string{}
+	m := make(map[uint32]string)
 	for i := 0; i < cnt; i++ {
-		keys = append(keys, uint32(*(*uint32)(unsafe.Pointer(c_keys + uintptr(i)*unsafe.Sizeof(*s.keys)))))
-		values = append(values, string(*(*string)(unsafe.Pointer(c_values + uintptr(i)*unsafe.Sizeof(*s.values)))))
+		key := uint32(*(*uint32)(unsafe.Pointer(c_keys + uintptr(i)*unsafe.Sizeof(*s.keys))))
+		m[key] = string(*(*string)(unsafe.Pointer(c_values + uintptr(i*16)))) // Size of a CString is 16 bytes
 	}
-	return Cu32StringVec{Cnt: uint32(s.cnt), Keys: keys, Values: values}
+	return m
 }
 
-func (instance Logging) GetRootServerAddresses() Cu32StringVec {
+func (instance Logging) GetRootServerAddresses() map[uint32]string {
 	s := C.logging_get_server_addresses(instance.Logging)
 	cnt := int(s.cnt)
 	c_keys := uintptr(unsafe.Pointer(s.keys))
 	c_values := uintptr(unsafe.Pointer(s.values))
-	var keys = []uint32{}
-	var values = []string{}
+	m := make(map[uint32]string)
 	for i := 0; i < cnt; i++ {
-		keys = append(keys, uint32(*(*uint32)(unsafe.Pointer(c_keys + uintptr(i)*unsafe.Sizeof(*s.keys)))))
-		values = append(values, string(*(*string)(unsafe.Pointer(c_values + uintptr(i)*unsafe.Sizeof(*s.values)))))
+		key := uint32(*(*uint32)(unsafe.Pointer(c_keys + uintptr(i)*unsafe.Sizeof(*s.keys))))
+		m[key] = string(*(*string)(unsafe.Pointer(c_values + uintptr(i*16)))) // Size of a CString is 16 bytes
 	}
-	return Cu32StringVec{Cnt: uint32(s.cnt), Keys: keys, Values: values}
+	return m
 }
 
-func (instance Logging) GetRootServerPorts() Cu32u16Vec {
+func (instance Logging) GetRootServerPorts() map[uint32]uint16 {
 	s := C.logging_get_server_ports(instance.Logging)
 	cnt := int(s.cnt)
 	c_keys := uintptr(unsafe.Pointer(s.keys))
 	c_values := uintptr(unsafe.Pointer(s.values))
-	var keys = []uint32{}
-	var values = []uint16{}
+	m := make(map[uint32]uint16)
 	for i := 0; i < cnt; i++ {
-		keys = append(keys, uint32(*(*uint32)(unsafe.Pointer(c_keys + uintptr(i)*unsafe.Sizeof(*s.keys)))))
-		values = append(values, uint16(*(*uint16)(unsafe.Pointer(c_values + uintptr(i)*unsafe.Sizeof(*s.values)))))
+		key := uint32(*(*uint32)(unsafe.Pointer(c_keys + uintptr(i)*unsafe.Sizeof(*s.keys))))
+		m[key] = uint16(*(*uint16)(unsafe.Pointer(c_values + uintptr(i)*unsafe.Sizeof(*s.values))))
 	}
-	return Cu32u16Vec{Cnt: uint32(s.cnt), Keys: keys, Values: values}
+	return m
 }
 
 func (instance Logging) GetServerAuthKey() KeyStruct {

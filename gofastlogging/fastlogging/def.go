@@ -179,7 +179,7 @@ type ExtConfig struct {
 	Config *C.CExtConfig
 }
 
-func (s ExtConfig) New(
+func ExtConfigNew(
 	structured MessageStructEnum,
 	hostname bool,
 	pname bool,
