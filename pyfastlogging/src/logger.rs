@@ -51,9 +51,9 @@ impl Logger {
         tid: Option<bool>,
     ) -> PyResult<Self> {
         let (getframe, format_exc) = Python::with_gil(|py| -> PyResult<(Py<PyAny>, Py<PyAny>)> {
-            let sys = py.import_bound("sys")?;
+            let sys = py.import("sys")?;
             let getframe = sys.getattr("_getframe")?;
-            let traceback = py.import_bound("traceback")?;
+            let traceback = py.import("traceback")?;
             let format_exc = traceback.getattr("format_exc")?;
             Ok((getframe.into(), format_exc.into()))
         })?;

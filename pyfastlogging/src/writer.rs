@@ -3,8 +3,8 @@ use std::sync::Mutex;
 use std::time::{Duration, SystemTime};
 
 use once_cell::sync::Lazy;
-use pyo3::prelude::*;
 use pyo3::types::PyTuple;
+use pyo3::{prelude::*, IntoPyObjectExt};
 
 use crate::def::{CompressionMethodEnum, MessageStructEnum};
 use crate::{EncryptionMethod, LoggingError};
@@ -338,15 +338,21 @@ pub fn callback_func(
     message: String,
 ) -> Result<(), fastlogging::LoggingError> {
     if let Some(callable) = CALLBACK_PY_FUNC.lock().unwrap().as_ref() {
-        Python::with_gil(|py| -> Result<(), fastlogging::LoggingError> {
-            let args = PyTuple::new_bound(
+        Python::with_gil(|py| -> Result<(), LoggingError> {
+            let args = PyTuple::new(
                 py,
-                &[level.into_py(py), domain.into_py(py), message.into_py(py)],
-            );
-            callable
-                .call_bound(py, args, None)
-                .map_err(|e| fastlogging::LoggingError::InvalidValue(e.to_string()))?;
+                &[
+                    level.into_py_any(py)?,
+                    domain.into_py_any(py)?,
+                    message.into_py_any(py)?,
+                ],
+            )?;
+            callable.call(py, args, None)?;
             Ok(())
+        })
+        .map_err(|e| {
+            let err: fastlogging::LoggingError = e.into();
+            err
         })?;
     }
     Ok(())

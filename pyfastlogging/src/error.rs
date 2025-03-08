@@ -64,3 +64,15 @@ impl From<fastlogging::LoggingError> for LoggingError {
         LoggingError(error)
     }
 }
+
+impl Into<fastlogging::LoggingError> for LoggingError {
+    fn into(self) -> fastlogging::LoggingError {
+        self.0
+    }
+}
+
+impl From<pyo3::PyErr> for LoggingError {
+    fn from(error: pyo3::PyErr) -> Self {
+        LoggingError(fastlogging::LoggingError::InvalidValue(error.to_string()))
+    }
+}

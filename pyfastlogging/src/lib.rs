@@ -88,9 +88,7 @@ fn init(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(root::critical, m)?)?;
     m.add_function(wrap_pyfunction!(root::fatal, m)?)?;
     m.add_function(wrap_pyfunction!(root::exception, m)?)?;
-    let fun: Py<PyAny> = PyModule::import_bound(py, "atexit")?
-        .getattr("register")?
-        .into();
+    let fun: Py<PyAny> = PyModule::import(py, "atexit")?.getattr("register")?.into();
     let _ = fun.call1(py, (wrap_pyfunction!(shutdown_at_exit, m)?,))?;
     Ok(())
 }

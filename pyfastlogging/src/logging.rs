@@ -64,9 +64,9 @@ impl Logging {
         indent: Option<(usize, usize, usize)>,     // If defined indent text by call depth
     ) -> PyResult<Self> {
         let (getframe, format_exc) = Python::with_gil(|py| -> PyResult<(Py<PyAny>, Py<PyAny>)> {
-            let sys = py.import_bound("sys")?;
+            let sys = py.import("sys")?;
             let getframe = sys.getattr("_getframe")?;
-            let traceback = py.import_bound("traceback")?;
+            let traceback = py.import("traceback")?;
             let format_exc = traceback.getattr("format_exc")?;
             Ok((getframe.into(), format_exc.into()))
         })?;
@@ -376,7 +376,7 @@ impl Logging {
             .unwrap()
             .get_logging_config()
             .to_json_vec()?;
-        Ok(PyBytes::new_bound(py, &config))
+        Ok(PyBytes::new(py, &config))
     }
 
     pub fn __getnewargs__<'py>(
@@ -391,7 +391,7 @@ impl Logging {
             .unwrap()
             .get_logging_config()
             .to_json_vec()?;
-        Ok((PyBytes::new_bound(py, &config),))
+        Ok((PyBytes::new(py, &config),))
     }
 
     fn __repr__(&self) -> String {

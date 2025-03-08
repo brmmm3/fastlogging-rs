@@ -6,6 +6,7 @@ members = [
     "fastlogging",
     "pyfastlogging",
     "cfastlogging",
+    #"cxxfastlogging",
     #"cppfastlogging",
     #"gofastlogging",
     #"jfastlogging",
