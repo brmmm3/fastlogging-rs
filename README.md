@@ -1,12 +1,42 @@
 # `fastlogging-rs`
 
-This is the Python layer for [fastlogging](https://github.com/brmmm3/fastlogging-rs/tree/master/fastlogging). This package is for creating Python wheels.  
-For simplicity `build_wheels.py` can be used to build the wheels. The Python script uses `pyenv` to choose different Python versions and `maturin` to buld the wheels.  
-If you run the script with option it will build the Python module for the current used Python interpreter.  
-When using the `--versions` option you can provide:
+`fastlogging-rs` is a very fast and versatile logging module. It supports the following programming languages with very similar APIs:
 
-- a comma separated list of Python versions
-- `*` to build Python modules for all versions installed by `pyenv`. Put it in quotation marks to avoid unexpected behavior.
+- Rust (of course, as it is written in Rust ;-) )
+- Python >=3.7
+- C
+- C++
+- Go
+- Java
 
-**Note:**
-As of now [manylinux](https://github.com/pypa/manylinux) wheels are failing to build with `cibuildwheel`, because the spec for libc 2.34 is still not released.
+## Writers
+
+Writers are sinks for the logging data. Following writers are available:
+
+- Console (optional colored)
+- File (optional rotation and compression)
+- TCP client (optional authentication key and AES encryption)
+- Syslog (Linux), EventLog (Windows)
+- Callback
+
+## Configuration
+
+As an alterantive through API calls configuration can be done through a configuration file. The configuration file can be a JSON, XML or YAML file.
+
+## Benchmarks
+
+To give you an idea how fast this module is some benchmarks here:
+
+### Writing to a file
+
+> Python logging 29.37s
+> log4j 1.48s
+> fastlogging-rs 0.2s
+
+### Rotating file logging
+
+> Python logging 35.24s
+> jog4j 1.56s
+> fastlogging-rs 0.17s
+
+More benchmarks can be found in `doc/benchmarks`.
