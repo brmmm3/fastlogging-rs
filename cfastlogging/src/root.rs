@@ -163,14 +163,17 @@ pub unsafe extern "C" fn root_remove_writer(wid: usize) -> *const WriterEnum {
 
 /// # Safety
 ///
-/// Add writer.
+/// Add writers.
 #[no_mangle]
 pub unsafe extern "C" fn root_add_writer_configs(
     configs: *mut WriterConfigEnum,
     config_cnt: usize,
 ) -> isize {
     match root::add_writer_configs(slice::from_raw_parts(configs, config_cnt)) {
-        Ok(r) => Box::into_raw(Box::new(r)) as isize,
+        Ok(wids) => Box::into_raw(Box::new(CusizeVec {
+            cnt: wids.len() as u32,
+            values: wids,
+        })) as isize,
         Err(err) => {
             eprintln!("add_writer_configs failed: {err:?}");
             err.as_int() as isize
@@ -180,7 +183,7 @@ pub unsafe extern "C" fn root_add_writer_configs(
 
 /// # Safety
 ///
-/// Add writer.
+/// Add writers top root logger.
 #[no_mangle]
 pub unsafe extern "C" fn root_add_writers(
     writers: *mut WriterEnum,
