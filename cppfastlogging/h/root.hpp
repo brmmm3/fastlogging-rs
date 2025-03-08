@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "def.hpp"
 
 // Root logging module
@@ -64,11 +66,11 @@ extern "C"
 
     const rust::WriterConfigEnum *root_get_writer_config(uint32_t wid);
 
-    const rust::WriterConfigEnums *root_get_writer_configs();
+    const std::vector<rust::WriterConfigEnum> root_get_writer_configs();
 
     const ServerConfig *root_get_server_config();
 
-    const ServerConfigs *root_get_server_configs();
+    const std::vector<ServerConfig> root_get_server_configs();
 
     const char *root_get_root_server_address_port();
 

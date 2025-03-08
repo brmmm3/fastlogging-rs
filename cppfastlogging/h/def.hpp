@@ -48,6 +48,18 @@ namespace rust {
         intptr_t code;
     };
 
+    typedef struct Cu32StringVec {
+        uint32_t cnt;
+        uint32_t *keys;
+        char **values;
+    } Cu32StringVec;
+
+    typedef struct Cu32u16Vec {
+        uint32_t cnt;
+        uint32_t *keys;
+        uint16_t *values;
+    } Cu32u16Vec;
+
     // Simple enum
     enum class LevelSyms: uint8_t
     {
@@ -56,18 +68,14 @@ namespace rust {
         Str = 2
     };
 
-    /* Complex enum
-    typedef enum FileTypeEnum: uint8_t
+    enum class FileTypeEnum: uint8_t
     {
         Message = 0,
         Sync = 1,
         Rotate = 2,
         Stop = 3
-    } FileTypeEnum;*/
+    };
 
-    typedef void* FileTypeEnum;
-
-    // Simple enum
     enum class CompressionMethodEnum: uint8_t
     {
         Store = 0,
@@ -90,7 +98,7 @@ namespace rust {
         Syslog = 8
     } WriterTypeEnum;*/
 
-    // typedef void* WriterTypeEnum;
+    // typedef void* WriterTypeEnum;  --> Defined in writer.hpp
 
     /* Complex enum
     typedef enum WriterConfigEnum: uint8_t
@@ -110,7 +118,7 @@ namespace rust {
         void *config;
     } CWriterConfig;*/
 
-    // typedef void* WriterConfigEnum;
+    // typedef void* WriterConfigEnum;  --> Defined in writer.hpp
 
     /* Complex enum
     typedef enum WriterEnum: uint8_t
@@ -195,15 +203,3 @@ namespace rust {
         ServerConfig *values;
     } ServerConfigs;
 }
-
-typedef struct Cu32StringVec {
-    uint32_t cnt;
-    uint32_t *keys;
-    char **values;
-} Cu32StringVec_t;
-
-typedef struct Cu32u16Vec {
-    uint32_t cnt;
-    uint32_t *keys;
-    uint16_t *values;
-} Cu32u16Vec_t;

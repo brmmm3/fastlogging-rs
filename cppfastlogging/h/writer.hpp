@@ -59,11 +59,6 @@ namespace rust
     struct SyslogWriterConfig {};
     using WriterConfigEnum = std::variant<RootConfig, ConsoleWriterConfig, FileWriterConfig, ClientWriterConfig, ServerConfig, CallbackWriterConfig, SyslogWriterConfig>;
 
-    typedef struct WriterConfigEnums {
-        uint32_t cnt;
-        WriterConfigEnum *values;
-    } WriterConfigEnums;
-
     template<typename T, typename... Ts>
     std::ostream& operator<<(std::ostream& os, const std::variant<T, Ts...>& v)
     {
@@ -87,7 +82,7 @@ extern "C"
     // Console writer
 
     rust::WriterConfigEnum *console_writer_config_new(uint8_t level,
-                                                         int8_t colors);
+                                                      int8_t colors);
 
     // File writer
 

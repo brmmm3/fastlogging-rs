@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <new>
+#include <vector>
 
 using namespace std;
 
@@ -26,8 +27,6 @@ extern "C"
                                     int8_t pid,
                                     int8_t tname,
                                     int8_t tid);
-
-    void root_init();
 
     rust::Logging *logging_new_default();
 
