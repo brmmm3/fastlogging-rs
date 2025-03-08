@@ -4,10 +4,10 @@ use fastlogging::{
     ClientWriterConfig, ConsoleWriterConfig, EncryptionMethod, FileWriterConfig, Logging,
     LoggingError, ServerConfig, DEBUG,
 };
-use tempdir::TempDir;
+use tempfile::TempDir;
 
 fn main() -> Result<(), LoggingError> {
-    let temp_dir = TempDir::new("fastlogging").unwrap();
+    let temp_dir = TempDir::with_prefix("fastlogging").unwrap();
     let log_file = temp_dir.path().join("file.log");
     // Server
     let mut logging_server = Logging::new(

@@ -1,7 +1,7 @@
 use std::{fmt, path::PathBuf};
 
 use once_cell::sync::Lazy;
-use rand::{distributions::Alphanumeric, thread_rng, Rng};
+use rand::{distr::Alphanumeric, rng, Rng};
 use ring::aead::{self, BoundKey, SealingKey};
 
 use crate::{ClientWriterConfig, LoggingError, ServerConfig};
@@ -9,7 +9,7 @@ use crate::{ClientWriterConfig, LoggingError, ServerConfig};
 use super::{EncryptionMethod, NonceGenerator};
 
 pub static AUTH_KEY: Lazy<Vec<u8>> =
-    Lazy::new(|| thread_rng().sample_iter(&Alphanumeric).take(32).collect());
+    Lazy::new(|| rng().sample_iter(&Alphanumeric).take(32).collect());
 
 #[derive(Debug)]
 pub struct NetConfig {

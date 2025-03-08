@@ -398,13 +398,13 @@ impl FileWriter {
 
 #[cfg(test)]
 mod tests {
-    use tempdir::TempDir;
+    use tempfile::TempDir;
 
     use crate::{FileWriterConfig, Logging, DEBUG, NOTSET};
 
     #[test]
     fn file() {
-        let temp_dir = TempDir::new("fastlogging").unwrap();
+        let temp_dir = TempDir::with_prefix("fastlogging").unwrap();
         let log_file = temp_dir.path().join("file.log");
         let mut logging = Logging::new(
             NOTSET,

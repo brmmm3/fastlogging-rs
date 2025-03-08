@@ -9,7 +9,7 @@ pub use encryption::{EncryptionMethod, NonceGenerator};
 
 #[cfg(test)]
 mod tests {
-    use tempdir::TempDir;
+    use tempfile::TempDir;
 
     use crate::{
         ClientWriterConfig, ConsoleWriterConfig, FileWriterConfig, Logging, ServerConfig, DEBUG,
@@ -20,7 +20,7 @@ mod tests {
 
     #[test]
     fn unencrypted_one_client() {
-        let temp_dir = TempDir::new("fastlogging").unwrap();
+        let temp_dir = TempDir::with_prefix("fastlogging").unwrap();
         let log_file = temp_dir.path().join("file.log");
         // Server
         let mut logging_server = Logging::new(
