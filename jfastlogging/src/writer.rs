@@ -8,10 +8,7 @@ use jni::JNIEnv;
 
 use jni::objects::{JClass, JString};
 
-use jni::sys::{
-    jboolean, jclass, jint, jlong, jmethodID, jobject, JNIInvokeInterface_, JNI_GetCreatedJavaVMs,
-    JavaVM,
-};
+use jni::sys::{jboolean, jint, jlong, jobject, JNIInvokeInterface_, JNI_GetCreatedJavaVMs};
 
 use fastlogging::{
     CallbackWriterConfig, ClientWriterConfig, CompressionMethodEnum, ConsoleWriterConfig,

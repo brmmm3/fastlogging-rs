@@ -14,7 +14,7 @@ import org.apache.log4j.*;
 
 class BenchmarksLog4j {
     // Log levels
-    public static final int NOLOG = 70;
+    public static final int NOLOG = 100;
     public static final int EXCEPTION = 60;
     public static final int CRITICAL = 50;
     public static final int FATAL = CRITICAL;

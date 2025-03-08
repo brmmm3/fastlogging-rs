@@ -20,7 +20,7 @@ import org.apache.logging.log4j.core.config.builder.impl.BuiltConfiguration;
 
 class BenchmarksLog4j2 {
     // Log levels
-    public static final int NOLOG = 70;
+    public static final int NOLOG = 100;
     public static final int EXCEPTION = 60;
     public static final int CRITICAL = 50;
     public static final int FATAL = CRITICAL;

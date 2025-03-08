@@ -1,17 +1,29 @@
 use std::path::{Path, PathBuf};
+use std::slice;
 
 use jni::JNIEnv;
 
-use jni::objects::{JClass, JString};
+use jni::objects::{JArray, JClass, JString};
 
 use jni::sys::{jboolean, jbyte, jdouble, jint, jlong};
 
 use fastlogging::{
     ClientWriterConfig, ConsoleWriterConfig, EncryptionMethod, ExtConfig, FileWriterConfig,
-    LevelSyms, Logger, Logging, ServerConfig, WriterConfigEnum, WriterTypeEnum,
+    LevelSyms, Logger, Logging, ServerConfig, WriterConfigEnum, WriterEnum, WriterTypeEnum,
 };
 
 use crate::{get_pathbuf, get_string, log_message};
+
+/// # Safety
+///
+/// Create new default instance.
+#[no_mangle]
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingNewDefault(
+    mut _env: JNIEnv,
+    _class: JClass,
+) -> jlong {
+    Box::into_raw(Box::new(Logging::default())) as jlong
+}
 
 /// # Safety
 ///
@@ -22,60 +34,39 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingNew(
     _class: JClass,
     level: jint, // Global log level
     domain: JString,
+    configs: JArray,
     ext_config: *mut ExtConfig,
-    console: *mut ConsoleWriterConfig,
-    file: *mut FileWriterConfig,
-    server: *mut ServerConfig,
-    connect: *mut ClientWriterConfig,
-    syslog: jbyte,   // Syslog log level
-    config: JString, // Optional configuration file path
+    config_path: JString, // Optional configuration file path
 ) -> jlong {
-    let domain: Option<String> = env.get_string(&domain).ok().map(|s| s.into());
+    let domain: String = env
+        .get_string(&domain)
+        .map(|s| s.into())
+        .ok()
+        .unwrap_or_else(|| "root".to_string());
+    let configs = if configs_ptr.is_null() {
+        Vec::new()
+    } else {
+        let writers = slice::from_raw_parts(configs_ptr, configs_cnt as usize);
+        let writers = writers
+            .into_iter()
+            .map(|w| *Box::from_raw(*w))
+            .collect::<Vec<_>>();
+        writers
+        /*writers
+        .into_iter()
+        .map(|w| *Box::from_raw(*w))
+        .collect::<Vec<_>>()*/
+    };
     let ext_config = if ext_config.is_null() {
         None
     } else {
         Some(*Box::from_raw(ext_config))
     };
-    let console = if console.is_null() {
-        None
-    } else {
-        Some(*Box::from_raw(console))
-    };
-    let file = if file.is_null() {
-        None
-    } else {
-        Some(*Box::from_raw(file))
-    };
-    let server = if server.is_null() {
-        None
-    } else {
-        Some(*Box::from_raw(server))
-    };
-    let connect = if connect.is_null() {
-        None
-    } else {
-        Some(*Box::from_raw(connect))
-    };
-    let syslog = if syslog >= 0 {
-        Some(syslog as u8)
-    } else {
-        None
-    };
-    let config = match config.is_null() {
-        false => Some(get_pathbuf!(env, config, 0)),
+    let config_path = match config_path.is_null() {
+        false => Some(get_pathbuf!(env, config_path, 0)),
         true => None,
     };
-    let instance = Logging::new(
-        Some(level as u8),
-        domain,
-        ext_config,
-        console,
-        file,
-        server,
-        connect,
-        syslog,
-        config,
-    );
+    let instance = Logging::new(level as u8, domain, configs, ext_config, config_path);
     Box::into_raw(Box::new(instance.unwrap())) as jlong
 }
 
@@ -103,24 +94,10 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingSetLevel(
     mut env: JNIEnv,
     _class: JClass,
     logging: &mut Logging,
-    writer: jint,
-    key: JString,
+    wid: jint,
     level: jint,
 ) -> jlong {
-    let writer = match writer as i8 {
-        0 => WriterTypeEnum::Root,
-        1 => WriterTypeEnum::Console,
-        2 => WriterTypeEnum::File(get_pathbuf!(env, key)),
-        3 => WriterTypeEnum::Client(get_string!(env, key)),
-        4 => WriterTypeEnum::Server(get_string!(env, key)),
-        5 => WriterTypeEnum::Callback,
-        _ => {
-            env.throw(format!("Invalid value {writer} for writer."))
-                .unwrap();
-            return -1;
-        }
-    };
-    if let Err(err) = logging.set_level(&writer, level as u8) {
+    if let Err(err) = logging.set_level(wid as usize, level as u8) {
         env.throw(err.to_string()).unwrap();
         return -1;
     }
@@ -203,11 +180,26 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingRemoveLogger(
 ///
 /// Add a Writer instance
 #[no_mangle]
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingAddWriterConfig(
+    mut env: JNIEnv,
+    _class: JClass,
+    logging: &mut Logging,
+    config: &mut WriterConfigEnum,
+) {
+    if let Err(err) = logging.add_writer_config(config) {
+        env.throw(err.to_string()).unwrap();
+    }
+}
+
+/// # Safety
+///
+/// Add a Writer instance
+#[no_mangle]
 pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingAddWriter(
     mut env: JNIEnv,
     _class: JClass,
     logging: &mut Logging,
-    writer: &mut WriterConfigEnum,
+    writer: &mut WriterEnum,
 ) {
     if let Err(err) = logging.add_writer(writer) {
         env.throw(err.to_string()).unwrap();
@@ -219,30 +211,27 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingAddWriter(
 /// Remove a Writer instance
 #[no_mangle]
 pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingRemoveWriter(
+    mut _env: JNIEnv,
+    _class: JClass,
+    logging: &mut Logging,
+    wid: jint,
+) {
+    logging.remove_writer(wid as usize);
+}
+
+/// # Safety
+///
+/// Add a Writer instance
+#[no_mangle]
+pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingAddWriterConfigs(
     mut env: JNIEnv,
     _class: JClass,
     logging: &mut Logging,
-    writer: jint,
-    key: JString,
-) -> jint {
-    let writer = match writer as i8 {
-        0 => WriterTypeEnum::Root,
-        1 => WriterTypeEnum::Console,
-        2 => WriterTypeEnum::File(get_pathbuf!(env, key)),
-        3 => WriterTypeEnum::Client(get_string!(env, key)),
-        4 => WriterTypeEnum::Server(get_string!(env, key)),
-        5 => WriterTypeEnum::Callback,
-        _ => {
-            env.throw(format!("Invalid value {writer} for writer."))
-                .unwrap();
-            return -1;
-        }
-    };
-    if let Err(err) = logging.remove_writer(&writer) {
+    configs: &mut WriterConfigEnum,
+) {
+    if let Err(err) = logging.add_writer_configs(configs) {
         env.throw(err.to_string()).unwrap();
-        return -1;
     }
-    0
 }
 
 /// # Safety
