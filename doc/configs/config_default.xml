@@ -1,0 +1,16 @@
+<FileConfig>
+    <level>0</level>
+    <domain>root</domain>
+    <hostname />
+    <pname />
+    <pid>0</pid>
+    <tname>false</tname>
+    <tid>false</tid>
+    <structured>String</structured>
+    <console />
+    <file />
+    <server />
+    <connect />
+    <syslog />
+    <level2sym>Sym</level2sym>
+</FileConfig>

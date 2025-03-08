@@ -1,0 +1,16 @@
+{
+  "level": 0,
+  "domain": "root",
+  "hostname": null,
+  "pname": "",
+  "pid": 0,
+  "tname": false,
+  "tid": false,
+  "structured": "String",
+  "console": null,
+  "file": null,
+  "server": null,
+  "connect": null,
+  "syslog": null,
+  "level2sym": "Sym"
+}

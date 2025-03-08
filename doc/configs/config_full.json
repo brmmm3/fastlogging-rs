@@ -1,0 +1,38 @@
+{
+  "level": 0,
+  "domain": "root",
+  "hostname": "bender",
+  "pname": "write_config_file",
+  "pid": 935659,
+  "tname": false,
+  "tid": false,
+  "structured": "String",
+  "console": {
+    "level": 40,
+    "colors": true
+  },
+  "file": {
+    "level": 10,
+    "path": "/tmp/write_config_file.log",
+    "size": 1048576,
+    "backlog": 4,
+    "timeout": {
+      "secs": 3600,
+      "nanos": 0
+    },
+    "time": {
+      "secs_since_epoch": 1717081855,
+      "nanos_since_epoch": 211877680
+    },
+    "compression": "Deflate"
+  },
+  "server": null,
+  "connect": {
+    "level": 50,
+    "address": "127.0.0.1:12346",
+    "port": 12346,
+    "key": "NONE"
+  },
+  "syslog": null,
+  "level2sym": "Sym"
+}
