@@ -16,4 +16,5 @@ As of now [manylinux](https://github.com/pypa/manylinux) wheels are failing to b
 For class and enum definitions see [here](doc/DEF.md).  
 For root logger see [here](doc/ROOT.md).  
 For logging class see [here](doc/LOGGING.md).  
-For logger class see [here](doc/LOGGER.md).
+For logger class see [here](doc/LOGGER.md).  
+For examples look [here](examples) and [here](doc/EXAMPLES.md).

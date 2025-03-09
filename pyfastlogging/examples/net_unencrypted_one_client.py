@@ -4,7 +4,6 @@ from pyfastlogging import (
     TRACE,
     DEBUG,
     Logging,
-    Logger,
     ConsoleWriterConfig,
     FileWriterConfig,
     ServerConfig,

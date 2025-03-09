@@ -360,8 +360,8 @@ fn logging_thread(
 #[repr(C)]
 #[derive(Debug)]
 pub struct Logging {
-    pub level: u8,
-    pub domain: String,
+    pub level: u8,      // Global log level
+    pub domain: String, // Log domain
     pub instance: Arc<Mutex<LoggingInstance>>,
     pub(crate) server_tx: Sender<LoggingTypeEnum>,
     pub drop: bool,

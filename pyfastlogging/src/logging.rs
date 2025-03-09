@@ -56,9 +56,9 @@ impl Logging {
     #[new]
     #[pyo3(signature=(level, domain=None, configs=vec![], ext_config=None, config_path=None, indent=None))]
     pub fn new(
-        level: Option<u8>, // Global log level
-        domain: Option<String>,
-        configs: Vec<WriterConfigEnum>,
+        level: Option<u8>,                         // Global log level
+        domain: Option<String>,                    // Optional log domain
+        configs: Vec<WriterConfigEnum>,            // List of writer configurations
         ext_config: Option<&Bound<'_, ExtConfig>>, // Extended formatting configuration
         config_path: Option<PathBuf>,              // Optional configuration file
         indent: Option<(usize, usize, usize)>,     // If defined indent text by call depth
