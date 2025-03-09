@@ -29,13 +29,21 @@ pub enum ClientTypeEnum {
 #[repr(C)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClientWriterConfig {
+    /// Only send log messages if enabled is true
     pub enabled: bool,
+    /// Log level for filtering log messages
     pub level: u8,
+    /// Optional filter log messages by domain
     pub domain_filter: Option<String>,
+    /// Optional filter log messages by their contents
     pub message_filter: Option<String>,
+    /// IP address to connect and send log messages
     pub address: String,
+    /// IP port
     pub port: u16,
+    /// Optional key for authentication and message encryption
     pub key: EncryptionMethod,
+    /// Debug level. Only for developers.
     pub debug: u8,
 }
 

@@ -24,10 +24,15 @@ use super::{def::NetConfig, EncryptionMethod, NonceGenerator};
 #[repr(C)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ServerConfig {
+    /// Log level for filtering log messages
     pub level: u8,
+    /// IP address to listen to
     pub address: String,
+    /// IP port
     pub port: u16,
+    /// Optional key for authentication and message encryption
     pub key: EncryptionMethod,
+    /// Temporary file for key exchange between server and client process
     pub port_file: Option<PathBuf>,
 }
 

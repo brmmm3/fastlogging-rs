@@ -11,7 +11,7 @@ use crate::{
 
 /// Python layer for fastlogging.
 
-/// Shutdown fastlogging module.
+/// Initialize root logger.
 #[pyfunction]
 pub fn root_init() {
     fastlogging::root::root_init();
@@ -137,12 +137,6 @@ pub fn set_encryption(wid: usize, key: EncryptionMethod) -> Result<(), LoggingEr
 
 // Config
 
-/// Set debug mode.
-#[pyfunction]
-pub fn set_debug(debug: u8) {
-    fastlogging::root::set_debug(debug);
-}
-
 /// Get configuration for writer with ID `wid`.
 #[pyfunction]
 pub fn get_writer_config(wid: usize) -> Option<WriterConfigEnum> {
@@ -193,20 +187,21 @@ pub fn save_config(path: Option<PathBuf>) -> Result<(), LoggingError> {
     Ok(fastlogging::root::save_config(path.as_deref())?)
 }
 
-/// Get process ID of parent process.
+/// Get process id of parent process.
 #[pyfunction]
 pub fn get_parent_pid() -> Option<u32> {
     fastlogging::root::get_parent_pid()
 }
 
 #[pyfunction]
-pub fn get_parent_server_address() -> Option<ClientWriterConfig> {
-    fastlogging::root::get_parent_server_address().map(|v| v.into())
+pub fn get_parent_client_writer_config() -> Option<ClientWriterConfig> {
+    fastlogging::root::get_parent_client_writer_config().map(|v| v.into())
 }
 
 #[pyfunction]
-pub fn get_parent_pid_server_address() -> Option<(u32, ClientWriterConfig)> {
-    fastlogging::root::get_parent_pid_server_address().map(|(ppid, config)| (ppid, config.into()))
+pub fn get_parent_pid_client_writer_config() -> Option<(u32, ClientWriterConfig)> {
+    fastlogging::root::get_parent_pid_client_writer_config()
+        .map(|(ppid, config)| (ppid, config.into()))
 }
 
 // Logging methods
@@ -255,4 +250,10 @@ pub fn fatal(obj: PyObject) -> Result<(), LoggingError> {
 #[pyfunction]
 pub fn exception(obj: PyObject) -> Result<(), LoggingError> {
     Ok(fastlogging::root::exception(obj.to_string())?)
+}
+
+/// Set debug mode.
+#[pyfunction]
+pub fn set_debug(debug: u8) {
+    fastlogging::root::set_debug(debug);
 }

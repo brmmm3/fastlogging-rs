@@ -311,7 +311,7 @@ pub fn get_parent_pid() -> Option<u32> {
 }
 
 /// Get IP address of parent process LoggingServer.
-pub fn get_parent_server_address() -> Option<ClientWriterConfig> {
+pub fn get_parent_client_writer_config() -> Option<ClientWriterConfig> {
     // Initialize root logger is not already done.
     let _logger = ROOT_LOGGER.lock().unwrap();
     PARENT_LOGGER_ADDRESS
@@ -322,7 +322,7 @@ pub fn get_parent_server_address() -> Option<ClientWriterConfig> {
 }
 
 /// Get process ID of parent process and IP address of parent process LoggingServer.
-pub fn get_parent_pid_server_address() -> Option<(u32, ClientWriterConfig)> {
+pub fn get_parent_pid_client_writer_config() -> Option<(u32, ClientWriterConfig)> {
     // Initialize root logger is not already done.
     let _logger = ROOT_LOGGER.lock().unwrap();
     PARENT_LOGGER_ADDRESS.lock().unwrap().clone()

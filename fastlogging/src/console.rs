@@ -26,20 +26,30 @@ pub enum ConsoleTypeEnum {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum ConsoleTargetEnum {
+    /// Write log messages to stdout
     StdOut,
+    /// Write log messages to stderr
     StdErr,
+    /// Write log messages to stdout and stderr
     Both,
 }
 
 #[repr(C)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConsoleWriterConfig {
+    /// Only write log messages if enabled is true
     pub enabled: bool,
-    pub level: u8, // Log level
+    /// Log level for filtering log messages
+    pub level: u8,
+    /// Optional filter log messages by domain
     pub domain_filter: Option<String>,
+    /// Optional filter log messages by their contents
     pub message_filter: Option<String>,
+    /// Colored output if true
     pub colors: bool,
+    /// Select log message destination (stdout, stderr)
     pub target: ConsoleTargetEnum,
+    /// Debug level. Only for developers.
     pub debug: u8,
 }
 

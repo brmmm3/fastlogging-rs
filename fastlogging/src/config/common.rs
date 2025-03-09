@@ -3,12 +3,18 @@ use crate::MessageStructEnum;
 #[repr(C)]
 #[derive(Debug, Clone)]
 pub struct ExtConfig {
+    /// Set log message structuring.
     pub structured: MessageStructEnum,
-    pub hostname: bool, // Log hostname
-    pub pname: bool,    // Log process name
-    pub pid: bool,      // Log process ID
-    pub tname: bool,    // Log thread name
-    pub tid: bool,      // Log thread ID
+    /// Include hostname in log messages.
+    pub hostname: bool,
+    /// Include process name in log messages.
+    pub pname: bool,
+    /// Include process id in log messages.
+    pub pid: bool,
+    /// Include thread name in log messages.
+    pub tname: bool,
+    /// Include thread id in log messages.
+    pub tid: bool,
 }
 
 impl ExtConfig {

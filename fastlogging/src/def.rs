@@ -79,8 +79,11 @@ pub fn level2string(levelsym: &LevelSyms, level: u8) -> &'static str {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum LevelSyms {
+    /// Use 1 character symbol (!, F, E, W, ...)
     Sym,
+    /// Use 3 character text (EXC, FTL, ERR, WRN, ...)
     Short,
+    /// Use long text (EXCEPTION, FATAL, ERROR, WARNING, ...). This is the default.
     Str,
 }
 
@@ -93,17 +96,23 @@ impl fmt::Display for LevelSyms {
 #[repr(C)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RootConfig {
+    /// Log level for filtering log messages.
     pub level: u8,
+    /// Log domain to add to log messages.
     pub domain: String,
+    /// Optional hostname to add to log messages.
     pub hostname: Option<String>,
+    /// Process name. Logged is not empty.
     pub pname: String,
-    /// `pid` is process ID and is logged with greater than 0.
+    /// Process id. Logged if greater than 0.
     pub pid: u32,
-    /// Add name of thread to log messages if `true`.
+    /// Log thread name if `true``.
     pub tname: bool,
-    /// Add ID of thread to log messages if `true`.
+    /// Log thread id if `true`.
     pub tid: bool,
+    /// Log messages with structure information.
     pub structured: MessageStructEnum,
+    /// Select log level names.
     pub level2sym: LevelSyms,
 }
 
@@ -381,8 +390,11 @@ impl fmt::Display for LoggingTypeEnum {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum MessageStructEnum {
+    /// Log messages without structure information (default).
     String,
+    /// Log messages as Json structure.
     Json,
+    /// Log messages as Xml structure.
     Xml,
 }
 

@@ -77,8 +77,11 @@ fn init(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(root::get_config_string, m)?)?;
     m.add_function(wrap_pyfunction!(root::save_config, m)?)?;
     m.add_function(wrap_pyfunction!(root::get_parent_pid, m)?)?;
-    m.add_function(wrap_pyfunction!(root::get_parent_server_address, m)?)?;
-    m.add_function(wrap_pyfunction!(root::get_parent_pid_server_address, m)?)?;
+    m.add_function(wrap_pyfunction!(root::get_parent_client_writer_config, m)?)?;
+    m.add_function(wrap_pyfunction!(
+        root::get_parent_pid_client_writer_config,
+        m
+    )?)?;
     m.add_function(wrap_pyfunction!(root::trace, m)?)?;
     m.add_function(wrap_pyfunction!(root::debug, m)?)?;
     m.add_function(wrap_pyfunction!(root::info, m)?)?;

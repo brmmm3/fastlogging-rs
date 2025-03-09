@@ -59,7 +59,7 @@ impl Logging {
         level: Option<u8>, // Global log level
         domain: Option<String>,
         configs: Vec<WriterConfigEnum>,
-        ext_config: Option<&Bound<'_, ExtConfig>>, // Extended configuration
+        ext_config: Option<&Bound<'_, ExtConfig>>, // Extended formatting configuration
         config_path: Option<PathBuf>,              // Optional configuration file
         indent: Option<(usize, usize, usize)>,     // If defined indent text by call depth
     ) -> PyResult<Self> {
@@ -212,10 +212,6 @@ impl Logging {
 
     // Config
 
-    pub fn set_debug(&mut self, debug: u8) {
-        self.instance.set_debug(debug);
-    }
-
     pub fn get_writer_config(&self, wid: usize) -> Option<WriterConfigEnum> {
         self.instance.get_writer_config(wid).map(|c| c.into())
     }
@@ -357,6 +353,10 @@ impl Logging {
         } else {
             Ok(())
         }
+    }
+
+    pub fn set_debug(&mut self, debug: u8) {
+        self.instance.set_debug(debug);
     }
 
     pub fn __setstate__(&mut self, state: Bound<'_, PyBytes>) -> Result<(), LoggingError> {
