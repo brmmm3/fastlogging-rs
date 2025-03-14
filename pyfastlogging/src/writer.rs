@@ -365,13 +365,18 @@ pub struct CallbackWriterConfig(pub fastlogging::CallbackWriterConfig);
 #[pymethods]
 impl CallbackWriterConfig {
     #[new]
-    #[pyo3(signature=(level, callback=None))]
-    pub fn new(level: u8, callback: Option<PyObject>) -> Self {
-        *CALLBACK_PY_FUNC.lock().unwrap() = callback;
+    #[pyo3(signature=(level, callback))]
+    pub fn new(level: u8, callback: PyObject) -> Self {
+        *CALLBACK_PY_FUNC.lock().unwrap() = Some(callback);
         Self(fastlogging::CallbackWriterConfig::new(
             level,
             Some(Box::new(callback_func)),
         ))
+    }
+
+    #[pyo3(signature=(callback=None))]
+    pub fn set_callback(&self, callback: Option<PyObject>) {
+        *CALLBACK_PY_FUNC.lock().unwrap() = callback;
     }
 
     fn __repr__(&self) -> String {

@@ -1,6 +1,6 @@
 # API of the LOGGER
 
-## `Logger(level: int, domain: str, indent: Tuple[int, int, int] | None, tname: bool | None, tid: bool | None)`
+## `Logger(level: int, domain: str, indent: Tuple[int, int, int] = None, tname: bool = False, tid: bool = False)`
 
 Create `Logger` instance. `level` and `domain` are clear and need no further explanation.
 With `indent`, if provided, log messages are indented with the following parameters:  

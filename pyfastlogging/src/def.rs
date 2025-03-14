@@ -127,9 +127,13 @@ impl MessageStructEnum {
 #[pyclass(eq, eq_int)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CompressionMethodEnum {
+    /// Do not compress the log files
     Store,
+    /// Compress the log files by the Deflate algorithm
     Deflate,
+    /// Compress the log files by the Zstandard algorithm
     Zstd,
+    /// Compress the log files by the Lzma algorithm
     Lzma,
 }
 

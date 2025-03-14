@@ -63,15 +63,15 @@ Enable all writers with type `typ`. If no type with `typ` was found an exception
 
 Disable all writers with type `typ`. If no type with `typ` was found an exception will be thrown.
 
-## `sync(types: List[WriterTypeEnum], timeout: float | None)`
+## `sync(types: List[WriterTypeEnum], timeout: float = None)`
 
 Sync all writers listed in `types`. If `timeout` is provided and waiting takes longer then an exception is thrown.
 
-## `sync_all(timeout: float | None)`
+## `sync_all(timeout: float = None)`
 
 Sync all writers. If `timeout` is provided and waiting takes longer then an exception is thrown.
 
-## `rotate(path: str | None)`
+## `rotate(path: str = None)`
 
 Rotate log file with path `path` or all log files if `path` is `None`.
 An exception is thrown if file rotation fails.
@@ -113,9 +113,10 @@ Get authentication or AES encryption key of root server instance.
 
 Get complete configuration as string.
 
-## `save_config(path: str | None)`
+## `save_config(path: str = None)`
 
-Save configuration to file. If `path` is provided then configuration is written to this new path. Otherwise the default path in the configuration is used.
+Save configuration to file. If `path` is provided then configuration is written to this new path. Otherwise the default path in the configuration is used.  
+The file extension determines the structure type used. Allowed extensions are `json`, `xml`, `yaml`.  
 An exception is thrown is saving the configuration failed.
 
 ## `get_parent_pid() -> int | None`

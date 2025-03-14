@@ -1,6 +1,6 @@
 # API of the LOGGING module
 
-## `Logging(level: int | None, domain: str | None, configs: List[WriterConfigEnum], ext_config: ExtConfig | None, config_path: str | None, indent: Tuple[int, int, int] | None)`
+## `Logging(level: int = NOTSET, domain: str = "root", configs: List[WriterConfigEnum], ext_config: ExtConfig = None, config_path: str = None, indent: Tuple[int, int, int] = None)`
 
 Create `Logging` instance.  
 `level` if not provided is set to `NOTSET`.  
@@ -81,7 +81,7 @@ The method returns the `id` of the new writer.
 If a config has wrong class type an exception is thrown.
 The method returns a list of `id` of the new writers.
 
-## `remove_writers(wid: List[int] | None) -> Config | None`
+## `remove_writers(wid: List[int] = None) -> Config | None`
 
 Remove list of `wid` writer ids if provided or all writers if `None`. List of writer configurations will be returned.
 
@@ -101,15 +101,15 @@ Enable all writers with type `typ`. If no type with `typ` was found an exception
 
 Disable all writers with type `typ`. If no type with `typ` was found an exception will be thrown.
 
-## `sync(types: List[WriterTypeEnum], timeout: float | None)`
+## `sync(types: List[WriterTypeEnum], timeout: float = None)`
 
 Sync all writers listed in `types`. If `timeout` is provided and waiting takes longer then an exception is thrown.
 
-## `sync_all(timeout: float | None)`
+## `sync_all(timeout: float = None)`
 
 Sync all writers. If `timeout` is provided and waiting takes longer then an exception is thrown.
 
-## `rotate(path: str | None)`
+## `rotate(path: str = None)`
 
 Rotate log file with path `path` or all log files if `path` is `None`.
 An exception is thrown if file rotation fails.
@@ -151,7 +151,7 @@ Get authentication or AES encryption key of root server instance.
 
 Get complete configuration as string.
 
-## `save_config(path: str | None)`
+## `save_config(path: str = None)`
 
 Save configuration to file. If `path` is provided then configuration is written to this new path. Otherwise the default path in the configuration is used.
 An exception is thrown is saving the configuration failed.
