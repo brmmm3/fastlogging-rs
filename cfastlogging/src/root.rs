@@ -224,7 +224,7 @@ pub unsafe extern "C" fn root_remove_writers(wids: *mut u32, wid_cnt: u32) -> *m
 #[no_mangle]
 pub unsafe extern "C" fn root_enable(wid: usize) -> isize {
     match root::enable(wid) {
-        Ok(r) => Box::into_raw(Box::new(r)) as isize,
+        Ok(_) => 0,
         Err(err) => {
             eprintln!("enable failed: {err:?}");
             err.as_int() as isize
@@ -238,7 +238,7 @@ pub unsafe extern "C" fn root_enable(wid: usize) -> isize {
 #[no_mangle]
 pub unsafe extern "C" fn root_disable(wid: usize) -> isize {
     match root::disable(wid) {
-        Ok(r) => Box::into_raw(Box::new(r)) as isize,
+        Ok(_) => 0,
         Err(err) => {
             eprintln!("disable failed: {err:?}");
             err.as_int() as isize
@@ -252,7 +252,7 @@ pub unsafe extern "C" fn root_disable(wid: usize) -> isize {
 #[no_mangle]
 pub unsafe extern "C" fn root_enable_type(typ: *mut WriterTypeEnum) -> isize {
     match root::enable_type(*Box::from_raw(typ)) {
-        Ok(r) => Box::into_raw(Box::new(r)) as isize,
+        Ok(_) => 0,
         Err(err) => {
             eprintln!("enable failed: {err:?}");
             err.as_int() as isize
@@ -266,7 +266,7 @@ pub unsafe extern "C" fn root_enable_type(typ: *mut WriterTypeEnum) -> isize {
 #[no_mangle]
 pub unsafe extern "C" fn root_disable_type(typ: *mut WriterTypeEnum) -> isize {
     match root::disable_type(*Box::from_raw(typ)) {
-        Ok(r) => Box::into_raw(Box::new(r)) as isize,
+        Ok(_) => 0,
         Err(err) => {
             eprintln!("disable_type failed: {err:?}");
             err.as_int() as isize
@@ -352,14 +352,6 @@ pub unsafe extern "C" fn root_set_encryption(wid: c_uint, key: *mut CKeyStruct) 
 }
 
 // Config
-
-/// # Safety
-///
-/// Set debug level.
-#[no_mangle]
-pub unsafe extern "C" fn root_set_debug(debug: u8) {
-    root::set_debug(debug);
-}
 
 /// # Safety
 ///
@@ -622,4 +614,12 @@ pub unsafe extern "C" fn root_exception(message: *const c_char) -> isize {
     } else {
         0
     }
+}
+
+/// # Safety
+///
+/// Set debug level.
+#[no_mangle]
+pub unsafe extern "C" fn root_set_debug(debug: u8) {
+    root::set_debug(debug);
 }
