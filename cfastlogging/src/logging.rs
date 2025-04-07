@@ -48,7 +48,7 @@ pub unsafe extern "C" fn logging_new(
     } else {
         let writers = slice::from_raw_parts(configs_ptr, configs_cnt as usize);
         let writers = writers
-            .into_iter()
+            .iter()
             .map(|w| *Box::from_raw(*w))
             .collect::<Vec<_>>();
         writers
@@ -173,7 +173,7 @@ pub unsafe extern "C" fn logging_set_root_writer_config(
     logging: &mut Logging,
     config: *mut WriterConfigEnum,
 ) -> isize {
-    match logging.set_root_writer_config(&*Box::from_raw(config)) {
+    match logging.set_root_writer_config(&Box::from_raw(config)) {
         Ok(_r) => 0,
         Err(err) => {
             eprintln!("logging_set_root_writer_config failed: {err:?}");
@@ -290,7 +290,7 @@ pub unsafe extern "C" fn logging_remove_writers(
     } else {
         None
     };
-    let wids = wids.map(|w| w.into_iter().map(|w| *w as usize).collect::<Vec<usize>>());
+    let wids = wids.map(|w| w.iter().map(|w| *w as usize).collect::<Vec<usize>>());
     let writers = logging.remove_writers(wids);
     let writers = writers
         .into_iter()
@@ -447,14 +447,6 @@ pub unsafe extern "C" fn logging_set_encryption(
 }
 
 // Config
-
-/// # Safety
-///
-/// Set debug level.
-#[no_mangle]
-pub unsafe extern "C" fn logging_set_debug(logging: &mut Logging, debug: u8) {
-    logging.set_debug(debug);
-}
 
 /// # Safety
 ///
@@ -729,4 +721,12 @@ pub unsafe extern "C" fn logging_exception(logging: &Logging, message: *const c_
     } else {
         0
     }
+}
+
+/// # Safety
+///
+/// Set debug level.
+#[no_mangle]
+pub unsafe extern "C" fn logging_set_debug(logging: &mut Logging, debug: u8) {
+    logging.set_debug(debug);
 }

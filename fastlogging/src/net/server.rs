@@ -44,7 +44,7 @@ impl ServerConfig {
             let mut address_split = address.split(':');
             (
                 address_split.next().unwrap().to_string(),
-                address_split.last().unwrap().parse::<u16>().unwrap(),
+                address_split.next_back().unwrap().parse::<u16>().unwrap(),
             )
         } else {
             (address, 0)
@@ -226,7 +226,7 @@ fn handle_encrypted_client(
             &aead::AES_256_GCM,
             config.lock().unwrap().key.key().unwrap(),
         )
-        .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?,
+        .map_err(|e| Error::other(e.to_string()))?,
         NonceGenerator::new(),
     );
     let seal = aead::Aad::from(config.lock().unwrap().seal.clone());
@@ -267,10 +267,10 @@ fn handle_encrypted_client(
         if msg_level >= config_level {
             let _ = key
                 .open_in_place(seal.clone(), domain_data)
-                .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+                .map_err(|e| Error::other(e.to_string()))?;
             let _ = key
                 .open_in_place(seal.clone(), message_data)
-                .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+                .map_err(|e| Error::other(e.to_string()))?;
             let domain = std::str::from_utf8(domain_data).unwrap().to_string();
             let message = format!(
                 "{perr_addr}: {}",
@@ -477,12 +477,7 @@ impl LoggingServer {
         // Wait for thread started
         rx_started
             .recv_timeout(Duration::from_millis(100))
-            .map_err(|e| {
-                Error::new(
-                    ErrorKind::Other,
-                    format!("Failed to start logging server: {e}"),
-                )
-            })?;
+            .map_err(|e| Error::other(format!("Failed to start logging server: {e}")))?;
         Ok(Self {
             config,
             thr: Some(thr),

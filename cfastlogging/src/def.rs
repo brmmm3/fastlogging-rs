@@ -152,7 +152,7 @@ pub struct Cu32u16Vec {
 impl From<HashMap<usize, u16>> for Cu32u16Vec {
     fn from(items: HashMap<usize, u16>) -> Self {
         let wids = items.keys().map(|v| *v as u32).collect::<Vec<_>>();
-        let ports = items.values().map(|v| *v as u16).collect::<Vec<_>>();
+        let ports = items.values().copied().collect::<Vec<_>>();
         let c_wids = wids.as_ptr() as *const c_uint;
         let c_ports = ports.as_ptr() as *const c_ushort;
         std::mem::forget(wids);

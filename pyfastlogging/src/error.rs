@@ -65,9 +65,9 @@ impl From<fastlogging::LoggingError> for LoggingError {
     }
 }
 
-impl Into<fastlogging::LoggingError> for LoggingError {
-    fn into(self) -> fastlogging::LoggingError {
-        self.0
+impl From<LoggingError> for fastlogging::LoggingError {
+    fn from(val: LoggingError) -> Self {
+        val.0
     }
 }
 

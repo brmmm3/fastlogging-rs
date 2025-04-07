@@ -58,7 +58,7 @@ pub unsafe extern "C" fn root_set_level(wid: c_uint, level: u8) -> isize {
 /// Set logging domain.
 #[no_mangle]
 pub unsafe extern "C" fn root_set_domain(domain: *const c_char) {
-    root::set_domain(&char2string(domain));
+    root::set_domain(char2string(domain));
 }
 
 /// # Safety
@@ -104,7 +104,7 @@ pub unsafe extern "C" fn root_remove_logger(logger: &mut Logger) {
 /// Add writer.
 #[no_mangle]
 pub unsafe extern "C" fn root_set_root_writer_config(config: *mut WriterConfigEnum) -> isize {
-    match root::set_root_writer_config(&*Box::from_raw(config)) {
+    match root::set_root_writer_config(&Box::from_raw(config)) {
         Ok(_r) => 0,
         Err(err) => {
             eprintln!("set_root_writer_config failed: {err:?}");
@@ -206,7 +206,7 @@ pub unsafe extern "C" fn root_remove_writers(wids: *mut u32, wid_cnt: u32) -> *m
     } else {
         None
     };
-    let wids = wids.map(|w| w.into_iter().map(|w| *w as usize).collect::<Vec<usize>>());
+    let wids = wids.map(|w| w.iter().map(|w| *w as usize).collect::<Vec<usize>>());
     let writers = root::remove_writers(wids);
     let writers = writers
         .into_iter()

@@ -1,6 +1,6 @@
 use std::{
     fmt,
-    io::{BufWriter, Error, ErrorKind, Write},
+    io::{BufWriter, Error, Write},
     net::TcpStream,
     process,
     sync::{
@@ -51,7 +51,12 @@ impl ClientWriterConfig {
     pub fn new<S: Into<String>>(level: u8, address: S, key: EncryptionMethod) -> Self {
         let address: String = address.into();
         let port = if address.contains(':') {
-            address.split(':').last().unwrap().parse::<u16>().unwrap()
+            address
+                .split(':')
+                .next_back()
+                .unwrap()
+                .parse::<u16>()
+                .unwrap()
         } else {
             0
         };
@@ -143,10 +148,10 @@ fn client_writer_thread(
                     if let Some(ref mut sk) = config.sk {
                         let mut domain = domain.as_bytes().to_vec();
                         sk.seal_in_place_append_tag(seal, &mut domain)
-                            .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+                            .map_err(|e| Error::other(e.to_string()))?;
                         let mut message = message.as_bytes().to_vec();
                         sk.seal_in_place_append_tag(seal, &mut message)
-                            .map_err(|e| Error::new(ErrorKind::Other, e.to_string()))?;
+                            .map_err(|e| Error::other(e.to_string()))?;
                         size = message.len();
                         buffer[0] = size as u8;
                         buffer[1] = (size >> 8) as u8;

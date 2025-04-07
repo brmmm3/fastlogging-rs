@@ -314,13 +314,7 @@ impl LoggingInstance {
     }
 
     pub fn remove_writers(&mut self, wids: Option<Vec<usize>>) -> Vec<WriterEnum> {
-        let wids = wids.unwrap_or_else(|| {
-            self.writers
-                .keys()
-                .into_iter()
-                .map(|k| *k)
-                .collect::<Vec<_>>()
-        });
+        let wids = wids.unwrap_or_else(|| self.writers.keys().copied().collect::<Vec<_>>());
         wids.into_iter()
             .filter_map(|wid| self.remove_writer(wid))
             .collect::<Vec<_>>()

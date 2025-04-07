@@ -35,7 +35,7 @@ pub unsafe extern "C" fn create_key(
     let (key_len, key_ptr) = match typ {
         CEncryptionMethodEnum::NONE => (0, null()),
         CEncryptionMethodEnum::AuthKey | CEncryptionMethodEnum::AES => {
-            if key != null() {
+            if !key.is_null() {
                 (len, key)
             } else {
                 let mut key = AUTH_KEY.to_vec();
