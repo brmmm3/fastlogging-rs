@@ -18,190 +18,180 @@
 
 The enum has following values:
 
-```rust
-pub enum LevelSyms {
-    /// Use 1 character symbol (!, F, E, W, ...)
-    Sym,
-    /// Use 3 character text (EXC, FTL, ERR, WRN, ...)
-    Short,
-    /// Use long text (EXCEPTION, FATAL, ERROR, WARNING, ...). This is the default.
-    Str,
-}
+```python
+class LevelSyms(IntEnum):
+    # Use 1 character symbol (!, F, E, W, ...)
+    Sym = 0
+    # Use 3 character text (EXC, FTL, ERR, WRN, ...)
+    Short = 1
+    # Use long text (EXCEPTION, FATAL, ERROR, WARNING, ...). This is the default.
+    Str = 2
 ```
 
 ## Enum `MessageStructEnum`
 
 The enum has following values:
 
-```rust
-pub enum MessageStructEnum {
-    /// Log messages without structure information (default).
-    String,
-    /// Log messages as Json structure.
-    Json,
-    /// Log messages as Xml structure.
-    Xml,
-}
+```python
+class MessageStructEnum(IntEnum):
+    # Log messages without structure information (default).
+    String = 0
+    # Log messages as Json structure.
+    Json = 1
+    # Log messages as Xml structure.
+    Xml = 2
 ```
 
 ## Class `ExtConfig`
 
 This class is for configuring extended formatting setting. It has following members:
 
-```rust
-pub struct ExtConfig {
-    /// Set log message structuring.
-    pub structured: MessageStructEnum,
-    /// Include hostname in log messages.
-    pub hostname: bool,
-    /// Include process name in log messages.
-    pub pname: bool,
-    /// Include process id in log messages.
-    pub pid: bool,
-    /// Include thread name in log messages.
-    pub tname: bool,
-    /// Include thread id in log messages.
-    pub tid: bool,
-}
+```python
+class ExtConfig:
+    # Set log message structuring.
+    structured: MessageStructEnum
+    # Include hostname in log messages.
+    hostname: bool,
+    # Include process name in log messages.
+    pname: bool,
+    # Include process id in log messages.
+    pid: bool,
+    # Include thread name in log messages.
+    tname: bool,
+    # Include thread id in log messages.
+    tid: bool,
 ```
 
 ## Class `RootConfig`
 
-```rust
-pub struct RootConfig {
-    /// Log level for filtering log messages.
-    pub level: u8,
-    /// Log domain to add to log messages.
-    pub domain: String,
-    /// Optional hostname to add to log messages.
-    pub hostname: Option<String>,
-    /// Process name. Logged is not empty.
-    pub pname: String,
-    /// Process id. Logged if greater than 0.
-    pub pid: u32,
-    /// Log thread name if `true``.
-    pub tname: bool,
-    /// Log thread id if `true`.
-    pub tid: bool,
-    /// Log messages with structure information.
-    pub structured: MessageStructEnum,
-    /// Select log level names.
-    pub level2sym: LevelSyms,
-}
+```python
+class RootConfig:
+    # Log level for filtering log messages.
+    level: int
+    # Log domain to add to log messages.
+    domain: str
+    # Optional hostname to add to log messages.
+    hostname: str | None
+    # Process name. Logged is not empty.
+    pname: str
+    # Process id. Logged if greater than 0.
+    pid: int
+    # Log thread name if `true``.
+    tname: bool
+    # Log thread id if `true`.
+    tid: bool
+    # Log messages with structure information.
+    structured: MessageStructEnum
+    # Select log level names.
+    level2sym: LevelSyms
 ```
 
 ## Enum `ConsoleTargetEnum`
 
-```rust
-pub enum ConsoleTargetEnum {
-    /// Write log messages to stdout
-    StdOut,
-    /// Write log messages to stderr
-    StdErr,
-    /// Write log messages to stdout and stderr
-    Both,
-}
+```python
+class ConsoleTargetEnum(IntEnum):
+    # Write log messages to stdout
+    StdOut = 0
+    # Write log messages to stderr
+    StdErr = 1
+    # Write log messages to stdout and stderr
+    Both = 2
 ```
 
 ## Class `ConsoleWriterConfig`
 
-```rust
-pub struct ConsoleWriterConfig {
-    /// Only write log messages if enabled is true
-    pub enabled: bool,
-    /// Log level for filtering log messages
-    pub level: u8,
-    /// Optional filter log messages by domain
-    pub domain_filter: Option<String>,
-    /// Optional filter log messages by their contents
-    pub message_filter: Option<String>,
-    /// Colored output if true
-    pub colors: bool,
-    /// Select log message destination (stdout, stderr)
-    pub target: ConsoleTargetEnum,
-    /// Debug level. Only for developers.
-    pub debug: u8,
-}
+```python
+class ConsoleWriterConfig:
+    # Only write log messages if enabled is true
+    enabled: bool
+    # Log level for filtering log messages
+    level: int
+    # Optional filter log messages by domain
+    domain_filter: str | None
+    # Optional filter log messages by their contents
+    message_filter: str | None
+    # Colored output if true
+    colors: bool
+    # Select log message destination (stdout, stderr)
+    target: ConsoleTargetEnum
+    # Debug level. Only for developers.
+    debug: int
 ```
 
 ## Enum `CompressionMethodEnum`
 
-```rust
-pub enum CompressionMethodEnum {
-    /// Do not compress the log files
-    Store,
-    /// Compress the log files by the Deflate algorithm
-    Deflate,
-    /// Compress the log files by the Zstandard algorithm
-    Zstd,
-    /// Compress the log files by the Lzma algorithm
-    Lzma,
-}
+```python
+class CompressionMethodEnum(IntEnum):
+    # Do not compress the log files
+    Store = 0
+    # Compress the log files by the Deflate algorithm
+    Deflate = 1
+    # Compress the log files by the Zstandard algorithm
+    Zstd = 2
+    # Compress the log files by the Lzma algorithm
+    Lzma = 3
 ```
 
 ## Class `FileWriterConfig`
 
-```rust
-pub struct FileWriterConfig {
-    /// Only write log messages if enabled is true
-    pub enabled: bool,
-    /// Log level for filtering log messages
-    pub level: u8,
-    /// Optional filter log messages by domain
-    pub domain_filter: Option<String>,
-    /// Optional filter log messages by their contents
-    pub message_filter: Option<String>,
-    /// Path to log file
-    pub path: PathBuf,
-    /// Maximum size of log file. 0 means no size limit.
-    size: usize,
-    /// Maximum number of backup files.
-    backlog: usize,
-    /// Maximum log file age in seconds.
-    timeout: Option<Duration>,
-    /// Time when to backup log file.
-    time: Option<SystemTime>,
-    /// Compression method for backup files.
-    compression: CompressionMethodEnum,
-}
+```python
+class FileWriterConfig:
+    # Only write log messages if enabled is true
+    enabled: bool
+    # Log level for filtering log messages
+    level: int
+    # Optional filter log messages by domain
+    domain_filter: str | None
+    # Optional filter log messages by their contents
+    message_filter: str | None
+    # Path to log file
+    path: str
+    # Maximum size of log file. 0 means no size limit.
+    size: int
+    # Maximum number of backup files.
+    backlog: int
+    # Maximum log file age in seconds.
+    timeout: Duration | None
+    # Time when to backup log file.
+    time: SystemTime | None
+    # Compression method for backup files.
+    compression: CompressionMethodEnum
 ```
 
 ## Class `ServerConfig`
 
-```rust
-pub struct ServerConfig {
-    /// Log level for filtering log messages
-    pub level: u8,
-    /// IP address to listen to
-    pub address: String,
-    /// IP port
-    pub port: u16,
-    /// Optional key for authentication and message encryption
-    pub key: EncryptionMethod,
-    /// Temporary file for key exchange between server and client process
-    pub port_file: Option<PathBuf>,
-}
+```python
+class ServerConfig:
+    # Log level for filtering log messages
+    level: int
+    # IP address to listen to
+    address: str
+    # IP port
+    port: int
+    # Optional key for authentication and message encryption
+    key: EncryptionMethod
+    # Temporary file for key exchange between server and client process
+    port_file: str | None
 ```
 
 ## Class `ClientWriterConfig`
 
-```rust
-pub struct ClientWriterConfig {
-    /// Only send log messages if enabled is true
-    pub enabled: bool,
-    /// Log level for filtering log messages
-    pub level: u8,
-    /// Optional filter log messages by domain
-    pub domain_filter: Option<String>,
-    /// Optional filter log messages by their contents
-    pub message_filter: Option<String>,
-    /// IP address to connect and send log messages
-    pub address: String,
-    /// IP port
-    pub port: u16,
-    /// Optional key for authentication and message encryption
-    pub key: EncryptionMethod,
-    /// Debug level. Only for developers.
-    pub debug: u8,
-}
+```python
+class ClientWriterConfig:
+    # Only send log messages if enabled is true
+    enabled: bool
+    # Log level for filtering log messages
+    level: int
+    # Optional filter log messages by domain
+    domain_filter: str | None
+    # Optional filter log messages by their contents
+    message_filter: str | None
+    # IP address to connect and send log messages
+    address: str
+    # IP port
+    port: int
+    # Optional key for authentication and message encryption
+    key: EncryptionMethod
+    # Debug level. Only for developers.
+    debug: int
 ```

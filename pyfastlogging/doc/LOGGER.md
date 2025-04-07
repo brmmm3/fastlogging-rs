@@ -11,11 +11,11 @@ With `indent`, if provided, log messages are indented with the following paramet
 With `tname` is `True` the thread name is added to the log messages.  
 With `tid` is `True` the thread id is added to the log messages.
 
-## `set_level(level: u8)`
+## `set_level(level: int)`
 
 Set log level to `level`.
 
-## `level() -> u8`
+## `level() -> int`
 
 Get current log level.
 
