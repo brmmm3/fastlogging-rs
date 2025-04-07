@@ -36,8 +36,11 @@ type Cu32u16Vec struct {
 type LevelSyms int
 
 const (
+	/// Use 1 character symbol (!, F, E, W, ...)
 	Sym LevelSyms = iota
+	/// Use 3 character text (EXC, FTL, ERR, WRN, ...)
 	Short
+	/// Use long text (EXCEPTION, FATAL, ERROR, WARNING, ...). This is the default.
 	Str
 )
 
@@ -79,9 +82,13 @@ func (s FileTypeEnum) Into() C.CFileTypeEnum {
 type CompressionMethodEnum int
 
 const (
+	/// Do not compress the log files
 	Store CompressionMethodEnum = iota
+	/// Compress the log files by the Deflate algorithm
 	Deflate
+	/// Compress the log files by the Zstandard algorithm
 	Zstd
+	/// Compress the log files by the Lzma algorithm
 	Lzma
 )
 
