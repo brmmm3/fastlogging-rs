@@ -7,14 +7,14 @@ pub use logging::*;
 mod util;
 mod writer;
 use once_cell::sync::Lazy;
-use rand::{distributions::Alphanumeric, thread_rng, Rng};
+use rand::{Rng, distr::Alphanumeric, rng};
 pub use writer::*;
 mod logger;
 pub use logger::*;
 pub mod root;
 
 pub static AUTH_KEY: Lazy<Vec<u8>> =
-    Lazy::new(|| thread_rng().sample_iter(&Alphanumeric).take(32).collect());
+    Lazy::new(|| rng().sample_iter(&Alphanumeric).take(32).collect());
 
 #[repr(C)]
 pub struct CKeyStruct {
@@ -26,7 +26,7 @@ pub struct CKeyStruct {
 /// # Safety
 ///
 /// Create encryption key.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn create_key(
     typ: CEncryptionMethodEnum,
     len: c_uint,
@@ -57,7 +57,7 @@ pub unsafe extern "C" fn create_key(
 /// # Safety
 ///
 /// Create encryption key.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn create_random_key(typ: CEncryptionMethodEnum) -> *const CKeyStruct {
     create_key(typ, 0, null())
 }

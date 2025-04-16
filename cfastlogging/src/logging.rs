@@ -1,5 +1,5 @@
 use core::slice;
-use std::ffi::{c_char, c_double, c_uint, CString};
+use std::ffi::{CString, c_char, c_double, c_uint};
 use std::path::PathBuf;
 use std::ptr::null;
 
@@ -21,7 +21,7 @@ use crate::{CEncryptionMethodEnum, CKeyStruct};
 /// # Safety
 ///
 /// Create new logging instance.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_new_default() -> *mut Logging {
     Box::into_raw(Box::new(fastlogging::logging_new_default().unwrap()))
 }
@@ -29,7 +29,7 @@ pub unsafe extern "C" fn logging_new_default() -> *mut Logging {
 /// # Safety
 ///
 /// Create new logging instance.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_new(
     level: c_char, // Global log level
     domain: *const c_char,
@@ -47,11 +47,10 @@ pub unsafe extern "C" fn logging_new(
         Vec::new()
     } else {
         let writers = slice::from_raw_parts(configs_ptr, configs_cnt as usize);
-        let writers = writers
+        writers
             .iter()
             .map(|w| *Box::from_raw(*w))
-            .collect::<Vec<_>>();
-        writers
+            .collect::<Vec<_>>()
         /*writers
         .into_iter()
         .map(|w| *Box::from_raw(*w))
@@ -74,7 +73,7 @@ pub unsafe extern "C" fn logging_new(
 /// # Safety
 ///
 /// Shutdown logging.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_apply_config(logging: &mut Logging, path: *const c_char) -> isize {
     let path = PathBuf::from(char2string(path));
     let result = if let Err(err) = logging.apply_config(&path) {
@@ -92,7 +91,7 @@ pub unsafe extern "C" fn logging_apply_config(logging: &mut Logging, path: *cons
 /// # Safety
 ///
 /// Shutdown logging.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_shutdown(logging: &mut Logging, now: i8) -> isize {
     let result = if let Err(err) = logging.shutdown(now != 0) {
         eprintln!("logging_shutdown failed: {err:?}");
@@ -109,7 +108,7 @@ pub unsafe extern "C" fn logging_shutdown(logging: &mut Logging, now: i8) -> isi
 /// # Safety
 ///
 /// Set logging level.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_set_level(logging: &mut Logging, wid: c_uint, level: u8) -> isize {
     if let Err(err) = logging.set_level(wid as usize, level) {
         eprintln!("logging_set_level failed: {err:?}");
@@ -122,7 +121,7 @@ pub unsafe extern "C" fn logging_set_level(logging: &mut Logging, wid: c_uint, l
 /// # Safety
 ///
 /// Set logging domain.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_set_domain(logging: &mut Logging, domain: *const c_char) {
     logging.set_domain(&char2string(domain));
 }
@@ -130,7 +129,7 @@ pub unsafe extern "C" fn logging_set_domain(logging: &mut Logging, domain: *cons
 /// # Safety
 ///
 /// Set log level symbols.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_set_level2sym(logging: &mut Logging, level2sym: u8) {
     logging.set_level2sym(if level2sym == 0 {
         &LevelSyms::Sym
@@ -144,7 +143,7 @@ pub unsafe extern "C" fn logging_set_level2sym(logging: &mut Logging, level2sym:
 /// # Safety
 ///
 /// Set extended configuration.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_set_ext_config(logging: &mut Logging, ext_config: &ExtConfig) {
     logging.set_ext_config(ext_config);
 }
@@ -152,7 +151,7 @@ pub unsafe extern "C" fn logging_set_ext_config(logging: &mut Logging, ext_confi
 /// # Safety
 ///
 /// Add logger.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_add_logger(logging: &mut Logging, logger: &mut Logger) {
     logging.add_logger(logger);
 }
@@ -160,7 +159,7 @@ pub unsafe extern "C" fn logging_add_logger(logging: &mut Logging, logger: &mut 
 /// # Safety
 ///
 /// Remove logger.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_remove_logger(logging: &mut Logging, logger: &mut Logger) {
     logging.remove_logger(logger);
 }
@@ -168,7 +167,7 @@ pub unsafe extern "C" fn logging_remove_logger(logging: &mut Logging, logger: &m
 /// # Safety
 ///
 /// Add writer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_set_root_writer_config(
     logging: &mut Logging,
     config: *mut WriterConfigEnum,
@@ -185,7 +184,7 @@ pub unsafe extern "C" fn logging_set_root_writer_config(
 /// # Safety
 ///
 /// Add writer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_set_root_writer(
     logging: &mut Logging,
     writer: *mut WriterEnum,
@@ -202,7 +201,7 @@ pub unsafe extern "C" fn logging_set_root_writer(
 /// # Safety
 ///
 /// Add writer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_add_writer_config(
     logging: &mut Logging,
     config: *mut WriterConfigEnum,
@@ -220,7 +219,7 @@ pub unsafe extern "C" fn logging_add_writer_config(
 /// # Safety
 ///
 /// Add writer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_add_writer(
     logging: &mut Logging,
     writer: *mut WriterEnum,
@@ -231,7 +230,7 @@ pub unsafe extern "C" fn logging_add_writer(
 /// # Safety
 ///
 /// Remove writer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_remove_writer(
     logging: &mut Logging,
     wid: usize,
@@ -245,7 +244,7 @@ pub unsafe extern "C" fn logging_remove_writer(
 /// # Safety
 ///
 /// Add writer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_add_writer_configs(
     logging: &mut Logging,
     configs: *mut WriterConfigEnum,
@@ -263,7 +262,7 @@ pub unsafe extern "C" fn logging_add_writer_configs(
 /// # Safety
 ///
 /// Add writer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_add_writers(
     logging: &mut Logging,
     writers: *mut WriterEnum,
@@ -279,7 +278,7 @@ pub unsafe extern "C" fn logging_add_writers(
 /// # Safety
 ///
 /// Remove writers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_remove_writers(
     logging: &mut Logging,
     wids: *mut u32,
@@ -305,7 +304,7 @@ pub unsafe extern "C" fn logging_remove_writers(
 /// # Safety
 ///
 /// Add writer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_enable(logging: &mut Logging, wid: usize) -> isize {
     match logging.enable(wid) {
         Ok(r) => Box::into_raw(Box::new(r)) as isize,
@@ -319,7 +318,7 @@ pub unsafe extern "C" fn logging_enable(logging: &mut Logging, wid: usize) -> is
 /// # Safety
 ///
 /// Add writer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_disable(logging: &mut Logging, wid: usize) -> isize {
     match logging.disable(wid) {
         Ok(r) => Box::into_raw(Box::new(r)) as isize,
@@ -333,7 +332,7 @@ pub unsafe extern "C" fn logging_disable(logging: &mut Logging, wid: usize) -> i
 /// # Safety
 ///
 /// Add writer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_enable_type(
     logging: &mut Logging,
     typ: *mut WriterTypeEnum,
@@ -350,7 +349,7 @@ pub unsafe extern "C" fn logging_enable_type(
 /// # Safety
 ///
 /// Add writer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_disable_type(
     logging: &mut Logging,
     typ: *mut WriterTypeEnum,
@@ -367,7 +366,7 @@ pub unsafe extern "C" fn logging_disable_type(
 /// # Safety
 ///
 /// Sync specific writers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_sync(
     logging: &Logging,
     types: *mut WriterTypeEnum,
@@ -386,7 +385,7 @@ pub unsafe extern "C" fn logging_sync(
 /// # Safety
 ///
 /// Sync all writers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_sync_all(logging: &Logging, timeout: c_double) -> isize {
     if let Err(err) = logging.sync_all(timeout) {
         eprintln!("logging_sync_all failed: {err:?}");
@@ -401,7 +400,7 @@ pub unsafe extern "C" fn logging_sync_all(logging: &Logging, timeout: c_double) 
 /// # Safety
 ///
 /// Rotate file.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_rotate(logging: &Logging, path: *mut PathBuf) -> isize {
     let path = if path.is_null() {
         None
@@ -421,7 +420,7 @@ pub unsafe extern "C" fn logging_rotate(logging: &Logging, path: *mut PathBuf) -
 /// # Safety
 ///
 /// Set encryption.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_set_encryption(
     logging: &mut Logging,
     wid: c_uint,
@@ -451,7 +450,7 @@ pub unsafe extern "C" fn logging_set_encryption(
 /// # Safety
 ///
 /// Get configuration.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_get_writer_config(
     logging: &Logging,
     wid: c_uint,
@@ -465,7 +464,7 @@ pub unsafe extern "C" fn logging_get_writer_config(
 /// # Safety
 ///
 /// Get configuration.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_get_writer_configs(
     logging: &Logging,
 ) -> *const CWriterConfigEnums {
@@ -485,7 +484,7 @@ pub unsafe extern "C" fn logging_get_writer_configs(
 /// # Safety
 ///
 /// Get server configuration.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_get_server_config(
     logging: &Logging,
     wid: usize,
@@ -499,7 +498,7 @@ pub unsafe extern "C" fn logging_get_server_config(
 /// # Safety
 ///
 /// Get configuration.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_get_server_configs(logging: &Logging) -> *const CServerConfigs {
     let mut keys: Vec<u32> = Vec::new();
     let mut values: Vec<CServerConfig> = Vec::new();
@@ -521,7 +520,7 @@ pub unsafe extern "C" fn logging_get_server_configs(logging: &Logging) -> *const
 /// # Safety
 ///
 /// Get server configuration.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_get_root_server_address_port(logging: &Logging) -> *const char {
     match logging.get_root_server_address_port() {
         Some(s) => CString::new(s).expect("Error: CString::new()").into_raw() as *const char,
@@ -532,7 +531,7 @@ pub unsafe extern "C" fn logging_get_root_server_address_port(logging: &Logging)
 /// # Safety
 ///
 /// Get server configuration.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_get_server_addresses_ports(
     logging: &Logging,
 ) -> *const Cu32StringVec {
@@ -544,7 +543,7 @@ pub unsafe extern "C" fn logging_get_server_addresses_ports(
 /// # Safety
 ///
 /// Get server configuration.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_get_server_addresses(logging: &Logging) -> *const Cu32StringVec {
     Box::into_raw(Box::new(Cu32StringVec::from(
         logging.get_server_addresses(),
@@ -554,7 +553,7 @@ pub unsafe extern "C" fn logging_get_server_addresses(logging: &Logging) -> *con
 /// # Safety
 ///
 /// Get server configuration.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_get_server_ports(logging: &Logging) -> *const Cu32u16Vec {
     Box::into_raw(Box::new(Cu32u16Vec::from(logging.get_server_ports())))
 }
@@ -562,7 +561,7 @@ pub unsafe extern "C" fn logging_get_server_ports(logging: &Logging) -> *const C
 /// # Safety
 ///
 /// Get server authentification key.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_get_server_auth_key(logging: &Logging) -> *mut CKeyStruct {
     let mut key = logging.get_server_auth_key().key_cloned().unwrap();
     key.shrink_to_fit();
@@ -578,7 +577,7 @@ pub unsafe extern "C" fn logging_get_server_auth_key(logging: &Logging) -> *mut 
 /// # Safety
 ///
 /// Get configuration as string.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_get_config_string(logging: &Logging) -> *const c_char {
     let config = logging.get_config_string();
     let ptr = config.as_ptr() as *const c_char;
@@ -589,7 +588,7 @@ pub unsafe extern "C" fn logging_get_config_string(logging: &Logging) -> *const 
 /// # Safety
 ///
 /// Save configuration.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_save_config(logging: &mut Logging, path: *const c_char) -> isize {
     let path = if path.is_null() {
         None
@@ -609,7 +608,7 @@ pub unsafe extern "C" fn logging_save_config(logging: &mut Logging, path: *const
 /// # Safety
 ///
 /// trace message.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_trace(logging: &Logging, message: *const c_char) -> isize {
     if let Err(err) = logging.trace(char2string(message)) {
         eprintln!("logging_trace failed: {err:?}");
@@ -622,7 +621,7 @@ pub unsafe extern "C" fn logging_trace(logging: &Logging, message: *const c_char
 /// # Safety
 ///
 /// debug message.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_debug(logging: &Logging, message: *const c_char) -> isize {
     if let Err(err) = logging.debug(char2string(message)) {
         eprintln!("logging_debug failed: {err:?}");
@@ -635,7 +634,7 @@ pub unsafe extern "C" fn logging_debug(logging: &Logging, message: *const c_char
 /// # Safety
 ///
 /// info message.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_info(logging: &Logging, message: *const c_char) -> isize {
     if let Err(err) = logging.info(char2string(message)) {
         eprintln!("logging_info failed: {err:?}");
@@ -648,7 +647,7 @@ pub unsafe extern "C" fn logging_info(logging: &Logging, message: *const c_char)
 /// # Safety
 ///
 /// success message.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_success(logging: &Logging, message: *const c_char) -> isize {
     if let Err(err) = logging.success(char2string(message)) {
         eprintln!("logging_success failed: {err:?}");
@@ -661,7 +660,7 @@ pub unsafe extern "C" fn logging_success(logging: &Logging, message: *const c_ch
 /// # Safety
 ///
 /// warning message.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_warning(logging: &Logging, message: *const c_char) -> isize {
     if let Err(err) = logging.warning(char2string(message)) {
         eprintln!("logging_warning failed: {err:?}");
@@ -674,7 +673,7 @@ pub unsafe extern "C" fn logging_warning(logging: &Logging, message: *const c_ch
 /// # Safety
 ///
 /// error message.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_error(logging: &Logging, message: *const c_char) -> isize {
     if let Err(err) = logging.error(char2string(message)) {
         eprintln!("logging_error failed: {err:?}");
@@ -687,7 +686,7 @@ pub unsafe extern "C" fn logging_error(logging: &Logging, message: *const c_char
 /// # Safety
 ///
 /// critical message.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_critical(logging: &Logging, message: *const c_char) -> isize {
     if let Err(err) = logging.critical(char2string(message)) {
         eprintln!("logging_critical failed: {err:?}");
@@ -700,7 +699,7 @@ pub unsafe extern "C" fn logging_critical(logging: &Logging, message: *const c_c
 /// # Safety
 ///
 /// fatal message.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_fatal(logging: &Logging, message: *const c_char) -> isize {
     if let Err(err) = logging.fatal(char2string(message)) {
         eprintln!("logging_fatal failed: {err:?}");
@@ -713,7 +712,7 @@ pub unsafe extern "C" fn logging_fatal(logging: &Logging, message: *const c_char
 /// # Safety
 ///
 /// exception message.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_exception(logging: &Logging, message: *const c_char) -> isize {
     if let Err(err) = logging.exception(char2string(message)) {
         eprintln!("logging_exception failed: {err:?}");
@@ -726,7 +725,7 @@ pub unsafe extern "C" fn logging_exception(logging: &Logging, message: *const c_
 /// # Safety
 ///
 /// Set debug level.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_set_debug(logging: &mut Logging, debug: u8) {
     logging.set_debug(debug);
 }

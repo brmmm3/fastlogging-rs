@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::ffi::{c_char, c_uchar, c_uint, c_ushort, CString};
+use std::ffi::{CString, c_char, c_uchar, c_uint, c_ushort};
 use std::ptr::null;
 
 use fastlogging::{
@@ -177,7 +177,7 @@ fn cchar2vec(s: *const c_char) -> Vec<u8> {
 /// # Safety
 ///
 /// Create extended configuration.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn ext_config_new(
     structured: c_uchar,
     hostname: c_char,

@@ -1,4 +1,4 @@
-use std::ffi::{c_char, CString};
+use std::ffi::{CString, c_char};
 
 pub static EINIT: isize = 100;
 pub static EINVAL: isize = 22;
@@ -37,7 +37,7 @@ pub fn error_new<S: Into<String>>(code: isize, message: S) -> *mut Error {
 /// Drop error.
 /// We take ownership as we are passing by value, so when function
 /// exits the drop gets run.  Handles being passed null.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn error_free(_: Option<Box<Error>>) {}
 
 /// # Safety
@@ -46,12 +46,12 @@ pub extern "C" fn error_free(_: Option<Box<Error>>) {}
 /// Our example "getter" methods which work on the Error type. The value
 /// returned is only valid as long as the Error has not been freed. If C
 /// caller needs a longer lifetime they need to copy the value.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn error_msg(e: &Error) -> *const c_char {
     e.msg.as_ptr()
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn error_code(e: &Error) -> isize {
     e.code
 }

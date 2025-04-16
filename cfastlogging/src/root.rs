@@ -1,28 +1,28 @@
 use std::{
-    ffi::{c_char, c_double, c_uint, CString},
+    ffi::{CString, c_char, c_double, c_uint},
     path::PathBuf,
     ptr::null,
     slice,
 };
 
 use fastlogging::{
-    root, EncryptionMethod, ExtConfig, LevelSyms, Logger, WriterConfigEnum, WriterEnum,
-    WriterTypeEnum,
+    EncryptionMethod, ExtConfig, LevelSyms, Logger, WriterConfigEnum, WriterEnum, WriterTypeEnum,
+    root,
 };
 
 use crate::{
+    CEncryptionMethodEnum, CKeyStruct,
     def::{
         CServerConfig, CServerConfigs, CWriterConfigEnums, CWriterEnum, CWriterEnums,
         Cu32StringVec, Cu32u16Vec, CusizeVec,
     },
     util::char2string,
-    CEncryptionMethodEnum, CKeyStruct,
 };
 
 /// # Safety
 ///
 /// Create new logging instance.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_init() {
     root::root_init();
 }
@@ -30,7 +30,7 @@ pub unsafe extern "C" fn root_init() {
 /// # Safety
 ///
 /// Shutdown fastroot::
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_shutdown(now: bool) -> isize {
     if let Err(err) = root::shutdown(now) {
         eprintln!("shutdown failed: {err:?}");
@@ -43,7 +43,7 @@ pub unsafe extern "C" fn root_shutdown(now: bool) -> isize {
 /// # Safety
 ///
 /// Set logging level.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_set_level(wid: c_uint, level: u8) -> isize {
     if let Err(err) = root::set_level(wid as usize, level) {
         eprintln!("set_level failed: {err:?}");
@@ -56,7 +56,7 @@ pub unsafe extern "C" fn root_set_level(wid: c_uint, level: u8) -> isize {
 /// # Safety
 ///
 /// Set logging domain.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_set_domain(domain: *const c_char) {
     root::set_domain(char2string(domain));
 }
@@ -64,7 +64,7 @@ pub unsafe extern "C" fn root_set_domain(domain: *const c_char) {
 /// # Safety
 ///
 /// Set log level symbols.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_set_level2sym(level2sym: u8) {
     root::set_level2sym(if level2sym == 0 {
         &LevelSyms::Sym
@@ -78,7 +78,7 @@ pub unsafe extern "C" fn root_set_level2sym(level2sym: u8) {
 /// # Safety
 ///
 /// Set extended configuration.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_set_ext_config(ext_config: &ExtConfig) {
     root::set_ext_config(ext_config);
 }
@@ -86,7 +86,7 @@ pub unsafe extern "C" fn root_set_ext_config(ext_config: &ExtConfig) {
 /// # Safety
 ///
 /// Add logger.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_add_logger(logger: &mut Logger) {
     root::add_logger(logger);
 }
@@ -94,7 +94,7 @@ pub unsafe extern "C" fn root_add_logger(logger: &mut Logger) {
 /// # Safety
 ///
 /// Remove logger.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_remove_logger(logger: &mut Logger) {
     root::remove_logger(logger);
 }
@@ -102,7 +102,7 @@ pub unsafe extern "C" fn root_remove_logger(logger: &mut Logger) {
 /// # Safety
 ///
 /// Add writer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_set_root_writer_config(config: *mut WriterConfigEnum) -> isize {
     match root::set_root_writer_config(&Box::from_raw(config)) {
         Ok(_r) => 0,
@@ -116,7 +116,7 @@ pub unsafe extern "C" fn root_set_root_writer_config(config: *mut WriterConfigEn
 /// # Safety
 ///
 /// Add writer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_set_root_writer(writer: *mut WriterEnum) -> isize {
     match root::set_root_writer(*Box::from_raw(writer)) {
         Ok(r) => Box::into_raw(Box::new(r)) as isize,
@@ -130,7 +130,7 @@ pub unsafe extern "C" fn root_set_root_writer(writer: *mut WriterEnum) -> isize 
 /// # Safety
 ///
 /// Add writer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_add_writer_config(config: *mut WriterConfigEnum) -> isize {
     let config = *Box::from_raw(config);
     match root::add_writer_config(&config) {
@@ -145,7 +145,7 @@ pub unsafe extern "C" fn root_add_writer_config(config: *mut WriterConfigEnum) -
 /// # Safety
 ///
 /// Add writer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_add_writer(writer: *mut WriterEnum) -> usize {
     root::add_writer(*Box::from_raw(writer))
 }
@@ -153,7 +153,7 @@ pub unsafe extern "C" fn root_add_writer(writer: *mut WriterEnum) -> usize {
 /// # Safety
 ///
 /// Remove writer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_remove_writer(wid: usize) -> *const WriterEnum {
     match root::remove_writer(wid) {
         Some(w) => Box::into_raw(Box::new(w)),
@@ -164,7 +164,7 @@ pub unsafe extern "C" fn root_remove_writer(wid: usize) -> *const WriterEnum {
 /// # Safety
 ///
 /// Add writers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_add_writer_configs(
     configs: *mut WriterConfigEnum,
     config_cnt: usize,
@@ -184,7 +184,7 @@ pub unsafe extern "C" fn root_add_writer_configs(
 /// # Safety
 ///
 /// Add writers top root logger.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_add_writers(
     writers: *mut WriterEnum,
     writer_cnt: usize,
@@ -199,7 +199,7 @@ pub unsafe extern "C" fn root_add_writers(
 /// # Safety
 ///
 /// Remove writers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_remove_writers(wids: *mut u32, wid_cnt: u32) -> *mut CWriterEnums {
     let wids: Option<&[u32]> = if wids as *const _ != null() {
         Some(slice::from_raw_parts(wids, wid_cnt as usize))
@@ -221,7 +221,7 @@ pub unsafe extern "C" fn root_remove_writers(wids: *mut u32, wid_cnt: u32) -> *m
 /// # Safety
 ///
 /// Add writer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_enable(wid: usize) -> isize {
     match root::enable(wid) {
         Ok(_) => 0,
@@ -235,7 +235,7 @@ pub unsafe extern "C" fn root_enable(wid: usize) -> isize {
 /// # Safety
 ///
 /// Add writer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_disable(wid: usize) -> isize {
     match root::disable(wid) {
         Ok(_) => 0,
@@ -249,7 +249,7 @@ pub unsafe extern "C" fn root_disable(wid: usize) -> isize {
 /// # Safety
 ///
 /// Add writer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_enable_type(typ: *mut WriterTypeEnum) -> isize {
     match root::enable_type(*Box::from_raw(typ)) {
         Ok(_) => 0,
@@ -263,7 +263,7 @@ pub unsafe extern "C" fn root_enable_type(typ: *mut WriterTypeEnum) -> isize {
 /// # Safety
 ///
 /// Add writer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_disable_type(typ: *mut WriterTypeEnum) -> isize {
     match root::disable_type(*Box::from_raw(typ)) {
         Ok(_) => 0,
@@ -277,7 +277,7 @@ pub unsafe extern "C" fn root_disable_type(typ: *mut WriterTypeEnum) -> isize {
 /// # Safety
 ///
 /// Sync specific writers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_sync(
     types: *mut WriterTypeEnum,
     type_cnt: c_uint,
@@ -295,7 +295,7 @@ pub unsafe extern "C" fn root_sync(
 /// # Safety
 ///
 /// Sync all writers.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_sync_all(timeout: c_double) -> isize {
     if let Err(err) = root::sync_all(timeout) {
         eprintln!("sync_all failed: {err:?}");
@@ -310,7 +310,7 @@ pub unsafe extern "C" fn root_sync_all(timeout: c_double) -> isize {
 /// # Safety
 ///
 /// Rotate file.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_rotate(path: *mut PathBuf) -> isize {
     let path = if path.is_null() {
         None
@@ -330,7 +330,7 @@ pub unsafe extern "C" fn root_rotate(path: *mut PathBuf) -> isize {
 /// # Safety
 ///
 /// Set encryption.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_set_encryption(wid: c_uint, key: *mut CKeyStruct) -> isize {
     let key = if key.is_null() {
         EncryptionMethod::NONE
@@ -356,7 +356,7 @@ pub unsafe extern "C" fn root_set_encryption(wid: c_uint, key: *mut CKeyStruct) 
 /// # Safety
 ///
 /// Get configuration.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_get_writer_config(wid: c_uint) -> *const WriterConfigEnum {
     match root::get_writer_config(wid as usize) {
         Some(config) => &config,
@@ -367,7 +367,7 @@ pub unsafe extern "C" fn root_get_writer_config(wid: c_uint) -> *const WriterCon
 /// # Safety
 ///
 /// Get configuration.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_get_writer_configs() -> *const CWriterConfigEnums {
     let mut configs = CWriterConfigEnums {
         cnt: 0,
@@ -385,7 +385,7 @@ pub unsafe extern "C" fn root_get_writer_configs() -> *const CWriterConfigEnums 
 /// # Safety
 ///
 /// Get server configuration.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_get_server_config(wid: usize) -> *mut CServerConfig {
     match root::get_server_config(wid) {
         Ok(c) => Box::into_raw(Box::new(c.into())),
@@ -396,7 +396,7 @@ pub unsafe extern "C" fn root_get_server_config(wid: usize) -> *mut CServerConfi
 /// # Safety
 ///
 /// Get configuration.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_get_server_configs() -> *const CServerConfigs {
     let mut keys: Vec<u32> = Vec::new();
     let mut values: Vec<CServerConfig> = Vec::new();
@@ -418,7 +418,7 @@ pub unsafe extern "C" fn root_get_server_configs() -> *const CServerConfigs {
 /// # Safety
 ///
 /// Get server configuration.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_get_root_server_address_port() -> *const char {
     match root::get_root_server_address_port() {
         Some(s) => CString::new(s).expect("Error: CString::new()").into_raw() as *const char,
@@ -429,7 +429,7 @@ pub unsafe extern "C" fn root_get_root_server_address_port() -> *const char {
 /// # Safety
 ///
 /// Get server configuration.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_get_server_addresses_ports() -> *const Cu32StringVec {
     Box::into_raw(Box::new(Cu32StringVec::from(
         root::get_server_addresses_ports(),
@@ -439,7 +439,7 @@ pub unsafe extern "C" fn root_get_server_addresses_ports() -> *const Cu32StringV
 /// # Safety
 ///
 /// Get server configuration.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_get_server_addresses() -> *const Cu32StringVec {
     Box::into_raw(Box::new(Cu32StringVec::from(root::get_server_addresses())))
 }
@@ -447,7 +447,7 @@ pub unsafe extern "C" fn root_get_server_addresses() -> *const Cu32StringVec {
 /// # Safety
 ///
 /// Get server configuration.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_get_server_ports() -> *const Cu32u16Vec {
     Box::into_raw(Box::new(Cu32u16Vec::from(root::get_server_ports())))
 }
@@ -455,7 +455,7 @@ pub unsafe extern "C" fn root_get_server_ports() -> *const Cu32u16Vec {
 /// # Safety
 ///
 /// Get server authentification key.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_get_server_auth_key() -> *mut CKeyStruct {
     let mut key = root::get_server_auth_key().key_cloned().unwrap();
     key.shrink_to_fit();
@@ -471,7 +471,7 @@ pub unsafe extern "C" fn root_get_server_auth_key() -> *mut CKeyStruct {
 /// # Safety
 ///
 /// Get configuration as string.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_get_config_string() -> *const c_char {
     let config = root::get_config_string();
     let ptr = config.as_ptr() as *const c_char;
@@ -482,7 +482,7 @@ pub unsafe extern "C" fn root_get_config_string() -> *const c_char {
 /// # Safety
 ///
 /// Save configuration.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_save_config(path: *const c_char) -> isize {
     let path = if path.is_null() {
         None
@@ -502,7 +502,7 @@ pub unsafe extern "C" fn root_save_config(path: *const c_char) -> isize {
 /// # Safety
 ///
 /// trace message.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_trace(message: *const c_char) -> isize {
     if let Err(err) = root::trace(char2string(message)) {
         eprintln!("trace failed: {err:?}");
@@ -515,7 +515,7 @@ pub unsafe extern "C" fn root_trace(message: *const c_char) -> isize {
 /// # Safety
 ///
 /// debug message.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_debug(message: *const c_char) -> isize {
     if let Err(err) = root::debug(char2string(message)) {
         eprintln!("debug failed: {err:?}");
@@ -528,7 +528,7 @@ pub unsafe extern "C" fn root_debug(message: *const c_char) -> isize {
 /// # Safety
 ///
 /// info message.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_info(message: *const c_char) -> isize {
     if let Err(err) = root::info(char2string(message)) {
         eprintln!("info failed: {err:?}");
@@ -541,7 +541,7 @@ pub unsafe extern "C" fn root_info(message: *const c_char) -> isize {
 /// # Safety
 ///
 /// success message.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_success(message: *const c_char) -> isize {
     if let Err(err) = root::success(char2string(message)) {
         eprintln!("success failed: {err:?}");
@@ -554,7 +554,7 @@ pub unsafe extern "C" fn root_success(message: *const c_char) -> isize {
 /// # Safety
 ///
 /// warning message.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_warning(message: *const c_char) -> isize {
     if let Err(err) = root::warning(char2string(message)) {
         eprintln!("warning failed: {err:?}");
@@ -567,7 +567,7 @@ pub unsafe extern "C" fn root_warning(message: *const c_char) -> isize {
 /// # Safety
 ///
 /// error message.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_error(message: *const c_char) -> isize {
     if let Err(err) = root::error(char2string(message)) {
         eprintln!("error failed: {err:?}");
@@ -580,7 +580,7 @@ pub unsafe extern "C" fn root_error(message: *const c_char) -> isize {
 /// # Safety
 ///
 /// critical message.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_critical(message: *const c_char) -> isize {
     if let Err(err) = root::critical(char2string(message)) {
         eprintln!("critical failed: {err:?}");
@@ -593,7 +593,7 @@ pub unsafe extern "C" fn root_critical(message: *const c_char) -> isize {
 /// # Safety
 ///
 /// fatal message.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_fatal(message: *const c_char) -> isize {
     if let Err(err) = root::fatal(char2string(message)) {
         eprintln!("fatal failed: {err:?}");
@@ -606,7 +606,7 @@ pub unsafe extern "C" fn root_fatal(message: *const c_char) -> isize {
 /// # Safety
 ///
 /// exception message.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_exception(message: *const c_char) -> isize {
     if let Err(err) = root::exception(char2string(message)) {
         eprintln!("exception failed: {err:?}");
@@ -619,7 +619,7 @@ pub unsafe extern "C" fn root_exception(message: *const c_char) -> isize {
 /// # Safety
 ///
 /// Set debug level.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_set_debug(debug: u8) {
     root::set_debug(debug);
 }

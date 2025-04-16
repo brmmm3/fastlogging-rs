@@ -1,5 +1,5 @@
 use core::slice;
-use std::ffi::{c_char, c_int, c_longlong, c_uchar, c_uint, c_ulong, CString};
+use std::ffi::{CString, c_char, c_int, c_longlong, c_uchar, c_uint, c_ulong};
 use std::ops::Add;
 use std::path::PathBuf;
 use std::ptr;
@@ -40,7 +40,10 @@ pub struct CKeyStruct {
     pub key: *const u8,
 }
 
-#[no_mangle]
+/// # Safety
+///
+/// Create and return new config for console writer.
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn console_writer_config_new(
     level: c_uchar,
     colors: c_char,
@@ -50,7 +53,10 @@ pub unsafe extern "C" fn console_writer_config_new(
     )))
 }
 
-#[no_mangle]
+/// # Safety
+///
+/// Create and return new config for file writer.
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn file_writer_config_new(
     level: c_uchar,
     path: *const c_char,
@@ -89,7 +95,10 @@ pub unsafe extern "C" fn file_writer_config_new(
     )))
 }
 
-#[no_mangle]
+/// # Safety
+///
+/// Create and return new config for client writer.
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn client_writer_config_new(
     level: c_uchar,
     address: *const c_char,
@@ -113,7 +122,10 @@ pub unsafe extern "C" fn client_writer_config_new(
     ))))
 }
 
-#[no_mangle]
+/// # Safety
+///
+/// Create and return new config for server.
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn server_config_new(
     level: c_uchar,
     address: *const c_char,
@@ -141,7 +153,10 @@ pub unsafe extern "C" fn server_config_new(
     ))))
 }
 
-#[no_mangle]
+/// # Safety
+///
+/// Create and return new config for syslog writer.
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn syslog_writer_config_new(
     level: c_uchar,
     hostname: *const c_char,
@@ -175,7 +190,10 @@ pub fn callback_func(
     Ok(())
 }
 
-#[no_mangle]
+/// # Safety
+///
+/// Create and return new config for callback writer.
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn callback_writer_config_new(
     level: c_uchar,
     callback: extern "C" fn(c_uchar, *const c_char, *const c_char),
