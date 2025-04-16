@@ -7,18 +7,18 @@ use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
 use chrono::Local;
-use flume::{bounded, Receiver, Sender};
+use flume::{Receiver, Sender, bounded};
 
 use crate::callback::CallbackWriter;
 use crate::config::{ConfigFile, ExtConfig, FileMerge, LoggingInstance};
 use crate::console::{ConsoleWriter, ConsoleWriterConfig};
-use crate::def::{LoggingTypeEnum, CRITICAL, DEBUG, ERROR, EXCEPTION, FATAL, INFO, WARNING};
+use crate::def::{CRITICAL, DEBUG, ERROR, EXCEPTION, FATAL, INFO, LoggingTypeEnum, WARNING};
 use crate::file::FileWriter;
 use crate::logger::Logger;
-use crate::net::{ClientWriter, EncryptionMethod, LoggingServer, ServerConfig, AUTH_KEY};
+use crate::net::{AUTH_KEY, ClientWriter, EncryptionMethod, LoggingServer, ServerConfig};
 use crate::{
-    level2short, level2str, level2string, level2sym, LevelSyms, LoggingError, MessageStructEnum,
-    SyslogWriter, WriterConfigEnum, WriterEnum, WriterTypeEnum, NOTSET, SUCCESS, TRACE,
+    LevelSyms, LoggingError, MessageStructEnum, NOTSET, SUCCESS, SyslogWriter, TRACE,
+    WriterConfigEnum, WriterEnum, WriterTypeEnum, level2short, level2str, level2string, level2sym,
 };
 
 #[inline]
@@ -501,7 +501,7 @@ impl Logging {
         if let Err(err) = self.server_tx.send(LoggingTypeEnum::Stop) {
             eprintln!("Failed to send STOP signal to broker thread: {err:?}");
         }
-        let result = if let Some(thr) = self.thr.take() {
+        if let Some(thr) = self.thr.take() {
             thr.join().map_err(|e| {
                 LoggingError::JoinError(
                     "Logging".to_string(),
@@ -510,8 +510,7 @@ impl Logging {
             })
         } else {
             Ok(())
-        };
-        result
+        }
     }
 
     pub fn set_level(&mut self, wid: usize, level: u8) -> Result<(), LoggingError> {
@@ -757,10 +756,10 @@ impl Logging {
     ) -> Result<(), LoggingError> {
         match self.instance.lock().unwrap().writers.get_mut(&wid) {
             Some(w) => match w {
-                WriterEnum::Client(ref mut client_writer) => {
+                WriterEnum::Client(client_writer) => {
                     client_writer.set_encryption(key)?;
                 }
-                WriterEnum::Server(ref mut logging_server) => {
+                WriterEnum::Server(logging_server) => {
                     logging_server.set_encryption(key)?;
                 }
                 _ => {
@@ -810,7 +809,7 @@ impl Logging {
             None => {
                 return Err(LoggingError::InvalidValue(format!(
                     "Writer wid={wid} does not exist"
-                )))
+                )));
             }
         };
         match writer {
