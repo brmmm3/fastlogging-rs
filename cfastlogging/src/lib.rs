@@ -59,5 +59,5 @@ pub unsafe extern "C" fn create_key(
 /// Create encryption key.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn create_random_key(typ: CEncryptionMethodEnum) -> *const CKeyStruct {
-    create_key(typ, 0, null())
+    unsafe { create_key(typ, 0, null()) }
 }

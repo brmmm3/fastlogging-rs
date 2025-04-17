@@ -79,7 +79,7 @@ pub unsafe extern "C" fn file_writer_config_new(
     let compression = if compression.is_null() {
         None
     } else {
-        Some(*Box::from_raw(compression))
+        Some(unsafe { *Box::from_raw(compression) })
     };
     Box::into_raw(Box::new(WriterConfigEnum::File(
         FileWriterConfig::new(
@@ -107,7 +107,7 @@ pub unsafe extern "C" fn client_writer_config_new(
     let key = if key.is_null() {
         EncryptionMethod::NONE
     } else {
-        let c_key = *Box::from_raw(key);
+        let c_key = unsafe { *Box::from_raw(key) };
         let key = unsafe { slice::from_raw_parts(c_key.key, c_key.len as usize) }.to_vec();
         if c_key.typ == CEncryptionMethodEnum::AuthKey {
             EncryptionMethod::AuthKey(key)
@@ -134,7 +134,7 @@ pub unsafe extern "C" fn server_config_new(
     let key = if key.is_null() {
         EncryptionMethod::NONE
     } else {
-        let c_key = *Box::from_raw(key);
+        let c_key = unsafe { *Box::from_raw(key) };
         if c_key.typ == CEncryptionMethodEnum::NONE {
             EncryptionMethod::NONE
         } else {

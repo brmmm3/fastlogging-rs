@@ -46,11 +46,13 @@ pub unsafe extern "C" fn logging_new(
     let configs = if configs_ptr.is_null() {
         Vec::new()
     } else {
-        let writers = slice::from_raw_parts(configs_ptr, configs_cnt as usize);
-        writers
-            .iter()
-            .map(|w| *Box::from_raw(*w))
-            .collect::<Vec<_>>()
+        let writers = unsafe { slice::from_raw_parts(configs_ptr, configs_cnt as usize) };
+        unsafe {
+            writers
+                .iter()
+                .map(|w| *Box::from_raw(*w))
+                .collect::<Vec<_>>()
+        }
         /*writers
         .into_iter()
         .map(|w| *Box::from_raw(*w))
@@ -59,7 +61,7 @@ pub unsafe extern "C" fn logging_new(
     let ext_config = if ext_config.is_null() {
         None
     } else {
-        Some(*Box::from_raw(ext_config))
+        Some(unsafe { *Box::from_raw(ext_config) })
     };
     let config_path = if config_path.is_null() {
         None
@@ -83,7 +85,7 @@ pub unsafe extern "C" fn logging_apply_config(logging: &mut Logging, path: *cons
         0
     };
     if logging.drop {
-        drop(Box::from_raw(logging));
+        drop(unsafe { Box::from_raw(logging) });
     }
     result
 }
@@ -100,7 +102,7 @@ pub unsafe extern "C" fn logging_shutdown(logging: &mut Logging, now: i8) -> isi
         0
     };
     if logging.drop {
-        drop(Box::from_raw(logging));
+        drop(unsafe { Box::from_raw(logging) });
     }
     result
 }
@@ -172,11 +174,13 @@ pub unsafe extern "C" fn logging_set_root_writer_config(
     logging: &mut Logging,
     config: *mut WriterConfigEnum,
 ) -> isize {
-    match logging.set_root_writer_config(&Box::from_raw(config)) {
-        Ok(_r) => 0,
-        Err(err) => {
-            eprintln!("logging_set_root_writer_config failed: {err:?}");
-            err.as_int() as isize
+    unsafe {
+        match logging.set_root_writer_config(&Box::from_raw(config)) {
+            Ok(_r) => 0,
+            Err(err) => {
+                eprintln!("logging_set_root_writer_config failed: {err:?}");
+                err.as_int() as isize
+            }
         }
     }
 }
@@ -189,11 +193,13 @@ pub unsafe extern "C" fn logging_set_root_writer(
     logging: &mut Logging,
     writer: *mut WriterEnum,
 ) -> isize {
-    match logging.set_root_writer(*Box::from_raw(writer)) {
-        Ok(r) => Box::into_raw(Box::new(r)) as isize,
-        Err(err) => {
-            eprintln!("logging_set_root_writer failed: {err:?}");
-            err.as_int() as isize
+    unsafe {
+        match logging.set_root_writer(*Box::from_raw(writer)) {
+            Ok(r) => Box::into_raw(Box::new(r)) as isize,
+            Err(err) => {
+                eprintln!("logging_set_root_writer failed: {err:?}");
+                err.as_int() as isize
+            }
         }
     }
 }
@@ -206,7 +212,7 @@ pub unsafe extern "C" fn logging_add_writer_config(
     logging: &mut Logging,
     config: *mut WriterConfigEnum,
 ) -> isize {
-    let config = *Box::from_raw(config);
+    let config = unsafe { *Box::from_raw(config) };
     match logging.add_writer_config(&config) {
         Ok(r) => Box::into_raw(Box::new(r)) as isize,
         Err(err) => {
@@ -224,7 +230,7 @@ pub unsafe extern "C" fn logging_add_writer(
     logging: &mut Logging,
     writer: *mut WriterEnum,
 ) -> usize {
-    logging.add_writer(*Box::from_raw(writer))
+    logging.add_writer(unsafe { *Box::from_raw(writer) })
 }
 
 /// # Safety
@@ -250,7 +256,7 @@ pub unsafe extern "C" fn logging_add_writer_configs(
     configs: *mut WriterConfigEnum,
     config_cnt: usize,
 ) -> isize {
-    match logging.add_writer_configs(slice::from_raw_parts(configs, config_cnt)) {
+    match logging.add_writer_configs(unsafe { slice::from_raw_parts(configs, config_cnt) }) {
         Ok(r) => Box::into_raw(Box::new(r)) as isize,
         Err(err) => {
             eprintln!("logging_add_writer_configs failed: {err:?}");
@@ -268,7 +274,7 @@ pub unsafe extern "C" fn logging_add_writers(
     writers: *mut WriterEnum,
     writer_cnt: usize,
 ) -> *mut CusizeVec {
-    let wids = logging.add_writers(Vec::from_raw_parts(writers, writer_cnt, writer_cnt));
+    let wids = logging.add_writers(unsafe { Vec::from_raw_parts(writers, writer_cnt, writer_cnt) });
     Box::into_raw(Box::new(CusizeVec {
         cnt: wids.len() as u32,
         values: wids,
@@ -285,7 +291,7 @@ pub unsafe extern "C" fn logging_remove_writers(
     wid_cnt: u32,
 ) -> *mut CWriterEnums {
     let wids: Option<&[u32]> = if wids as *const _ != null() {
-        Some(slice::from_raw_parts(wids, wid_cnt as usize))
+        Some(unsafe { slice::from_raw_parts(wids, wid_cnt as usize) })
     } else {
         None
     };
@@ -337,7 +343,7 @@ pub unsafe extern "C" fn logging_enable_type(
     logging: &mut Logging,
     typ: *mut WriterTypeEnum,
 ) -> isize {
-    match logging.enable_type(*Box::from_raw(typ)) {
+    match logging.enable_type(unsafe { *Box::from_raw(typ) }) {
         Ok(r) => Box::into_raw(Box::new(r)) as isize,
         Err(err) => {
             eprintln!("logging_enable failed: {err:?}");
@@ -354,7 +360,7 @@ pub unsafe extern "C" fn logging_disable_type(
     logging: &mut Logging,
     typ: *mut WriterTypeEnum,
 ) -> isize {
-    match logging.disable_type(*Box::from_raw(typ)) {
+    match logging.disable_type(unsafe { *Box::from_raw(typ) }) {
         Ok(r) => Box::into_raw(Box::new(r)) as isize,
         Err(err) => {
             eprintln!("logging_disable_type failed: {err:?}");
@@ -373,7 +379,7 @@ pub unsafe extern "C" fn logging_sync(
     type_cnt: c_uint,
     timeout: c_double,
 ) -> isize {
-    let types = Vec::from_raw_parts(types, type_cnt as usize, type_cnt as usize);
+    let types = unsafe { Vec::from_raw_parts(types, type_cnt as usize, type_cnt as usize) };
     if let Err(err) = logging.sync(types, timeout) {
         eprintln!("logging_sync failed: {err:?}");
         err.as_int() as isize
@@ -405,7 +411,7 @@ pub unsafe extern "C" fn logging_rotate(logging: &Logging, path: *mut PathBuf) -
     let path = if path.is_null() {
         None
     } else {
-        Some(*Box::from_raw(path))
+        Some(unsafe { *Box::from_raw(path) })
     };
     if let Err(err) = logging.rotate(path) {
         eprintln!("logging_rotate failed: {err:?}");
@@ -429,7 +435,7 @@ pub unsafe extern "C" fn logging_set_encryption(
     let key = if key.is_null() {
         EncryptionMethod::NONE
     } else {
-        let c_key = *Box::from_raw(key);
+        let c_key = unsafe { *Box::from_raw(key) };
         let key = unsafe { slice::from_raw_parts(c_key.key, c_key.len as usize) }.to_vec();
         if c_key.typ == CEncryptionMethodEnum::AuthKey {
             EncryptionMethod::AuthKey(key)

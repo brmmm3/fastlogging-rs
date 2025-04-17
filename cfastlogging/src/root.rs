@@ -104,11 +104,13 @@ pub unsafe extern "C" fn root_remove_logger(logger: &mut Logger) {
 /// Add writer.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_set_root_writer_config(config: *mut WriterConfigEnum) -> isize {
-    match root::set_root_writer_config(&Box::from_raw(config)) {
-        Ok(_r) => 0,
-        Err(err) => {
-            eprintln!("set_root_writer_config failed: {err:?}");
-            err.as_int() as isize
+    unsafe {
+        match root::set_root_writer_config(&Box::from_raw(config)) {
+            Ok(_r) => 0,
+            Err(err) => {
+                eprintln!("set_root_writer_config failed: {err:?}");
+                err.as_int() as isize
+            }
         }
     }
 }
@@ -118,11 +120,13 @@ pub unsafe extern "C" fn root_set_root_writer_config(config: *mut WriterConfigEn
 /// Add writer.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_set_root_writer(writer: *mut WriterEnum) -> isize {
-    match root::set_root_writer(*Box::from_raw(writer)) {
-        Ok(r) => Box::into_raw(Box::new(r)) as isize,
-        Err(err) => {
-            eprintln!("set_root_writer failed: {err:?}");
-            err.as_int() as isize
+    unsafe {
+        match root::set_root_writer(*Box::from_raw(writer)) {
+            Ok(r) => Box::into_raw(Box::new(r)) as isize,
+            Err(err) => {
+                eprintln!("set_root_writer failed: {err:?}");
+                err.as_int() as isize
+            }
         }
     }
 }
@@ -132,12 +136,14 @@ pub unsafe extern "C" fn root_set_root_writer(writer: *mut WriterEnum) -> isize 
 /// Add writer.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_add_writer_config(config: *mut WriterConfigEnum) -> isize {
-    let config = *Box::from_raw(config);
-    match root::add_writer_config(&config) {
-        Ok(r) => Box::into_raw(Box::new(r)) as isize,
-        Err(err) => {
-            eprintln!("add_writer_config failed: {err:?}");
-            err.as_int() as isize
+    unsafe {
+        let config = *Box::from_raw(config);
+        match root::add_writer_config(&config) {
+            Ok(r) => Box::into_raw(Box::new(r)) as isize,
+            Err(err) => {
+                eprintln!("add_writer_config failed: {err:?}");
+                err.as_int() as isize
+            }
         }
     }
 }
@@ -147,7 +153,7 @@ pub unsafe extern "C" fn root_add_writer_config(config: *mut WriterConfigEnum) -
 /// Add writer.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_add_writer(writer: *mut WriterEnum) -> usize {
-    root::add_writer(*Box::from_raw(writer))
+    unsafe { root::add_writer(*Box::from_raw(writer)) }
 }
 
 /// # Safety
@@ -169,14 +175,16 @@ pub unsafe extern "C" fn root_add_writer_configs(
     configs: *mut WriterConfigEnum,
     config_cnt: usize,
 ) -> isize {
-    match root::add_writer_configs(slice::from_raw_parts(configs, config_cnt)) {
-        Ok(wids) => Box::into_raw(Box::new(CusizeVec {
-            cnt: wids.len() as u32,
-            values: wids,
-        })) as isize,
-        Err(err) => {
-            eprintln!("add_writer_configs failed: {err:?}");
-            err.as_int() as isize
+    unsafe {
+        match root::add_writer_configs(slice::from_raw_parts(configs, config_cnt)) {
+            Ok(wids) => Box::into_raw(Box::new(CusizeVec {
+                cnt: wids.len() as u32,
+                values: wids,
+            })) as isize,
+            Err(err) => {
+                eprintln!("add_writer_configs failed: {err:?}");
+                err.as_int() as isize
+            }
         }
     }
 }
@@ -189,11 +197,13 @@ pub unsafe extern "C" fn root_add_writers(
     writers: *mut WriterEnum,
     writer_cnt: usize,
 ) -> *mut CusizeVec {
-    let wids = root::add_writers(Vec::from_raw_parts(writers, writer_cnt, writer_cnt));
-    Box::into_raw(Box::new(CusizeVec {
-        cnt: wids.len() as u32,
-        values: wids,
-    }))
+    unsafe {
+        let wids = root::add_writers(Vec::from_raw_parts(writers, writer_cnt, writer_cnt));
+        Box::into_raw(Box::new(CusizeVec {
+            cnt: wids.len() as u32,
+            values: wids,
+        }))
+    }
 }
 
 /// # Safety
@@ -202,7 +212,7 @@ pub unsafe extern "C" fn root_add_writers(
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_remove_writers(wids: *mut u32, wid_cnt: u32) -> *mut CWriterEnums {
     let wids: Option<&[u32]> = if wids as *const _ != null() {
-        Some(slice::from_raw_parts(wids, wid_cnt as usize))
+        Some(unsafe { slice::from_raw_parts(wids, wid_cnt as usize) })
     } else {
         None
     };
@@ -251,11 +261,13 @@ pub unsafe extern "C" fn root_disable(wid: usize) -> isize {
 /// Add writer.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_enable_type(typ: *mut WriterTypeEnum) -> isize {
-    match root::enable_type(*Box::from_raw(typ)) {
-        Ok(_) => 0,
-        Err(err) => {
-            eprintln!("enable failed: {err:?}");
-            err.as_int() as isize
+    unsafe {
+        match root::enable_type(*Box::from_raw(typ)) {
+            Ok(_) => 0,
+            Err(err) => {
+                eprintln!("enable failed: {err:?}");
+                err.as_int() as isize
+            }
         }
     }
 }
@@ -265,11 +277,13 @@ pub unsafe extern "C" fn root_enable_type(typ: *mut WriterTypeEnum) -> isize {
 /// Add writer.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_disable_type(typ: *mut WriterTypeEnum) -> isize {
-    match root::disable_type(*Box::from_raw(typ)) {
-        Ok(_) => 0,
-        Err(err) => {
-            eprintln!("disable_type failed: {err:?}");
-            err.as_int() as isize
+    unsafe {
+        match root::disable_type(*Box::from_raw(typ)) {
+            Ok(_) => 0,
+            Err(err) => {
+                eprintln!("disable_type failed: {err:?}");
+                err.as_int() as isize
+            }
         }
     }
 }
@@ -283,7 +297,7 @@ pub unsafe extern "C" fn root_sync(
     type_cnt: c_uint,
     timeout: c_double,
 ) -> isize {
-    let types = Vec::from_raw_parts(types, type_cnt as usize, type_cnt as usize);
+    let types = unsafe { Vec::from_raw_parts(types, type_cnt as usize, type_cnt as usize) };
     if let Err(err) = root::sync(types, timeout) {
         eprintln!("sync failed: {err:?}");
         err.as_int() as isize
@@ -315,7 +329,7 @@ pub unsafe extern "C" fn root_rotate(path: *mut PathBuf) -> isize {
     let path = if path.is_null() {
         None
     } else {
-        Some(*Box::from_raw(path))
+        Some(unsafe { *Box::from_raw(path) })
     };
     if let Err(err) = root::rotate(path) {
         eprintln!("rotate failed: {err:?}");
@@ -335,7 +349,7 @@ pub unsafe extern "C" fn root_set_encryption(wid: c_uint, key: *mut CKeyStruct) 
     let key = if key.is_null() {
         EncryptionMethod::NONE
     } else {
-        let c_key = *Box::from_raw(key);
+        let c_key = unsafe { *Box::from_raw(key) };
         let key = unsafe { slice::from_raw_parts(c_key.key, c_key.len as usize) }.to_vec();
         if c_key.typ == CEncryptionMethodEnum::AuthKey {
             EncryptionMethod::AuthKey(key)
