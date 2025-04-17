@@ -2,11 +2,11 @@
 name = "jfastlogging"
 version = "0.3.0"
 authors = ["Martin Bammer <mrbm74@gmail.com>"]
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 jni = "0.21"
-once_cell = "1.20"
+once_cell = "1.21"
 fastlogging = { path = "../fastlogging" }
 
 [lib]
