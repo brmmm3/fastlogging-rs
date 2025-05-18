@@ -66,17 +66,28 @@ pub struct ConfigFile {
 }
 
 pub fn default_config_file() -> (PathBuf, Vec<u8>) {
+    if let Ok(path) = std::env::var("FASTLOGGING_CONFIG_FILE") {
+        let path = PathBuf::from(path);
+        if path.exists() {
+            if let Some(ext) = path.extension() {
+                let ext = ext.as_encoded_bytes().to_ascii_lowercase();
+                if ext == b"json" || ext == b"yaml" || ext == b"xml" {
+                    return (PathBuf::from(path), ext);
+                }
+            }
+        }
+    }
     #[cfg(feature = "config_json")]
     if Path::new("fastlogging.json").exists() {
         return (PathBuf::from("fastlogging.json"), b"json".to_vec());
     }
-    #[cfg(feature = "config_xml")]
-    if Path::new("fastlogging.xml").exists() {
-        return (PathBuf::from("fastlogging.xml"), b"xml".to_vec());
-    }
     #[cfg(feature = "config_yaml")]
     if Path::new("fastlogging.yaml").exists() {
         return (PathBuf::from("fastlogging.yaml"), b"yaml".to_vec());
+    }
+    #[cfg(feature = "config_xml")]
+    if Path::new("fastlogging.xml").exists() {
+        return (PathBuf::from("fastlogging.xml"), b"xml".to_vec());
     }
     (PathBuf::new(), Vec::new())
 }
