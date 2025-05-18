@@ -1,21 +1,21 @@
 use std::{
     fmt,
-    fs::{rename, File, OpenOptions},
+    fs::{File, OpenOptions, rename},
     io::{BufWriter, Read, Seek, SeekFrom, Write},
     path::{Path, PathBuf},
     sync::{
-        atomic::{AtomicBool, Ordering},
         Arc, Mutex,
+        atomic::{AtomicBool, Ordering},
     },
     thread::{self, JoinHandle},
     time::{Duration, SystemTime},
 };
 
-use flume::{bounded, Receiver, RecvTimeoutError, Sender};
+use flume::{Receiver, RecvTimeoutError, Sender, bounded};
 use regex::Regex;
-use zip::{write::SimpleFileOptions, ZipWriter};
+use zip::{ZipWriter, write::SimpleFileOptions};
 
-use crate::{level2str, LoggingError};
+use crate::{LoggingError, level2str};
 
 const BACKLOG_MAX: usize = 1000;
 const QUEUE_CAPACITY: usize = 10000;
@@ -101,13 +101,9 @@ impl FileWriterConfig {
                     "For rotating file logger backlog depth has to be set!".to_string(),
                 ));
             } else if backlog > BACKLOG_MAX {
-                return Err(
-                    LoggingError::InvalidValue(
-                        format!(
-                            "For rotating file logger backlog depth {backlog} too big! Maximum value is {BACKLOG_MAX}."
-                        )
-                    )
-                );
+                return Err(LoggingError::InvalidValue(format!(
+                    "For rotating file logger backlog depth {backlog} too big! Maximum value is {BACKLOG_MAX}."
+                )));
             }
         }
         Ok(Self {
@@ -127,7 +123,7 @@ impl FileWriterConfig {
 
 impl fmt::Display for FileWriterConfig {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
+        write!(f, "{self:?}")
     }
 }
 
@@ -410,7 +406,7 @@ impl FileWriter {
 mod tests {
     use tempfile::TempDir;
 
-    use crate::{FileWriterConfig, Logging, DEBUG, NOTSET};
+    use crate::{DEBUG, FileWriterConfig, Logging, NOTSET};
 
     #[test]
     fn file() {

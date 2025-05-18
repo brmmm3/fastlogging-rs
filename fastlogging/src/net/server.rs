@@ -6,20 +6,20 @@ use std::{
     path::PathBuf,
     process,
     sync::{
-        atomic::{AtomicBool, Ordering},
         Arc, Mutex,
+        atomic::{AtomicBool, Ordering},
     },
     thread::{self, JoinHandle},
     time::Duration,
 };
 
-use flume::{bounded, Sender};
+use flume::{Sender, bounded};
 use regex::Regex;
 use ring::aead::{self, BoundKey};
 
-use crate::{def::LoggingTypeEnum, LoggingError};
+use crate::{LoggingError, def::LoggingTypeEnum};
 
-use super::{def::NetConfig, EncryptionMethod, NonceGenerator};
+use super::{EncryptionMethod, NonceGenerator, def::NetConfig};
 
 #[repr(C)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -69,7 +69,7 @@ impl ServerConfig {
 
 impl fmt::Display for ServerConfig {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
+        write!(f, "{self:?}")
     }
 }
 

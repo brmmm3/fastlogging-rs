@@ -4,20 +4,20 @@ use std::{
     net::TcpStream,
     process,
     sync::{
-        atomic::{AtomicBool, Ordering},
         Arc, Mutex,
+        atomic::{AtomicBool, Ordering},
     },
     thread::{self, JoinHandle},
     time::Duration,
 };
 
-use flume::{bounded, Receiver, SendError, Sender};
+use flume::{Receiver, SendError, Sender, bounded};
 use regex::Regex;
 use ring::aead;
 
 use crate::LoggingError;
 
-use super::{def::NetConfig, EncryptionMethod};
+use super::{EncryptionMethod, def::NetConfig};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ClientTypeEnum {
@@ -83,7 +83,7 @@ impl ClientWriterConfig {
 
 impl fmt::Display for ClientWriterConfig {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
+        write!(f, "{self:?}")
     }
 }
 

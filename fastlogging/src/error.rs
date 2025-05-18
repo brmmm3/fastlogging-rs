@@ -4,8 +4,8 @@ use serde::{Deserialize, Serialize};
 use zip::result::ZipError;
 
 use crate::{
-    callback::CallbackTypeEnum, console::ConsoleTypeEnum, ClientTypeEnum, EncryptionMethod,
-    LoggingTypeEnum, SyslogTypeEnum,
+    ClientTypeEnum, EncryptionMethod, LoggingTypeEnum, SyslogTypeEnum, callback::CallbackTypeEnum,
+    console::ConsoleTypeEnum,
 };
 
 pub const EIO: i32 = 5;

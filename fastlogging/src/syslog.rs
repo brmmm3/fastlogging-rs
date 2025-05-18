@@ -1,18 +1,18 @@
 use std::{
     fmt,
     sync::{
-        atomic::{AtomicBool, Ordering},
         Arc, Mutex,
+        atomic::{AtomicBool, Ordering},
     },
     thread::{self, JoinHandle},
     time::Duration,
 };
 
-use flume::{bounded, Receiver, SendError, Sender};
+use flume::{Receiver, SendError, Sender, bounded};
 use regex::Regex;
 use syslog::{Facility, Formatter3164};
 
-use crate::{LoggingError, CRITICAL, DEBUG, ERROR, EXCEPTION, INFO, SUCCESS, WARNING};
+use crate::{CRITICAL, DEBUG, ERROR, EXCEPTION, INFO, LoggingError, SUCCESS, WARNING};
 
 #[derive(Debug)]
 pub enum SyslogTypeEnum {
@@ -52,7 +52,7 @@ impl SyslogWriterConfig {
 
 impl fmt::Display for SyslogWriterConfig {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
+        write!(f, "{self:?}")
     }
 }
 

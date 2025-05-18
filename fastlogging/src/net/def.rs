@@ -1,7 +1,7 @@
 use std::{fmt, path::PathBuf};
 
 use once_cell::sync::Lazy;
-use rand::{distr::Alphanumeric, rng, Rng};
+use rand::{Rng, distr::Alphanumeric, rng};
 use ring::aead::{self, BoundKey, SealingKey};
 
 use crate::{ClientWriterConfig, LoggingError, ServerConfig};
@@ -106,6 +106,6 @@ impl NetConfig {
 
 impl fmt::Display for NetConfig {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
+        write!(f, "{self:?}")
     }
 }
