@@ -6,14 +6,14 @@ use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
 
 use fastlogging::{
-    LoggingConfig, CRITICAL, DEBUG, ERROR, EXCEPTION, FATAL, INFO, NOTSET, SUCCESS, TRACE, WARNING,
+    CRITICAL, DEBUG, ERROR, EXCEPTION, FATAL, INFO, LoggingConfig, NOTSET, SUCCESS, TRACE, WARNING,
 };
 use pyo3::types::PyBytes;
 
+use crate::LoggingError;
 use crate::def::{EncryptionMethod, LevelSyms, WriterConfigEnum, WriterTypeEnum};
 use crate::logger::Logger;
 use crate::writer::{ExtConfig, ServerConfig};
-use crate::LoggingError;
 
 #[pyclass]
 #[derive(Debug)]
@@ -363,7 +363,7 @@ impl Logging {
         println!("__setstate__");
         let data: &[u8] = state.as_bytes();
         let config = LoggingConfig::from_json_vec(data);
-        println!("config={:?}", config);
+        println!("config={config:?}");
         Ok(())
     }
 
