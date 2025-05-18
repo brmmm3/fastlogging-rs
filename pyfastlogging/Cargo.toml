@@ -23,12 +23,6 @@ name = "pyfastlogging"
 crate-type = ["cdylib"]
 
 [dependencies]
-flume = "0.11"
 once_cell = "1.21"
-zip = { version = "2.6", default-features = false, features = [
-    "deflate",
-    "zstd",
-    "lzma",
-] }
-pyo3 = { version = "0.24", features = ["extension-module"] }
+pyo3 = { version = "0.25", features = ["extension-module"] }
 fastlogging = { path = "../fastlogging", version = "0.3.0" }

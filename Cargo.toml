@@ -9,7 +9,7 @@ members = [
     #"cxxfastlogging",
     #"cppfastlogging",
     #"gofastlogging",
-    #"jfastlogging",
+    "jfastlogging",
 ]
 
 [profile.release]
