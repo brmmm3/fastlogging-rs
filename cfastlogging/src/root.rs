@@ -172,19 +172,18 @@ pub unsafe extern "C" fn root_remove_writer(wid: usize) -> *const WriterEnum {
 /// Add writers.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_add_writer_configs(
-    configs: *mut WriterConfigEnum,
-    config_cnt: usize,
+    configs_ptr: *const *mut Vec<WriterConfigEnum>,
 ) -> isize {
-    unsafe {
-        match root::add_writer_configs(slice::from_raw_parts(configs, config_cnt)) {
-            Ok(wids) => Box::into_raw(Box::new(CusizeVec {
-                cnt: wids.len() as u32,
-                values: wids,
-            })) as isize,
-            Err(err) => {
-                eprintln!("add_writer_configs failed: {err:?}");
-                err.as_int() as isize
-            }
+    let configs: Box<Vec<WriterConfigEnum>> =
+        unsafe { Box::from_raw(configs_ptr as *mut Vec<WriterConfigEnum>) };
+    match root::add_writer_configs(*configs) {
+        Ok(wids) => Box::into_raw(Box::new(CusizeVec {
+            cnt: wids.len() as u32,
+            values: wids,
+        })) as isize,
+        Err(err) => {
+            eprintln!("add_writer_configs failed: {err:?}");
+            err.as_int() as isize
         }
     }
 }
@@ -193,17 +192,13 @@ pub unsafe extern "C" fn root_add_writer_configs(
 ///
 /// Add writers top root logger.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn root_add_writers(
-    writers: *mut WriterEnum,
-    writer_cnt: usize,
-) -> *mut CusizeVec {
-    unsafe {
-        let wids = root::add_writers(Vec::from_raw_parts(writers, writer_cnt, writer_cnt));
-        Box::into_raw(Box::new(CusizeVec {
-            cnt: wids.len() as u32,
-            values: wids,
-        }))
-    }
+pub unsafe extern "C" fn root_add_writers(writers_ptr: *mut Vec<WriterEnum>) -> *mut CusizeVec {
+    let writers = unsafe { Box::from_raw(writers_ptr) };
+    let wids = root::add_writers(*writers);
+    Box::into_raw(Box::new(CusizeVec {
+        cnt: wids.len() as u32,
+        values: wids,
+    }))
 }
 
 /// # Safety
@@ -292,13 +287,9 @@ pub unsafe extern "C" fn root_disable_type(typ: *mut WriterTypeEnum) -> isize {
 ///
 /// Sync specific writers.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn root_sync(
-    types: *mut WriterTypeEnum,
-    type_cnt: c_uint,
-    timeout: c_double,
-) -> isize {
-    let types = unsafe { Vec::from_raw_parts(types, type_cnt as usize, type_cnt as usize) };
-    if let Err(err) = root::sync(types, timeout) {
+pub unsafe extern "C" fn root_sync(types: *mut Vec<WriterTypeEnum>, timeout: c_double) -> isize {
+    let types: Box<Vec<WriterTypeEnum>> = unsafe { Box::from_raw(types) };
+    if let Err(err) = root::sync(*types, timeout) {
         eprintln!("sync failed: {err:?}");
         err.as_int() as isize
     } else {

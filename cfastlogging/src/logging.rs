@@ -33,8 +33,8 @@ pub unsafe extern "C" fn logging_new_default() -> *mut Logging {
 pub unsafe extern "C" fn logging_new(
     level: c_char, // Global log level
     domain: *const c_char,
-    configs_ptr: *const *mut WriterConfigEnum, // This is a Vec<WriterConfigEnum>
-    configs_cnt: c_uint,
+    configs: *mut *mut WriterConfigEnum,
+    config_count: usize,
     ext_config: *mut ExtConfig,
     config_path: *const c_char, // Optional path to config file
 ) -> *mut Logging {
@@ -43,20 +43,15 @@ pub unsafe extern "C" fn logging_new(
     } else {
         char2string(domain)
     };
-    let configs = if configs_ptr.is_null() {
-        Vec::new()
+    let configs = if configs.is_null() {
+        None
     } else {
-        let writers = unsafe { slice::from_raw_parts(configs_ptr, configs_cnt as usize) };
-        unsafe {
-            writers
-                .iter()
-                .map(|w| *Box::from_raw(*w))
-                .collect::<Vec<_>>()
-        }
-        /*writers
-        .into_iter()
-        .map(|w| *Box::from_raw(*w))
-        .collect::<Vec<_>>()*/
+        let config_ptrs = unsafe { std::slice::from_raw_parts(configs, config_count) };
+        let config_vec: Vec<WriterConfigEnum> = config_ptrs
+            .iter()
+            .map(|&ptr| unsafe { *Box::from_raw(ptr) })
+            .collect();
+        Some(config_vec)
     };
     let ext_config = if ext_config.is_null() {
         None
@@ -253,10 +248,11 @@ pub unsafe extern "C" fn logging_remove_writer(
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_add_writer_configs(
     logging: &mut Logging,
-    configs: *mut WriterConfigEnum,
-    config_cnt: usize,
+    configs_ptr: *const *mut Vec<WriterConfigEnum>,
 ) -> isize {
-    match logging.add_writer_configs(unsafe { slice::from_raw_parts(configs, config_cnt) }) {
+    let configs: Box<Vec<WriterConfigEnum>> =
+        unsafe { Box::from_raw(configs_ptr as *mut Vec<WriterConfigEnum>) };
+    match logging.add_writer_configs(*configs) {
         Ok(r) => Box::into_raw(Box::new(r)) as isize,
         Err(err) => {
             eprintln!("logging_add_writer_configs failed: {err:?}");
@@ -271,10 +267,10 @@ pub unsafe extern "C" fn logging_add_writer_configs(
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_add_writers(
     logging: &mut Logging,
-    writers: *mut WriterEnum,
-    writer_cnt: usize,
+    writers_ptr: *mut Vec<WriterEnum>,
 ) -> *mut CusizeVec {
-    let wids = logging.add_writers(unsafe { Vec::from_raw_parts(writers, writer_cnt, writer_cnt) });
+    let writers = unsafe { Box::from_raw(writers_ptr) };
+    let wids = logging.add_writers(*writers);
     Box::into_raw(Box::new(CusizeVec {
         cnt: wids.len() as u32,
         values: wids,
@@ -375,12 +371,11 @@ pub unsafe extern "C" fn logging_disable_type(
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn logging_sync(
     logging: &Logging,
-    types: *mut WriterTypeEnum,
-    type_cnt: c_uint,
+    types: *mut Vec<WriterTypeEnum>,
     timeout: c_double,
 ) -> isize {
-    let types = unsafe { Vec::from_raw_parts(types, type_cnt as usize, type_cnt as usize) };
-    if let Err(err) = logging.sync(types, timeout) {
+    let types: Box<Vec<WriterTypeEnum>> = unsafe { Box::from_raw(types) };
+    if let Err(err) = logging.sync(*types, timeout) {
         eprintln!("logging_sync failed: {err:?}");
         err.as_int() as isize
     } else {

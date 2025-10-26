@@ -2,23 +2,18 @@
 #define CFASTLOGGING_LOGGING_H
 
 #include "def.h"
+#include <stddef.h>
 
-CExtConfig *ext_config_new(CMessageStructEnum structured,
-                           int8_t hostname,
-                           int8_t pname,
-                           int8_t pid,
-                           int8_t tname,
-                           int8_t tid);
+CExtConfig *ext_config_new(CMessageStructEnum structured, int8_t hostname,
+                           int8_t pname, int8_t pid, int8_t tname, int8_t tid);
 
 // Logging module
 
 Logging logging_new_default();
 
-Logging logging_new(uint8_t level,
-                    const char *domain,
-                    CWriterConfigEnum *configs_ptr , // This is a Vec<WriterConfigEnum>
-                    uint32_t configs_cnt,
-                    CExtConfig *ext_config,
+Logging logging_new(uint8_t level, const char *domain,
+                    void **configs, // This is a Vec<WriterConfigEnum>
+                    size_t config_count, CExtConfig *ext_config,
                     const char *config_path);
 
 int logging_apply_config(Logging logging, const char *path);
@@ -47,11 +42,14 @@ int logging_add_writer(Logging logging, CWriterEnum config);
 
 int logging_remove_writer(Logging logging, uint32_t wid);
 
-int logging_add_writer_configs(Logging logging, CWriterConfigEnums *configs, uint32_t config_cnt);
+int logging_add_writer_configs(Logging logging, CWriterConfigEnums *configs,
+                               uint32_t config_cnt);
 
-int logging_add_writers(Logging logging, CWriterEnums *writers, uint32_t writer_cnt);
+int logging_add_writers(Logging logging, CWriterEnums *writers,
+                        uint32_t writer_cnt);
 
-CWriterEnums *logging_remove_writers(Logging logging, uint32_t *wids, uint32_t wid_cnt);
+CWriterEnums *logging_remove_writers(Logging logging, uint32_t *wids,
+                                     uint32_t wid_cnt);
 
 int logging_enable(Logging logging, uint32_t wid);
 
@@ -61,7 +59,8 @@ int logging_enable_type(Logging logging, CWriterTypeEnum typ);
 
 int logging_disable_type(Logging logging, CWriterTypeEnum typ);
 
-int logging_sync(Logging logging, CWriterTypeEnum *types, uint32_t type_cnt, double timeout);
+int logging_sync(Logging logging, CWriterTypeEnum *types, uint32_t type_cnt,
+                 double timeout);
 
 int logging_sync_all(Logging logging, double timeout);
 
@@ -71,13 +70,15 @@ int logging_rotate(Logging logging, const char *path);
 
 // Network
 
-int logging_set_encryption(Logging logging, uint32_t wid, const CKeyStruct *key);
+int logging_set_encryption(Logging logging, uint32_t wid,
+                           const CKeyStruct *key);
 
 // Config
 
 void logging_set_debug(Logging logging, uint32_t debug);
 
-const CWriterConfigEnum *logging_get_writer_config(Logging logging, uint32_t wid);
+const CWriterConfigEnum *logging_get_writer_config(Logging logging,
+                                                   uint32_t wid);
 
 const CWriterConfigEnums *logging_get_writer_configs(Logging logging);
 
