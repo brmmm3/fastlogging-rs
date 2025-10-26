@@ -243,10 +243,10 @@ fn handle_encrypted_client(
         if debug > 1 {
             println!("handle_encrypted_client: WAIT");
         }
-        if let Err(err) = stream.read_exact(&mut buffer[..3]) {
-            if err.kind() == ErrorKind::WouldBlock {
-                continue;
-            }
+        if let Err(err) = stream.read_exact(&mut buffer[..3])
+            && err.kind() == ErrorKind::WouldBlock
+        {
+            continue;
         }
         let size = (buffer[0] as usize) | ((buffer[1] as usize) << 8);
         if size > buffer.len() {

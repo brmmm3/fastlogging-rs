@@ -186,10 +186,10 @@ fn file_writer_thread_worker(
         let mut deadline = create_time
             .checked_add(timeout.unwrap_or(default_delay))
             .unwrap_or_else(|| SystemTime::now().checked_add(default_delay).unwrap());
-        if let Some(time) = time {
-            if time < deadline {
-                deadline = time;
-            }
+        if let Some(time) = time
+            && time < deadline
+        {
+            deadline = time;
         }
         let to = deadline.duration_since(SystemTime::now()).unwrap();
         let message = match rx.recv_timeout(to) {
@@ -412,14 +412,14 @@ mod tests {
     fn file() {
         let temp_dir = TempDir::with_prefix("fastlogging").unwrap();
         let log_file = temp_dir.path().join("file.log");
-        let mut logging = Logging::new(
+        let mut logging = Logging::new_unboxed(
             NOTSET,
             "root",
-            vec![
+            Some(vec![
                 FileWriterConfig::new(DEBUG, log_file.clone(), 0, 0, None, None, None)
                     .unwrap()
                     .into(),
-            ],
+            ]),
             None,
             None,
         )

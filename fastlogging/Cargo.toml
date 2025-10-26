@@ -23,16 +23,16 @@ crate-type = ["dylib", "rlib", "staticlib"]
 
 [dependencies]
 thiserror = "2.0"
-gethostname = "1.0"
+gethostname = "1.1"
 flume = "0.11"
 chrono = "0.4"
-num_cpus = "1.16"
+num_cpus = "1.17"
 threadpool = "1.8"
 thread-id = "5.0"
 termcolor = "1.4"
 once_cell = "1.21"
-regex = "1.11"
-zip = { version = "3.0", default-features = false, features = [
+regex = "1.12"
+zip = { version = "6.0", default-features = false, features = [
     "deflate",
     "zstd",
     "lzma",
@@ -43,8 +43,8 @@ serde = { version = "1.0", optional = true }
 serde_derive = { version = "1.0", optional = true }
 serde_json = { version = "1.0" }
 serde_yaml = { version = "0.9", optional = true }
-quick-xml = { version = "0.37", features = ["serialize"], optional = true }
-windows-sys = { version = "0.59", features = [
+quick-xml = { version = "0.38", features = ["serialize"], optional = true }
+windows-sys = { version = "0.61", features = [
     "Win32",
     "Win32_Foundation",
     "Win32_System",
@@ -61,11 +61,11 @@ log = { version = "0.4", features = ["std"] }
 eventlog = "0.3"
 
 [dev-dependencies]
-criterion = { version = "0.5", features = ["html_reports"] }
-tempfile = "3.20"
+criterion = { version = "0.7", features = ["html_reports"] }
+tempfile = "3.23"
 
 [target.'cfg(unix)'.dev-dependencies]
-fork = "0.2"
+fork = "0.3"
 
 #[[bench]]
 #name = "benchmarks"

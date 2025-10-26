@@ -1,14 +1,14 @@
 use std::{
     fmt,
     sync::{
-        atomic::{AtomicBool, Ordering},
         Arc, Mutex,
+        atomic::{AtomicBool, Ordering},
     },
     thread::{self, JoinHandle},
     time::Duration,
 };
 
-use flume::{bounded, Receiver, SendError, Sender};
+use flume::{Receiver, SendError, Sender, bounded};
 use regex::Regex;
 
 use crate::{LoggingError, NOTSET};
@@ -95,10 +95,10 @@ fn callback_writer_thread(
         match rx.recv()? {
             CallbackTypeEnum::Message((level, domain, message)) => {
                 if let Ok(ref config) = config.lock() {
-                    if let Some(ref callback) = config.callback {
-                        if let Err(err) = (callback.lock().unwrap())(level, domain, message) {
-                            eprintln!("CallbackWriter: Error: {err:?}");
-                        }
+                    if let Some(ref callback) = config.callback
+                        && let Err(err) = (callback.lock().unwrap())(level, domain, message)
+                    {
+                        eprintln!("CallbackWriter: Error: {err:?}");
                     }
                 } else {
                     break;
@@ -237,7 +237,7 @@ impl CallbackWriter {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Logging, LoggingError, DEBUG, NOTSET};
+    use crate::{DEBUG, Logging, LoggingError, NOTSET};
 
     use super::CallbackWriterConfig;
 
@@ -248,10 +248,12 @@ mod tests {
 
     #[test]
     fn callback() {
-        let mut logging = Logging::new(
+        let mut logging = Logging::new_unboxed(
             NOTSET,
             "root",
-            vec![CallbackWriterConfig::new(DEBUG, Some(Box::new(writer_callback))).into()],
+            Some(vec![
+                CallbackWriterConfig::new(DEBUG, Some(Box::new(writer_callback))).into(),
+            ]),
             None,
             None,
         )

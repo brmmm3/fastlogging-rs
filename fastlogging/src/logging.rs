@@ -378,13 +378,13 @@ impl Logging {
     pub fn new<S: Into<String>>(
         level: u8, // Global log level
         domain: S,
-        configs: Vec<WriterConfigEnum>, // List of writer configs
-        ext_config: Option<ExtConfig>,  // Extended logging configuration
-        config_path: Option<PathBuf>,   // Optional configuration file
+        configs: Option<Vec<WriterConfigEnum>>, // List of writer configs
+        ext_config: Option<ExtConfig>,          // Extended logging configuration
+        config_path: Option<PathBuf>,           // Optional configuration file
     ) -> Result<Self, LoggingError> {
         // Initialize config from optional config file.
         let mut config_file = ConfigFile::new();
-        let mut instance = LoggingInstance::new(level, domain.into(), configs)?;
+        let mut instance = LoggingInstance::new(level, domain.into(), configs.unwrap_or_default())?;
         if let Some(ext_config) = ext_config {
             instance.set_ext_config(ext_config);
         }
@@ -430,9 +430,19 @@ impl Logging {
         Ok(logging)
     }
 
+    pub fn new_unboxed<S: Into<String>>(
+        level: u8, // Global log level
+        domain: S,
+        configs: Option<Vec<WriterConfigEnum>>, // List of writer configs
+        ext_config: Option<ExtConfig>,          // Extended logging configuration
+        config_path: Option<PathBuf>,           // Optional configuration file
+    ) -> Result<Self, LoggingError> {
+        Logging::new(level, domain, configs, ext_config, config_path)
+    }
+
     pub fn init() -> Result<Self, LoggingError> {
         let writer = WriterConfigEnum::Console(ConsoleWriterConfig::new(NOTSET, false));
-        Logging::new(NOTSET, "root", vec![writer], None, None)
+        Logging::new(NOTSET, "root", Some(vec![writer]), None, None)
     }
 
     pub fn apply_config(&mut self, path: &Path) -> Result<(), LoggingError> {
@@ -616,7 +626,7 @@ impl Logging {
 
     pub fn add_writer_configs(
         &mut self,
-        configs: &[WriterConfigEnum],
+        configs: Vec<WriterConfigEnum>,
     ) -> Result<Vec<usize>, LoggingError> {
         self.instance.lock().unwrap().add_writer_configs(configs)
     }
@@ -738,10 +748,10 @@ impl Logging {
 
     pub fn rotate(&self, path: Option<PathBuf>) -> Result<(), LoggingError> {
         for writer in self.instance.lock().unwrap().writers.values() {
-            if let WriterEnum::File(writer) = writer {
-                if path.is_none() || path.as_ref().unwrap() == &writer.config.lock().unwrap().path {
-                    writer.rotate()?;
-                }
+            if let WriterEnum::File(writer) = writer
+                && (path.is_none() || path.as_ref().unwrap() == &writer.config.lock().unwrap().path)
+            {
+                writer.rotate()?;
             }
         }
         Ok(())
@@ -987,7 +997,7 @@ impl Logging {
 
 impl Default for Logging {
     fn default() -> Self {
-        Self::new(NOTSET, "root", vec![], None, None).unwrap()
+        Self::new(NOTSET, "root", None, None, None).unwrap()
     }
 }
 

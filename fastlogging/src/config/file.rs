@@ -5,15 +5,15 @@ use std::str;
 
 const CONFIG_FILE_SIZE_MAX: u64 = 4096;
 
-use crate::callback::CallbackWriter;
-use crate::level2string;
 use crate::LoggingError;
 use crate::WriterConfigEnum;
 use crate::WriterEnum;
 use crate::WriterTypeEnum;
+use crate::callback::CallbackWriter;
+use crate::level2string;
 use crate::{
-    ClientWriter, ConsoleWriter, FileWriter, LevelSyms, LoggingServer, MessageStructEnum,
-    SyslogWriter, NOTSET,
+    ClientWriter, ConsoleWriter, FileWriter, LevelSyms, LoggingServer, MessageStructEnum, NOTSET,
+    SyslogWriter,
 };
 
 use super::LoggingInstance;
@@ -68,12 +68,12 @@ pub struct ConfigFile {
 pub fn default_config_file() -> (PathBuf, Vec<u8>) {
     if let Ok(path) = std::env::var("FASTLOGGING_CONFIG_FILE") {
         let path = PathBuf::from(path);
-        if path.exists() {
-            if let Some(ext) = path.extension() {
-                let ext = ext.as_encoded_bytes().to_ascii_lowercase();
-                if ext == b"json" || ext == b"yaml" || ext == b"xml" {
-                    return (PathBuf::from(path), ext);
-                }
+        if path.exists()
+            && let Some(ext) = path.extension()
+        {
+            let ext = ext.as_encoded_bytes().to_ascii_lowercase();
+            if ext == b"json" || ext == b"yaml" || ext == b"xml" {
+                return (path, ext);
             }
         }
     }
