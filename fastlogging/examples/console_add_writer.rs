@@ -1,7 +1,7 @@
-use fastlogging::{ConsoleWriterConfig, Logging, LoggingError, DEBUG};
+use fastlogging::{ConsoleWriterConfig, DEBUG, Logging, LoggingError};
 
 fn main() -> Result<(), LoggingError> {
-    let mut logger = Logging::new(DEBUG, "root", Vec::new(), None, None)?;
+    let mut logger = Logging::new(DEBUG, "root", None, None, None)?;
     logger.add_writer_config(&ConsoleWriterConfig::new(DEBUG, true).into())?;
     logger.trace("Trace Message")?;
     logger.debug("Debug Message")?;

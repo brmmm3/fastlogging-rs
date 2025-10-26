@@ -2,12 +2,12 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::process;
 use std::str;
-use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 
-use flume::bounded;
 use flume::Receiver;
 use flume::Sender;
+use flume::bounded;
 use gethostname::gethostname;
 
 use crate::LoggingError;
@@ -90,7 +90,7 @@ impl LoggingInstance {
             debug: 0,
             stop: Arc::new(AtomicBool::new(false)),
         };
-        instance.add_writer_configs(&configs)?;
+        instance.add_writer_configs(configs)?;
         Ok(instance)
     }
 
@@ -298,7 +298,7 @@ impl LoggingInstance {
 
     pub fn add_writer_configs(
         &mut self,
-        configs: &[WriterConfigEnum],
+        configs: Vec<WriterConfigEnum>,
     ) -> Result<Vec<usize>, LoggingError> {
         configs
             .iter()

@@ -1,21 +1,23 @@
 use std::path::PathBuf;
 
-use fastlogging::{CompressionMethodEnum, FileWriterConfig, Logging, LoggingError, DEBUG};
+use fastlogging::{CompressionMethodEnum, DEBUG, FileWriterConfig, Logging, LoggingError};
 
 fn main() -> Result<(), LoggingError> {
-    let mut logger = Logging::new(
+    let mut logger = Logging::new_unboxed(
         DEBUG,
         "root",
-        vec![FileWriterConfig::new(
-            DEBUG,
-            PathBuf::from("/tmp/cfastlogging.log"),
-            1024,
-            3,
-            None,
-            None,
-            Some(CompressionMethodEnum::Store),
-        )?
-        .into()],
+        Some(vec![
+            FileWriterConfig::new(
+                DEBUG,
+                PathBuf::from("/tmp/cfastlogging.log"),
+                1024,
+                3,
+                None,
+                None,
+                Some(CompressionMethodEnum::Store),
+            )?
+            .into(),
+        ]),
         None,
         None,
     )?;

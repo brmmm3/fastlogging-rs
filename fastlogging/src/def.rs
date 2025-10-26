@@ -1,9 +1,9 @@
 use std::fmt;
 
 use crate::{
-    callback::CallbackWriterConfig, config::LoggingInstance, CallbackWriter, ClientWriter,
-    ClientWriterConfig, ConsoleWriter, ConsoleWriterConfig, FileWriter, FileWriterConfig,
-    LoggingError, LoggingServer, ServerConfig, SyslogWriter, SyslogWriterConfig,
+    CallbackWriter, ClientWriter, ClientWriterConfig, ConsoleWriter, ConsoleWriterConfig,
+    FileWriter, FileWriterConfig, LoggingError, LoggingServer, ServerConfig, SyslogWriter,
+    SyslogWriterConfig, callback::CallbackWriterConfig, config::LoggingInstance,
 };
 
 // Log-Levels

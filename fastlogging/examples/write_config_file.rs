@@ -2,9 +2,9 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 
 use fastlogging::{
-    ClientWriterConfig, CompressionMethodEnum, ConsoleWriterConfig, EncryptionMethod, ExtConfig,
-    FileWriterConfig, Logging, LoggingError, MessageStructEnum, ServerConfig, DEBUG, ERROR, FATAL,
-    INFO,
+    ClientWriterConfig, CompressionMethodEnum, ConsoleWriterConfig, DEBUG, ERROR, EncryptionMethod,
+    ExtConfig, FATAL, FileWriterConfig, INFO, Logging, LoggingError, MessageStructEnum,
+    ServerConfig,
 };
 
 const MB: usize = 1024 * 1024;
@@ -15,10 +15,10 @@ fn main() -> Result<(), LoggingError> {
     logger.save_config(Some(Path::new("/tmp/config_default.xml")))?;
     logger.save_config(Some(Path::new("/tmp/config_default.yaml")))?;
     logger.shutdown(false)?;
-    let mut logger = Logging::new(
+    let mut logger = Logging::new_unboxed(
         INFO,
         "main",
-        vec![
+        Some(vec![
             ConsoleWriterConfig::new(ERROR, true).into(),
             FileWriterConfig::new(
                 DEBUG,
@@ -36,7 +36,7 @@ fn main() -> Result<(), LoggingError> {
             .into(),
             ServerConfig::new(ERROR, "127.0.0.1:12345", EncryptionMethod::NONE).into(),
             ClientWriterConfig::new(FATAL, "127.0.0.1:12346", EncryptionMethod::NONE).into(),
-        ],
+        ]),
         Some(ExtConfig::new(
             MessageStructEnum::String,
             true,

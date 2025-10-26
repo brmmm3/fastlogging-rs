@@ -8,12 +8,12 @@ use std::{env, fs};
 
 use once_cell::sync::Lazy;
 
-use crate::config::{default_config_file, ConfigFile, FileMerge};
+use crate::config::{ConfigFile, FileMerge, default_config_file};
 use crate::console::ConsoleWriterConfig;
-use crate::net::{ClientWriterConfig, EncryptionMethod, ServerConfig, AUTH_KEY};
+use crate::net::{AUTH_KEY, ClientWriterConfig, EncryptionMethod, ServerConfig};
 use crate::{
-    getppid, ExtConfig, LevelSyms, Logger, Logging, LoggingError, WriterConfigEnum, WriterEnum,
-    WriterTypeEnum, NOTSET,
+    ExtConfig, LevelSyms, Logger, Logging, LoggingError, NOTSET, WriterConfigEnum, WriterEnum,
+    WriterTypeEnum, getppid,
 };
 
 pub static PARENT_LOGGER_ADDRESS: Lazy<Mutex<Option<(u32, ClientWriterConfig)>>> =
@@ -21,7 +21,7 @@ pub static PARENT_LOGGER_ADDRESS: Lazy<Mutex<Option<(u32, ClientWriterConfig)>>>
 
 pub static ROOT_LOGGER: Lazy<Mutex<Logging>> = Lazy::new(|| {
     fn create_default_logger(config_file: Option<PathBuf>) -> Logging {
-        let mut logging = Logging::new(NOTSET, "root", vec![], None, config_file).unwrap();
+        let mut logging = Logging::new(NOTSET, "root", None, None, config_file).unwrap();
         if let Err(err) =
             logging.set_root_writer_config(&WriterConfigEnum::Server(ServerConfig::new(
                 NOTSET,
@@ -57,7 +57,7 @@ pub static ROOT_LOGGER: Lazy<Mutex<Logging>> = Lazy::new(|| {
                         return Err(LoggingError::InvalidValue(format!(
                             "Invalid encryption type {}",
                             buffer[2]
-                        )))
+                        )));
                     }
                 };
                 if let Ok(mut stream) = TcpStream::connect(&address) {
@@ -181,7 +181,7 @@ pub fn remove_writer(wid: usize) -> Option<WriterEnum> {
     ROOT_LOGGER.lock().unwrap().remove_writer(wid)
 }
 
-pub fn add_writer_configs(configs: &[WriterConfigEnum]) -> Result<Vec<usize>, LoggingError> {
+pub fn add_writer_configs(configs: Vec<WriterConfigEnum>) -> Result<Vec<usize>, LoggingError> {
     ROOT_LOGGER.lock().unwrap().add_writer_configs(configs)
 }
 

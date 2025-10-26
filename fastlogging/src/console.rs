@@ -2,19 +2,19 @@ use std::{
     fmt,
     io::Write,
     sync::{
-        atomic::{AtomicBool, Ordering},
         Arc, Mutex,
+        atomic::{AtomicBool, Ordering},
     },
     thread::{self, JoinHandle},
     time::Duration,
 };
 
-use flume::{bounded, Receiver, SendError, Sender};
+use flume::{Receiver, SendError, Sender, bounded};
 use regex::Regex;
 use termcolor::{BufferWriter, Color, ColorChoice, ColorSpec, WriteColor};
 
 use crate::{
-    LoggingError, CRITICAL, DEBUG, ERROR, EXCEPTION, INFO, NOTSET, SUCCESS, TRACE, WARNING,
+    CRITICAL, DEBUG, ERROR, EXCEPTION, INFO, LoggingError, NOTSET, SUCCESS, TRACE, WARNING,
 };
 
 #[derive(Debug)]
@@ -293,14 +293,14 @@ impl ConsoleWriter {
 
 #[cfg(test)]
 mod tests {
-    use crate::{ConsoleWriterConfig, Logging, DEBUG, NOTSET};
+    use crate::{ConsoleWriterConfig, DEBUG, Logging, NOTSET};
 
     #[test]
     fn console() {
-        let mut logging = Logging::new(
+        let mut logging = Logging::new_unboxed(
             NOTSET,
             "root",
-            vec![ConsoleWriterConfig::new(DEBUG, true).into()],
+            Some(vec![ConsoleWriterConfig::new(DEBUG, true).into()]),
             None,
             None,
         )

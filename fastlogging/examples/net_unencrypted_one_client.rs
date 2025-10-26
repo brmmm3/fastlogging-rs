@@ -1,8 +1,8 @@
 use std::{thread, time::Duration};
 
 use fastlogging::{
-    ClientWriterConfig, ConsoleWriterConfig, EncryptionMethod, FileWriterConfig, Logging,
-    LoggingError, ServerConfig, DEBUG,
+    ClientWriterConfig, ConsoleWriterConfig, DEBUG, EncryptionMethod, FileWriterConfig, Logging,
+    LoggingError, ServerConfig,
 };
 use tempfile::TempDir;
 
@@ -10,15 +10,15 @@ fn main() -> Result<(), LoggingError> {
     let temp_dir = TempDir::with_prefix("fastlogging").unwrap();
     let log_file = temp_dir.path().join("file.log");
     // Server
-    let mut logging_server = Logging::new(
+    let mut logging_server = Logging::new_unboxed(
         DEBUG,
         "LOGSRV",
-        vec![
+        Some(vec![
             ConsoleWriterConfig::new(DEBUG, true).into(),
             FileWriterConfig::new(DEBUG, log_file.clone(), 0, 0, None, None, None)
                 .unwrap()
                 .into(),
-        ],
+        ]),
         None,
         None,
     )?;
@@ -29,10 +29,10 @@ fn main() -> Result<(), LoggingError> {
     //logging_server.set_debug(3);
     logging_server.sync_all(5.0).unwrap();
     // Client
-    let mut logging_client = Logging::new(
+    let mut logging_client = Logging::new_unboxed(
         DEBUG,
         "LOGCLIENT",
-        vec![
+        Some(vec![
             ClientWriterConfig::new(
                 DEBUG,
                 logging_server.get_root_server_address_port().unwrap(),
@@ -40,7 +40,7 @@ fn main() -> Result<(), LoggingError> {
             )
             .into(),
             //ConsoleWriterConfig::new(DEBUG, false).into()
-        ],
+        ]),
         None,
         None,
     )?;

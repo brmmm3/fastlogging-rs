@@ -1,7 +1,7 @@
-use fastlogging::{Logging, LoggingError, DEBUG};
+use fastlogging::{DEBUG, Logging, LoggingError};
 
 fn main() -> Result<(), LoggingError> {
-    let mut logger = Logging::new(DEBUG, "root", Vec::new(), None, None)?;
+    let mut logger = Logging::new(DEBUG, "root", None, None, None)?;
     logger.trace("Trace Message")?;
     logger.debug("Debug Message")?;
     logger.info("Info Message")?;

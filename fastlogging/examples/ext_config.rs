@@ -1,12 +1,12 @@
 use fastlogging::{
-    ConsoleWriterConfig, ExtConfig, Logging, LoggingError, MessageStructEnum, DEBUG,
+    ConsoleWriterConfig, DEBUG, ExtConfig, Logging, LoggingError, MessageStructEnum,
 };
 
 fn main() -> Result<(), LoggingError> {
-    let mut logger = Logging::new(
+    let mut logger = Logging::new_unboxed(
         DEBUG,
         "root",
-        vec![ConsoleWriterConfig::new(DEBUG, true).into()],
+        Some(vec![ConsoleWriterConfig::new(DEBUG, true).into()]),
         None,
         None,
     )?;

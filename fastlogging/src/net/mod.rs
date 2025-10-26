@@ -12,8 +12,8 @@ mod tests {
     use tempfile::TempDir;
 
     use crate::{
-        ClientWriterConfig, ConsoleWriterConfig, FileWriterConfig, Logging, ServerConfig, DEBUG,
-        NOTSET,
+        ClientWriterConfig, ConsoleWriterConfig, DEBUG, FileWriterConfig, Logging, NOTSET,
+        ServerConfig,
     };
 
     use super::EncryptionMethod;
@@ -23,15 +23,15 @@ mod tests {
         let temp_dir = TempDir::with_prefix("fastlogging").unwrap();
         let log_file = temp_dir.path().join("file.log");
         // Server
-        let mut logging_server = Logging::new(
+        let mut logging_server = Logging::new_unboxed(
             NOTSET,
             "server".to_string(),
-            vec![
+            Some(vec![
                 ConsoleWriterConfig::new(DEBUG, true).into(),
                 FileWriterConfig::new(DEBUG, log_file.clone(), 0, 0, None, None, None)
                     .unwrap()
                     .into(),
-            ],
+            ]),
             None,
             None,
         )
@@ -43,10 +43,10 @@ mod tests {
             .unwrap();
         logging_server.sync_all(5.0).unwrap();
         // Client
-        let mut logging_client = Logging::new(
+        let mut logging_client = Logging::new_unboxed(
             NOTSET,
             "client".to_string(),
-            vec![
+            Some(vec![
                 ConsoleWriterConfig::new(DEBUG, false).into(),
                 ClientWriterConfig::new(
                     DEBUG,
@@ -54,7 +54,7 @@ mod tests {
                     logging_server.get_server_auth_key(),
                 )
                 .into(),
-            ],
+            ]),
             None,
             None,
         )

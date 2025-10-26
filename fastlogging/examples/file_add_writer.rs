@@ -1,9 +1,9 @@
 use std::path::PathBuf;
 
-use fastlogging::{CompressionMethodEnum, FileWriterConfig, Logging, LoggingError, DEBUG};
+use fastlogging::{CompressionMethodEnum, DEBUG, FileWriterConfig, Logging, LoggingError};
 
 fn main() -> Result<(), LoggingError> {
-    let mut logger = Logging::new(DEBUG, "root", Vec::new(), None, None)?;
+    let mut logger = Logging::new(DEBUG, "root", None, None, None)?;
     logger.add_writer_config(
         &FileWriterConfig::new(
             DEBUG,

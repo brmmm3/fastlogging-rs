@@ -46,7 +46,7 @@ pub fn logging_new_default() -> Result<Logging, LoggingError> {
     Logging::new(
         NOTSET,
         "root",
-        vec![ConsoleWriterConfig::new(NOTSET, false).into()],
+        Some(vec![ConsoleWriterConfig::new(NOTSET, false).into()]),
         None,
         None,
     )

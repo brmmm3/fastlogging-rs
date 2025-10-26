@@ -1,18 +1,18 @@
 use std::{thread, time::Duration};
 
 use fastlogging::{
-    ConsoleWriterConfig, EncryptionMethod, Logging, LoggingError, ServerConfig, DEBUG,
+    ConsoleWriterConfig, DEBUG, EncryptionMethod, Logging, LoggingError, ServerConfig,
 };
 
 fn main() -> Result<(), LoggingError> {
     // Server
-    let mut logging_server = Logging::new(
+    let mut logging_server = Logging::new_unboxed(
         DEBUG,
         "LOGSRV",
-        vec![
+        Some(vec![
             ConsoleWriterConfig::new(DEBUG, true).into(),
             ServerConfig::new(DEBUG, "127.0.0.1", EncryptionMethod::NONE).into(),
-        ],
+        ]),
         None,
         None,
     )?;
