@@ -40,6 +40,7 @@ fn init(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<def::CompressionMethodEnum>()?;
     m.add_class::<def::EncryptionMethod>()?;
     m.add_class::<def::WriterTypeEnum>()?;
+    m.add_class::<def::WriterConfigEnum>()?;
     m.add_class::<ExtConfig>()?;
     m.add_class::<ConsoleWriterConfig>()?;
     m.add_class::<FileWriterConfig>()?;
@@ -104,8 +105,8 @@ mod tests {
 
     #[test]
     fn it_works() {
-        let mut logging = Logging::new(None, None, vec![], None, None, None).unwrap();
-        Python::with_gil(|py| {
+        Python::attach(|py| {
+            let mut logging = Logging::new(None, None, None, None, None, None, py).unwrap();
             logging.shutdown(Some(true), py).unwrap();
         });
     }

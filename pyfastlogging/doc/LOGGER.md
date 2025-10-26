@@ -23,47 +23,47 @@ Get current log level.
 
 Set log domain.
 
-## `trace(obj: PyObject)`
+## `trace(obj: Py<PyAny>)`
 
 Log **TRACE** message. `obj` can be any object which can be converted into a string.
 An exception is thrown if `obj` cannot be converted into a string.
 
-## `debug(obj: PyObject)`
+## `debug(obj: Py<PyAny>)`
 
 Log **DEBUG** message. `obj` can be any object which can be converted into a string.
 An exception is thrown if `obj` cannot be converted into a string.
 
-## `info(obj: PyObject)`
+## `info(obj: Py<PyAny>)`
 
 Log **INFO** message. `obj` can be any object which can be converted into a string.
 An exception is thrown if `obj` cannot be converted into a string.
 
-## `success(obj: PyObject)`
+## `success(obj: Py<PyAny>)`
 
 Log **SUCCESS** message. `obj` can be any object which can be converted into a string.
 An exception is thrown if `obj` cannot be converted into a string.
 
-## `warning(obj: PyObject)`
+## `warning(obj: Py<PyAny>)`
 
 Log **WARNING** message. `obj` can be any object which can be converted into a string.
 An exception is thrown if `obj` cannot be converted into a string.
 
-## `error(obj: PyObject)`
+## `error(obj: Py<PyAny>)`
 
 Log **ERROR** message. `obj` can be any object which can be converted into a string.
 An exception is thrown if `obj` cannot be converted into a string.
 
-## `critical(obj: PyObject)`
+## `critical(obj: Py<PyAny>)`
 
 Log **CRITICAL** message. `obj` can be any object which can be converted into a string.
 An exception is thrown if `obj` cannot be converted into a string.
 
-## `fatal(obj: PyObject)`
+## `fatal(obj: Py<PyAny>)`
 
 Log **FATAL** message. `obj` can be any object which can be converted into a string.
 An exception is thrown if `obj` cannot be converted into a string.
 
-## `exception(obj: PyObject)`
+## `exception(obj: Py<PyAny>)`
 
 Log **EXCEPTION** message. `obj` can be any object which can be converted into a string.
 An exception is thrown if `obj` cannot be converted into a string.

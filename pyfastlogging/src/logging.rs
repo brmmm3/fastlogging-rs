@@ -1,3 +1,4 @@
+use core::time;
 use std::cmp;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -10,10 +11,12 @@ use fastlogging::{
 };
 use pyo3::types::PyBytes;
 
-use crate::LoggingError;
 use crate::def::{EncryptionMethod, LevelSyms, WriterConfigEnum, WriterTypeEnum};
 use crate::logger::Logger;
-use crate::writer::{ExtConfig, ServerConfig};
+use crate::writer::{
+    CallbackWriterConfig, ExtConfig, RootConfig, ServerConfig, SyslogWriterConfig,
+};
+use crate::{ClientWriterConfig, ConsoleWriterConfig, FileWriterConfig, LoggingError};
 
 #[pyclass]
 #[derive(Debug)]
@@ -25,26 +28,26 @@ pub struct Logging {
 }
 
 impl Logging {
-    fn do_indent(&self, obj: PyObject) -> PyResult<String> {
-        Python::with_gil(|py| {
+    fn do_indent(&self, obj: Py<PyAny>) -> PyResult<String> {
+        Python::attach(|py| {
             let mut message: String = obj.extract(py)?;
-            if let Some((offset, inc, max, s)) = &self.indent {
-                if let Ok(mut frame) = self.getframe.call1(py, (*offset,)) {
-                    let mut depth = 0;
-                    loop {
-                        frame = match frame.getattr(py, "f_back") {
-                            Ok(f) => f.extract(py)?,
-                            Err(_) => {
-                                break;
-                            }
-                        };
-                        depth += inc;
-                        if depth >= *max {
+            if let Some((offset, inc, max, s)) = &self.indent
+                && let Ok(mut frame) = self.getframe.call1(py, (*offset,))
+            {
+                let mut depth = 0;
+                loop {
+                    frame = match frame.getattr(py, "f_back") {
+                        Ok(f) => f.extract(py)?,
+                        Err(_) => {
                             break;
                         }
+                    };
+                    depth += inc;
+                    if depth >= *max {
+                        break;
                     }
-                    message.insert_str(0, &s[..depth]);
                 }
+                message.insert_str(0, &s[..depth]);
             }
             Ok(message)
         })
@@ -54,16 +57,17 @@ impl Logging {
 #[pymethods]
 impl Logging {
     #[new]
-    #[pyo3(signature=(level, domain=None, configs=vec![], ext_config=None, config_path=None, indent=None))]
+    #[pyo3(signature=(level, domain=None, configs=None, ext_config=None, config_path=None, indent=None))]
     pub fn new(
         level: Option<u8>,                         // Global log level
         domain: Option<String>,                    // Optional log domain
-        configs: Vec<WriterConfigEnum>,            // List of writer configurations
+        configs: Option<Vec<Py<PyAny>>>,           // List of writer configurations
         ext_config: Option<&Bound<'_, ExtConfig>>, // Extended formatting configuration
         config_path: Option<PathBuf>,              // Optional configuration file
         indent: Option<(usize, usize, usize)>,     // If defined indent text by call depth
-    ) -> PyResult<Self> {
-        let (getframe, format_exc) = Python::with_gil(|py| -> PyResult<(Py<PyAny>, Py<PyAny>)> {
+        py: Python,
+    ) -> Result<Self, LoggingError> {
+        let (getframe, format_exc) = Python::attach(|py| -> PyResult<(Py<PyAny>, Py<PyAny>)> {
             let sys = py.import("sys")?;
             let getframe = sys.getattr("_getframe")?;
             let traceback = py.import("traceback")?;
@@ -82,11 +86,40 @@ impl Logging {
             }
             None => None,
         };
+        let writer_configs = if let Some(configs) = configs {
+            let mut writer_configs: Vec<fastlogging::WriterConfigEnum> = Vec::new();
+            for config in configs {
+                if let Ok(v) = config.extract::<WriterConfigEnum>(py) {
+                    writer_configs.push(v.into());
+                } else if let Ok(v) = config.extract::<RootConfig>(py) {
+                    writer_configs.push(WriterConfigEnum::Root { config: v }.into());
+                } else if let Ok(v) = config.extract::<ConsoleWriterConfig>(py) {
+                    writer_configs.push(WriterConfigEnum::Console { config: v }.into());
+                } else if let Ok(v) = config.extract::<FileWriterConfig>(py) {
+                    writer_configs.push(WriterConfigEnum::File { config: v }.into());
+                } else if let Ok(v) = config.extract::<ClientWriterConfig>(py) {
+                    writer_configs.push(WriterConfigEnum::Client { config: v }.into());
+                } else if let Ok(v) = config.extract::<ServerConfig>(py) {
+                    writer_configs.push(WriterConfigEnum::Server { config: v }.into());
+                } else if let Ok(v) = config.extract::<SyslogWriterConfig>(py) {
+                    writer_configs.push(WriterConfigEnum::Syslog { config: v }.into());
+                } else if let Ok(v) = config.extract::<CallbackWriterConfig>(py) {
+                    writer_configs.push(WriterConfigEnum::Callback { config: v }.into());
+                } else {
+                    return Err(LoggingError(fastlogging::LoggingError::InvalidValue(
+                        format!("Writer configuration {config:?} has invalid type"),
+                    )));
+                }
+            }
+            Some(writer_configs)
+        } else {
+            None
+        };
         Ok(Self {
             instance: fastlogging::Logging::new(
                 level.unwrap_or(NOTSET),
                 domain.unwrap_or_else(|| "root".to_string()),
-                configs.iter().map(|v| v.into()).collect::<Vec<_>>(),
+                writer_configs,
                 ext_config.map(|v| v.borrow().0.clone()),
                 config_path,
             )
@@ -99,7 +132,7 @@ impl Logging {
 
     #[pyo3(signature=(now=None,))]
     pub fn shutdown(&mut self, now: Option<bool>, py: Python) -> Result<(), LoggingError> {
-        py.allow_threads(|| -> Result<(), LoggingError> {
+        py.detach(|| -> Result<(), LoggingError> {
             Ok(self.instance.shutdown(now.unwrap_or_default())?)
         })
     }
@@ -148,7 +181,7 @@ impl Logging {
     ) -> Result<Vec<usize>, LoggingError> {
         Ok(self
             .instance
-            .add_writer_configs(&configs.into_iter().map(|c| c.into()).collect::<Vec<_>>())?)
+            .add_writer_configs(configs.into_iter().map(|c| c.into()).collect::<Vec<_>>())?)
     }
 
     #[pyo3(signature=(wids=None,))]
@@ -176,16 +209,20 @@ impl Logging {
         Ok(self.instance.disable_type(typ.into())?)
     }
 
-    #[pyo3(signature=(types, timeout=None))]
+    #[pyo3(signature=(types=None, timeout=None))]
     pub fn sync(
         &self,
-        types: Vec<WriterTypeEnum>,
+        types: Option<Vec<WriterTypeEnum>>,
         timeout: Option<f64>,
     ) -> Result<(), LoggingError> {
-        Ok(self.instance.sync(
-            types.into_iter().map(|t| t.into()).collect::<Vec<_>>(),
-            timeout.unwrap_or(1.0),
-        )?)
+        if let Some(types) = types {
+            Ok(self.instance.sync(
+                types.into_iter().map(|t| t.into()).collect::<Vec<_>>(),
+                timeout.unwrap_or(1.0),
+            )?)
+        } else {
+            self.sync_all(timeout)
+        }
     }
 
     #[pyo3(signature=(timeout=None))]
@@ -261,7 +298,7 @@ impl Logging {
 
     // Logging methods
 
-    pub fn trace(&self, obj: PyObject) -> PyResult<()> {
+    pub fn trace(&self, obj: Py<PyAny>) -> PyResult<()> {
         if self.instance.level <= TRACE {
             self.instance
                 .trace(self.do_indent(obj)?)
@@ -271,7 +308,7 @@ impl Logging {
         }
     }
 
-    pub fn debug(&self, obj: PyObject) -> PyResult<()> {
+    pub fn debug(&self, obj: Py<PyAny>) -> PyResult<()> {
         if self.instance.level <= DEBUG {
             self.instance
                 .debug(self.do_indent(obj)?)
@@ -281,7 +318,7 @@ impl Logging {
         }
     }
 
-    pub fn info(&self, obj: PyObject) -> PyResult<()> {
+    pub fn info(&self, obj: Py<PyAny>) -> PyResult<()> {
         if self.instance.level <= INFO {
             self.instance
                 .info(self.do_indent(obj)?)
@@ -291,7 +328,7 @@ impl Logging {
         }
     }
 
-    pub fn success(&self, obj: PyObject) -> PyResult<()> {
+    pub fn success(&self, obj: Py<PyAny>) -> PyResult<()> {
         if self.instance.level <= SUCCESS {
             self.instance
                 .success(self.do_indent(obj)?)
@@ -301,7 +338,7 @@ impl Logging {
         }
     }
 
-    pub fn warning(&self, obj: PyObject) -> PyResult<()> {
+    pub fn warning(&self, obj: Py<PyAny>) -> PyResult<()> {
         if self.instance.level <= WARNING {
             self.instance
                 .warning(self.do_indent(obj)?)
@@ -311,7 +348,7 @@ impl Logging {
         }
     }
 
-    pub fn error(&self, obj: PyObject) -> PyResult<()> {
+    pub fn error(&self, obj: Py<PyAny>) -> PyResult<()> {
         if self.instance.level <= ERROR {
             self.instance
                 .error(self.do_indent(obj)?)
@@ -321,7 +358,7 @@ impl Logging {
         }
     }
 
-    pub fn critical(&self, obj: PyObject) -> PyResult<()> {
+    pub fn critical(&self, obj: Py<PyAny>) -> PyResult<()> {
         if self.instance.level <= CRITICAL {
             self.instance
                 .critical(self.do_indent(obj)?)
@@ -331,7 +368,7 @@ impl Logging {
         }
     }
 
-    pub fn fatal(&self, obj: PyObject) -> PyResult<()> {
+    pub fn fatal(&self, obj: Py<PyAny>) -> PyResult<()> {
         if self.instance.level <= FATAL {
             self.instance
                 .fatal(self.do_indent(obj)?)
@@ -341,9 +378,9 @@ impl Logging {
         }
     }
 
-    pub fn exception(&self, obj: PyObject) -> PyResult<()> {
+    pub fn exception(&self, obj: Py<PyAny>) -> PyResult<()> {
         if self.instance.level <= EXCEPTION {
-            Python::with_gil(|py| {
+            Python::attach(|py| {
                 let message: String = obj.extract(py)?;
                 let tb: String = self.format_exc.call0(py)?.extract(py)?;
                 self.instance

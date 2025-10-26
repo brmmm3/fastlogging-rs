@@ -3,10 +3,10 @@ use std::{collections::HashMap, path::PathBuf};
 use pyo3::{exceptions::PyException, prelude::*};
 
 use crate::{
-    logger::Logger,
-    writer::{CallbackWriterConfig, ExtConfig, RootConfig, SyslogWriterConfig},
     ClientWriterConfig, ConsoleWriterConfig, EncryptionMethod, FileWriterConfig, LevelSyms,
     LoggingError, ServerConfig, WriterConfigEnum, WriterTypeEnum,
+    logger::Logger,
+    writer::{CallbackWriterConfig, ExtConfig, RootConfig, SyslogWriterConfig},
 };
 
 /// Python layer for fastlogging.
@@ -59,7 +59,7 @@ pub fn remove_logger(logger: Py<Logger>, py: Python) {
 }
 
 #[pyfunction]
-pub fn add_writer(config: PyObject, py: Python) -> PyResult<usize> {
+pub fn add_writer(config: Py<PyAny>, py: Python) -> PyResult<usize> {
     let config = if let Ok(config) = config.extract::<RootConfig>(py) {
         fastlogging::WriterConfigEnum::Root(config.0)
     } else if let Ok(config) = config.extract::<ConsoleWriterConfig>(py) {
@@ -108,12 +108,16 @@ pub fn disable_type(typ: WriterTypeEnum) -> Result<(), LoggingError> {
 }
 
 #[pyfunction]
-#[pyo3(signature=(types, timeout=None))]
-pub fn sync(types: Vec<WriterTypeEnum>, timeout: Option<f64>) -> Result<(), LoggingError> {
-    Ok(fastlogging::root::sync(
-        types.into_iter().map(|t| t.into()).collect::<Vec<_>>(),
-        timeout.unwrap_or(1.0),
-    )?)
+#[pyo3(signature=(types=None, timeout=None))]
+pub fn sync(types: Option<Vec<WriterTypeEnum>>, timeout: Option<f64>) -> Result<(), LoggingError> {
+    if let Some(types) = types {
+        Ok(fastlogging::root::sync(
+            types.into_iter().map(|t| t.into()).collect::<Vec<_>>(),
+            timeout.unwrap_or(1.0),
+        )?)
+    } else {
+        Ok(fastlogging::root::sync_all(timeout.unwrap_or_default())?)
+    }
 }
 
 #[pyfunction]
@@ -207,48 +211,48 @@ pub fn get_parent_pid_client_writer_config() -> Option<(u32, ClientWriterConfig)
 // Logging methods
 
 #[pyfunction]
-pub fn trace(obj: PyObject) -> Result<(), LoggingError> {
+pub fn trace(obj: Py<PyAny>) -> Result<(), LoggingError> {
     Ok(fastlogging::root::trace(obj.to_string())?)
 }
 
 #[pyfunction]
-pub fn debug(obj: PyObject) -> Result<(), LoggingError> {
+pub fn debug(obj: Py<PyAny>) -> Result<(), LoggingError> {
     Ok(fastlogging::root::debug(obj.to_string())?)
 }
 
 #[pyfunction]
-pub fn info(obj: PyObject) -> Result<(), LoggingError> {
+pub fn info(obj: Py<PyAny>) -> Result<(), LoggingError> {
     Ok(fastlogging::root::info(obj.to_string())?)
 }
 
 #[pyfunction]
-pub fn success(obj: PyObject) -> Result<(), LoggingError> {
+pub fn success(obj: Py<PyAny>) -> Result<(), LoggingError> {
     Ok(fastlogging::root::success(obj.to_string())?)
 }
 
 #[pyfunction]
-pub fn warning(obj: PyObject) -> Result<(), LoggingError> {
+pub fn warning(obj: Py<PyAny>) -> Result<(), LoggingError> {
     Ok(fastlogging::root::warning(obj.to_string())?)
 }
 
 #[pyfunction]
 #[pyo3(name = "error")]
-pub fn error_func(obj: PyObject) -> Result<(), LoggingError> {
+pub fn error_func(obj: Py<PyAny>) -> Result<(), LoggingError> {
     Ok(fastlogging::root::error(obj.to_string())?)
 }
 
 #[pyfunction]
-pub fn critical(obj: PyObject) -> Result<(), LoggingError> {
+pub fn critical(obj: Py<PyAny>) -> Result<(), LoggingError> {
     Ok(fastlogging::root::critical(obj.to_string())?)
 }
 
 #[pyfunction]
-pub fn fatal(obj: PyObject) -> Result<(), LoggingError> {
+pub fn fatal(obj: Py<PyAny>) -> Result<(), LoggingError> {
     Ok(fastlogging::root::fatal(obj.to_string())?)
 }
 
 #[pyfunction]
-pub fn exception(obj: PyObject) -> Result<(), LoggingError> {
+pub fn exception(obj: Py<PyAny>) -> Result<(), LoggingError> {
     Ok(fastlogging::root::exception(obj.to_string())?)
 }
 

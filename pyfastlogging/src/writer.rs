@@ -4,7 +4,7 @@ use std::time::{Duration, SystemTime};
 
 use once_cell::sync::Lazy;
 use pyo3::types::PyTuple;
-use pyo3::{prelude::*, IntoPyObjectExt};
+use pyo3::{IntoPyObjectExt, prelude::*};
 
 use crate::def::{CompressionMethodEnum, MessageStructEnum};
 use crate::{EncryptionMethod, LoggingError};
@@ -330,7 +330,7 @@ impl From<&fastlogging::SyslogWriterConfig> for SyslogWriterConfig {
     }
 }
 
-pub static CALLBACK_PY_FUNC: Lazy<Mutex<Option<PyObject>>> = Lazy::new(|| Mutex::new(None));
+pub static CALLBACK_PY_FUNC: Lazy<Mutex<Option<Py<PyAny>>>> = Lazy::new(|| Mutex::new(None));
 
 pub fn callback_func(
     level: u8,
@@ -338,7 +338,7 @@ pub fn callback_func(
     message: String,
 ) -> Result<(), fastlogging::LoggingError> {
     if let Some(callable) = CALLBACK_PY_FUNC.lock().unwrap().as_ref() {
-        Python::with_gil(|py| -> Result<(), LoggingError> {
+        Python::attach(|py| -> Result<(), LoggingError> {
             let args = PyTuple::new(
                 py,
                 &[
@@ -366,7 +366,7 @@ pub struct CallbackWriterConfig(pub fastlogging::CallbackWriterConfig);
 impl CallbackWriterConfig {
     #[new]
     #[pyo3(signature=(level, callback))]
-    pub fn new(level: u8, callback: PyObject) -> Self {
+    pub fn new(level: u8, callback: Py<PyAny>) -> Self {
         *CALLBACK_PY_FUNC.lock().unwrap() = Some(callback);
         Self(fastlogging::CallbackWriterConfig::new(
             level,
@@ -375,7 +375,7 @@ impl CallbackWriterConfig {
     }
 
     #[pyo3(signature=(callback=None))]
-    pub fn set_callback(&self, callback: Option<PyObject>) {
+    pub fn set_callback(&self, callback: Option<Py<PyAny>>) {
         *CALLBACK_PY_FUNC.lock().unwrap() = callback;
     }
 

@@ -41,12 +41,12 @@ Create new syslog writer configuration.
 `pname` if provided sets the process name to be added to the log messages.
 `pid` if provided sets the process id to be added to the log messages.
 
-## `CallbackWriterConfig(level: int, callback: PyObject)`
+## `CallbackWriterConfig(level: int, callback: Py<PyAny>)`
 
 Create new callback writer configuration. This writer can be used for individual log message handling.  
 `level` sets the log level filter.  
 `callback` is the Python callback function to be called for every log message. The callback function must have the followin definition: `fct(level: int, domain: str, message: str)`.
 
-### `set_callback(callback: PyObject = None)`
+### `set_callback(callback: Py<PyAny> = None)`
 
 Set a new callback function if provided. In case of `None` the current callback function will be removed, which disabled the callback writer.

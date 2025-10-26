@@ -371,6 +371,36 @@ impl From<ConsoleWriterConfig> for WriterConfigEnum {
     }
 }
 
+impl From<FileWriterConfig> for WriterConfigEnum {
+    fn from(config: FileWriterConfig) -> Self {
+        Self::File { config }
+    }
+}
+
+impl From<ClientWriterConfig> for WriterConfigEnum {
+    fn from(config: ClientWriterConfig) -> Self {
+        Self::Client { config }
+    }
+}
+
+impl From<ServerConfig> for WriterConfigEnum {
+    fn from(config: ServerConfig) -> Self {
+        Self::Server { config }
+    }
+}
+
+impl From<SyslogWriterConfig> for WriterConfigEnum {
+    fn from(config: SyslogWriterConfig) -> Self {
+        Self::Syslog { config }
+    }
+}
+
+impl From<CallbackWriterConfig> for WriterConfigEnum {
+    fn from(config: CallbackWriterConfig) -> Self {
+        Self::Callback { config }
+    }
+}
+
 #[pymethods]
 impl WriterConfigEnum {
     fn __repr__(&self) -> String {

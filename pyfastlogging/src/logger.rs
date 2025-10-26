@@ -13,26 +13,26 @@ pub struct Logger {
 }
 
 impl Logger {
-    fn do_indent(&self, obj: PyObject) -> PyResult<String> {
-        Python::with_gil(|py| {
+    fn do_indent(&self, obj: Py<PyAny>) -> PyResult<String> {
+        Python::attach(|py| {
             let mut message: String = obj.extract(py)?;
-            if let Some((offset, inc, max, s)) = &self.indent {
-                if let Ok(mut frame) = self.getframe.call1(py, (*offset,)) {
-                    let mut depth = 0;
-                    loop {
-                        frame = match frame.getattr(py, "f_back") {
-                            Ok(f) => f.extract(py)?,
-                            Err(_) => {
-                                break;
-                            }
-                        };
-                        depth += inc;
-                        if depth >= *max {
+            if let Some((offset, inc, max, s)) = &self.indent
+                && let Ok(mut frame) = self.getframe.call1(py, (*offset,))
+            {
+                let mut depth = 0;
+                loop {
+                    frame = match frame.getattr(py, "f_back") {
+                        Ok(f) => f.extract(py)?,
+                        Err(_) => {
                             break;
                         }
+                    };
+                    depth += inc;
+                    if depth >= *max {
+                        break;
                     }
-                    message.insert_str(0, &s[..depth]);
                 }
+                message.insert_str(0, &s[..depth]);
             }
             Ok(message)
         })
@@ -50,7 +50,7 @@ impl Logger {
         tname: Option<bool>,
         tid: Option<bool>,
     ) -> PyResult<Self> {
-        let (getframe, format_exc) = Python::with_gil(|py| -> PyResult<(Py<PyAny>, Py<PyAny>)> {
+        let (getframe, format_exc) = Python::attach(|py| -> PyResult<(Py<PyAny>, Py<PyAny>)> {
             let sys = py.import("sys")?;
             let getframe = sys.getattr("_getframe")?;
             let traceback = py.import("traceback")?;
@@ -96,7 +96,7 @@ impl Logger {
 
     // Logging calls
 
-    pub fn trace(&self, obj: PyObject) -> PyResult<()> {
+    pub fn trace(&self, obj: Py<PyAny>) -> PyResult<()> {
         if self.instance.level() <= TRACE {
             self.instance
                 .trace(self.do_indent(obj)?)
@@ -106,7 +106,7 @@ impl Logger {
         }
     }
 
-    pub fn debug(&self, obj: PyObject) -> PyResult<()> {
+    pub fn debug(&self, obj: Py<PyAny>) -> PyResult<()> {
         if self.instance.level() <= DEBUG {
             self.instance
                 .debug(self.do_indent(obj)?)
@@ -116,7 +116,7 @@ impl Logger {
         }
     }
 
-    pub fn info(&self, obj: PyObject) -> PyResult<()> {
+    pub fn info(&self, obj: Py<PyAny>) -> PyResult<()> {
         if self.instance.level() <= INFO {
             self.instance
                 .info(self.do_indent(obj)?)
@@ -126,7 +126,7 @@ impl Logger {
         }
     }
 
-    pub fn success(&self, obj: PyObject) -> PyResult<()> {
+    pub fn success(&self, obj: Py<PyAny>) -> PyResult<()> {
         if self.instance.level() <= SUCCESS {
             self.instance
                 .success(self.do_indent(obj)?)
@@ -136,7 +136,7 @@ impl Logger {
         }
     }
 
-    pub fn warning(&self, obj: PyObject) -> PyResult<()> {
+    pub fn warning(&self, obj: Py<PyAny>) -> PyResult<()> {
         if self.instance.level() <= WARNING {
             self.instance
                 .warning(self.do_indent(obj)?)
@@ -146,7 +146,7 @@ impl Logger {
         }
     }
 
-    pub fn error(&self, obj: PyObject) -> PyResult<()> {
+    pub fn error(&self, obj: Py<PyAny>) -> PyResult<()> {
         if self.instance.level() <= ERROR {
             self.instance
                 .error(self.do_indent(obj)?)
@@ -156,7 +156,7 @@ impl Logger {
         }
     }
 
-    pub fn critical(&self, obj: PyObject) -> PyResult<()> {
+    pub fn critical(&self, obj: Py<PyAny>) -> PyResult<()> {
         if self.instance.level() <= CRITICAL {
             self.instance
                 .critical(self.do_indent(obj)?)
@@ -166,7 +166,7 @@ impl Logger {
         }
     }
 
-    pub fn fatal(&self, obj: PyObject) -> PyResult<()> {
+    pub fn fatal(&self, obj: Py<PyAny>) -> PyResult<()> {
         if self.instance.level() <= FATAL {
             self.instance
                 .fatal(self.do_indent(obj)?)
@@ -176,9 +176,9 @@ impl Logger {
         }
     }
 
-    pub fn exception(&self, obj: PyObject) -> PyResult<()> {
+    pub fn exception(&self, obj: Py<PyAny>) -> PyResult<()> {
         if self.instance.level() <= EXCEPTION {
-            Python::with_gil(|py| {
+            Python::attach(|py| {
                 let message: String = obj.extract(py)?;
                 let tb: String = self.format_exc.call0(py)?.extract(py)?;
                 self.instance
