@@ -36,6 +36,14 @@ impl EncryptionMethod {
         }
     }
 
+    pub fn is_empty(&self) -> bool {
+        match self {
+            Self::NONE => true,
+            Self::AuthKey(key) => key.is_empty(),
+            Self::AES(key) => key.is_empty(),
+        }
+    }
+
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
         match self {
