@@ -430,16 +430,6 @@ impl Logging {
         Ok(logging)
     }
 
-    pub fn new_unboxed<S: Into<String>>(
-        level: u8, // Global log level
-        domain: S,
-        configs: Option<Vec<WriterConfigEnum>>, // List of writer configs
-        ext_config: Option<ExtConfig>,          // Extended logging configuration
-        config_path: Option<PathBuf>,           // Optional configuration file
-    ) -> Result<Self, LoggingError> {
-        Logging::new(level, domain, configs, ext_config, config_path)
-    }
-
     pub fn init() -> Result<Self, LoggingError> {
         let writer = WriterConfigEnum::Console(ConsoleWriterConfig::new(NOTSET, false));
         Logging::new(NOTSET, "root", Some(vec![writer]), None, None)
