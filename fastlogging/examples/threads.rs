@@ -15,7 +15,7 @@ fn main() -> Result<(), LoggingError> {
         true,
     ));
     logging.add_writer_config(&ConsoleWriterConfig::new(DEBUG, true).into())?;
-    let logger = Logger::new_ext(DEBUG, "LoggerThread", true, true);
+    let mut logger = Logger::new_ext(DEBUG, "LoggerThread", true, true);
     logging.add_logger(&mut logger);
     let thr = thread::Builder::new()
         .name("SomeThread".to_string())
