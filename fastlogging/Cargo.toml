@@ -65,7 +65,7 @@ criterion = { version = "0.7", features = ["html_reports"] }
 tempfile = "3.23"
 
 [target.'cfg(unix)'.dev-dependencies]
-fork = "0.3"
+fork = "0.4"
 
 #[[bench]]
 #name = "benchmarks"
