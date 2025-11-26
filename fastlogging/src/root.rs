@@ -239,7 +239,6 @@ pub fn set_encryption(wid: usize, key: EncryptionMethod) -> Result<(), LoggingEr
 // Config
 
 /// Set debug mode.
-
 pub fn set_debug(debug: u8) {
     let logger = ROOT_LOGGER.lock().unwrap();
     let mut config = logger.instance.lock().unwrap();
