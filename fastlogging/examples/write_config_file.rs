@@ -15,7 +15,7 @@ fn main() -> Result<(), LoggingError> {
     logger.save_config(Some(Path::new("/tmp/config_default.xml")))?;
     logger.save_config(Some(Path::new("/tmp/config_default.yaml")))?;
     logger.shutdown(false)?;
-    let mut logger = Logging::new_unboxed(
+    let mut logger = Logging::new(
         INFO,
         "main",
         Some(vec![

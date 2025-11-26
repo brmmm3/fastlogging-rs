@@ -412,7 +412,7 @@ mod tests {
     fn file() {
         let temp_dir = TempDir::with_prefix("fastlogging").unwrap();
         let log_file = temp_dir.path().join("file.log");
-        let mut logging = Logging::new_unboxed(
+        let mut logging = Logging::new(
             NOTSET,
             "root",
             Some(vec![

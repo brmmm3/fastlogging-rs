@@ -23,7 +23,7 @@ mod tests {
         let temp_dir = TempDir::with_prefix("fastlogging").unwrap();
         let log_file = temp_dir.path().join("file.log");
         // Server
-        let mut logging_server = Logging::new_unboxed(
+        let mut logging_server = Logging::new(
             NOTSET,
             "server".to_string(),
             Some(vec![
@@ -43,7 +43,7 @@ mod tests {
             .unwrap();
         logging_server.sync_all(5.0).unwrap();
         // Client
-        let mut logging_client = Logging::new_unboxed(
+        let mut logging_client = Logging::new(
             NOTSET,
             "client".to_string(),
             Some(vec![

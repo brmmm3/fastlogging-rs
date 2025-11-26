@@ -1,12 +1,12 @@
 use std::thread;
 
 use fastlogging::{
-    ConsoleWriterConfig, ExtConfig, Logger, Logging, LoggingError, MessageStructEnum, DEBUG,
+    ConsoleWriterConfig, DEBUG, ExtConfig, Logger, Logging, LoggingError, MessageStructEnum,
 };
 
 fn main() -> Result<(), LoggingError> {
-    let mut logger = Logging::default();
-    logger.set_ext_config(&mut ExtConfig::new(
+    let mut logging = Logging::default();
+    logging.set_ext_config(&mut ExtConfig::new(
         MessageStructEnum::String,
         true,
         true,
@@ -14,36 +14,38 @@ fn main() -> Result<(), LoggingError> {
         true,
         true,
     ));
-    logger.add_writer_config(&ConsoleWriterConfig::new(DEBUG, true).into())?;
-    let mut logger2 = Logger::new_ext(DEBUG, "LoggerThread", true, true);
-    logger.add_logger(&mut logger2);
+    logging.add_writer_config(&ConsoleWriterConfig::new(DEBUG, true).into())?;
+    let logger = Logger::new_ext(DEBUG, "LoggerThread", true, true);
+    logging.add_logger(&mut logger);
     let thr = thread::Builder::new()
         .name("SomeThread".to_string())
         .spawn(move || {
-            logger2
+            logger
                 .trace("Trace Message")
                 .expect("Failed to log message");
-            logger2
+            logger
                 .debug("Debug Message")
                 .expect("Failed to log message");
-            logger2.info("Info Message").expect("Failed to log message");
-            logger2
+            logger.info("Info Message").expect("Failed to log message");
+            logger
                 .success("Success Message")
                 .expect("Failed to log message");
-            logger2
+            logger
                 .error("Error Message")
                 .expect("Failed to log message");
-            logger2
+            logger
                 .fatal("Fatal Message")
                 .expect("Failed to log message");
+            logger.flush(0.0);
         })?;
-    logger.trace("Trace Message")?;
-    logger.debug("Debug Message")?;
-    logger.info("Info Message")?;
-    logger.success("Success Message")?;
-    logger.error("Error Message")?;
-    logger.fatal("Fatal Message")?;
+    logging.trace("Trace Message")?;
+    logging.debug("Debug Message")?;
+    logging.info("Info Message")?;
+    logging.success("Success Message")?;
+    logging.error("Error Message")?;
+    logging.fatal("Fatal Message")?;
     thr.join().unwrap();
-    logger.shutdown(false)?;
+    println!("JOINED");
+    logging.shutdown(false)?;
     Ok(())
 }

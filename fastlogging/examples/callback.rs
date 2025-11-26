@@ -6,7 +6,7 @@ fn writer_callback(level: u8, domain: String, message: String) -> Result<(), Log
 }
 
 fn main() -> Result<(), LoggingError> {
-    let mut logging = Logging::new_unboxed(
+    let mut logging = Logging::new(
         DEBUG,
         "root",
         Some(vec![

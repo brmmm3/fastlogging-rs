@@ -10,7 +10,7 @@ fn benchmark_logging_file(c: &mut Criterion) {
     group.sample_size(20);
     group.bench_function("Logging::file", |b| {
         b.iter(|| {
-            let mut logging = Logging::new_unboxed(
+            let mut logging = Logging::new(
                 DEBUG,
                 "root",
                 Some(vec![

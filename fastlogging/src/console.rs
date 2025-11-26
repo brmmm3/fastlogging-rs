@@ -297,7 +297,7 @@ mod tests {
 
     #[test]
     fn console() {
-        let mut logging = Logging::new_unboxed(
+        let mut logging = Logging::new(
             NOTSET,
             "root",
             Some(vec![ConsoleWriterConfig::new(DEBUG, true).into()]),

@@ -6,7 +6,7 @@ use fastlogging::{
 
 fn main() -> Result<(), LoggingError> {
     // Server
-    let mut logging_server = Logging::new_unboxed(
+    let mut logging_server = Logging::new(
         DEBUG,
         "LOGSRV",
         Some(vec![

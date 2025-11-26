@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::path::PathBuf;
 use std::process;
 use std::str;
 use std::sync::Arc;
@@ -144,7 +143,7 @@ impl LoggingInstance {
                 }
                 WriterConfigEnum::File(file_writer_config) => {
                     if let WriterTypeEnum::File(ref path) = wtype {
-                        file_writer_config.path == PathBuf::from(path) || path.is_empty()
+                        file_writer_config.path == *path || path.is_empty()
                     } else {
                         WriterTypeEnum::Files == wtype
                     }

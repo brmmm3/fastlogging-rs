@@ -3,7 +3,7 @@ use fastlogging::{
 };
 
 fn main() -> Result<(), LoggingError> {
-    let mut logger = Logging::new_unboxed(
+    let mut logger = Logging::new(
         DEBUG,
         "root",
         Some(vec![ConsoleWriterConfig::new(DEBUG, true).into()]),
