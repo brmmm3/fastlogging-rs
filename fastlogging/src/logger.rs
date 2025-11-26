@@ -1,14 +1,17 @@
-use std::thread;
+use std::{
+    thread,
+    time::{Duration, Instant},
+};
 
 use flume::Sender;
 
 use crate::{
-    def::{LoggingTypeEnum, CRITICAL, DEBUG, ERROR, EXCEPTION, FATAL, INFO, WARNING},
     LoggingError, SUCCESS, TRACE,
+    def::{CRITICAL, DEBUG, ERROR, EXCEPTION, FATAL, INFO, LoggingTypeEnum, WARNING},
 };
 
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Logger {
     pub(crate) level: u8,
     pub(crate) domain: String,
@@ -40,6 +43,19 @@ impl Logger {
 
     pub fn set_tx(&mut self, tx: Option<Sender<LoggingTypeEnum>>) {
         self.tx = tx;
+    }
+
+    pub fn flush(
+        &self,
+        timeout: f64, // Wait time in seconds. If 0 then wait endless.
+    ) {
+        if let Some(ref tx) = self.tx {
+            let now = Instant::now();
+            let sleep_time = Duration::from_millis(10);
+            while !tx.is_empty() && (timeout == 0.0 || now.elapsed().as_secs_f64() < timeout) {
+                thread::sleep(sleep_time);
+            }
+        }
     }
 
     pub fn set_level(&mut self, level: u8) {
@@ -166,5 +182,14 @@ impl Logger {
 
     pub fn __str__(&self) -> String {
         self.__repr__()
+    }
+}
+
+impl PartialEq for Logger {
+    fn eq(&self, other: &Self) -> bool {
+        self.level == other.level
+            && self.domain == other.domain
+            && self.tname == other.tname
+            && self.tid == other.tid
     }
 }
