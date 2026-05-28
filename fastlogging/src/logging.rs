@@ -450,41 +450,41 @@ impl Logging {
                     instance.domain = root_config.domain.clone();
                 }
                 WriterConfigEnum::Console(console_writer_config) => {
-                    instance.add_writer(WriterEnum::Console(ConsoleWriter::new(
+                    instance.add_writer(WriterEnum::Console(Box::new(ConsoleWriter::new(
                         console_writer_config.clone(),
                         self.stop.clone(),
-                    )?));
+                    )?)));
                 }
                 WriterConfigEnum::File(file_writer_config) => {
-                    instance.add_writer(WriterEnum::File(FileWriter::new(
+                    instance.add_writer(WriterEnum::File(Box::new(FileWriter::new(
                         file_writer_config.clone(),
                         self.stop.clone(),
-                    )?));
+                    )?)));
                 }
                 WriterConfigEnum::Client(client_writer_config) => {
-                    instance.add_writer(WriterEnum::Client(ClientWriter::new(
+                    instance.add_writer(WriterEnum::Client(Box::new(ClientWriter::new(
                         client_writer_config.clone(),
                         self.stop.clone(),
-                    )?));
+                    )?)));
                 }
                 WriterConfigEnum::Server(server_config) => {
-                    instance.add_writer(WriterEnum::Server(LoggingServer::new(
+                    instance.add_writer(WriterEnum::Server(Box::new(LoggingServer::new(
                         server_config.clone(),
                         self.server_tx.clone(),
                         self.stop.clone(),
-                    )?));
+                    )?)));
                 }
                 WriterConfigEnum::Callback(callback_writer_config) => {
-                    instance.add_writer(WriterEnum::Callback(CallbackWriter::new(
+                    instance.add_writer(WriterEnum::Callback(Box::new(CallbackWriter::new(
                         callback_writer_config.clone(),
                         self.stop.clone(),
-                    )?));
+                    )?)));
                 }
                 WriterConfigEnum::Syslog(syslog_writer_config) => {
-                    instance.add_writer(WriterEnum::Syslog(SyslogWriter::new(
+                    instance.add_writer(WriterEnum::Syslog(Box::new(SyslogWriter::new(
                         syslog_writer_config.clone(),
                         self.stop.clone(),
-                    )?));
+                    )?)));
                 }
             }
         }
@@ -752,15 +752,15 @@ impl Logging {
     pub fn set_encryption(
         &mut self,
         wid: usize,
-        key: EncryptionMethod,
+        method: EncryptionMethod,
     ) -> Result<(), LoggingError> {
         match self.instance.lock().unwrap().writers.get_mut(&wid) {
             Some(w) => match w {
                 WriterEnum::Client(client_writer) => {
-                    client_writer.set_encryption(key)?;
+                    client_writer.set_encryption(method)?;
                 }
                 WriterEnum::Server(logging_server) => {
-                    logging_server.set_encryption(key)?;
+                    logging_server.set_encryption(method)?;
                 }
                 _ => {
                     return Err(LoggingError::InvalidValue(format!(

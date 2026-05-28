@@ -249,12 +249,12 @@ impl From<SyslogWriterConfig> for WriterConfigEnum {
 #[derive(Debug)]
 pub enum WriterEnum {
     Root,
-    Console(ConsoleWriter),
-    File(FileWriter),
-    Client(ClientWriter),
-    Server(LoggingServer),
-    Callback(CallbackWriter),
-    Syslog(SyslogWriter),
+    Console(Box<ConsoleWriter>),
+    File(Box<FileWriter>),
+    Client(Box<ClientWriter>),
+    Server(Box<LoggingServer>),
+    Callback(Box<CallbackWriter>),
+    Syslog(Box<SyslogWriter>),
 }
 
 impl WriterEnum {
@@ -276,27 +276,31 @@ impl WriterEnum {
                 instance.level2sym = root_config.level2sym.clone();
                 Ok(WriterEnum::Root)
             }
-            WriterConfigEnum::Console(console_writer_config) => Ok(WriterEnum::Console(
+            WriterConfigEnum::Console(console_writer_config) => Ok(WriterEnum::Console(Box::new(
                 ConsoleWriter::new(console_writer_config.clone(), instance.stop.clone())?,
-            )),
-            WriterConfigEnum::File(file_writer_config) => Ok(WriterEnum::File(FileWriter::new(
-                file_writer_config.clone(),
-                instance.stop.clone(),
-            )?)),
-            WriterConfigEnum::Client(client_writer_config) => Ok(WriterEnum::Client(
+            ))),
+            WriterConfigEnum::File(file_writer_config) => Ok(WriterEnum::File(Box::new(
+                FileWriter::new(file_writer_config.clone(), instance.stop.clone())?,
+            ))),
+            WriterConfigEnum::Client(client_writer_config) => Ok(WriterEnum::Client(Box::new(
                 ClientWriter::new(client_writer_config.clone(), instance.stop.clone())?,
-            )),
-            WriterConfigEnum::Server(server_config) => Ok(WriterEnum::Server(LoggingServer::new(
-                server_config.clone(),
-                instance.server_tx.clone(),
-                instance.stop.clone(),
-            )?)),
-            WriterConfigEnum::Callback(callback_writer_config) => Ok(WriterEnum::Callback(
-                CallbackWriter::new(callback_writer_config.clone(), instance.stop.clone())?,
-            )),
-            WriterConfigEnum::Syslog(syslog_writer_config) => Ok(WriterEnum::Syslog(
+            ))),
+            WriterConfigEnum::Server(server_config) => {
+                Ok(WriterEnum::Server(Box::new(LoggingServer::new(
+                    server_config.clone(),
+                    instance.server_tx.clone(),
+                    instance.stop.clone(),
+                )?)))
+            }
+            WriterConfigEnum::Callback(callback_writer_config) => {
+                Ok(WriterEnum::Callback(Box::new(CallbackWriter::new(
+                    callback_writer_config.clone(),
+                    instance.stop.clone(),
+                )?)))
+            }
+            WriterConfigEnum::Syslog(syslog_writer_config) => Ok(WriterEnum::Syslog(Box::new(
                 SyslogWriter::new(syslog_writer_config.clone(), instance.stop.clone())?,
-            )),
+            ))),
         }
     }
 

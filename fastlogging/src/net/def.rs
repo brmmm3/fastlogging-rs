@@ -1,7 +1,7 @@
 use std::{fmt, path::PathBuf};
 
 use once_cell::sync::Lazy;
-use rand::{Rng, distr::Alphanumeric, rng};
+use rand::{RngExt, distr::Alphanumeric, rng};
 use ring::aead::{self, BoundKey, SealingKey};
 
 use crate::{ClientWriterConfig, LoggingError, ServerConfig};

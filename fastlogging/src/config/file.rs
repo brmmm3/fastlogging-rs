@@ -247,10 +247,10 @@ impl ConfigFile {
                     if merge == FileMerge::MergeReplace {
                         instance.remove_writers(Some(configs.into_keys().collect::<Vec<_>>()));
                     } else if merge == FileMerge::Merge && configs.is_empty() {
-                        instance.add_writer(WriterEnum::Console(ConsoleWriter::new(
+                        instance.add_writer(WriterEnum::Console(Box::new(ConsoleWriter::new(
                             console_config.clone(),
                             instance.stop.clone(),
-                        )?));
+                        )?)));
                     }
                 }
                 WriterConfigEnum::File(file_config) => {
@@ -260,10 +260,10 @@ impl ConfigFile {
                     if merge == FileMerge::MergeReplace {
                         instance.remove_writers(Some(configs.into_keys().collect::<Vec<_>>()));
                     } else if merge == FileMerge::Merge && configs.is_empty() {
-                        instance.add_writer(WriterEnum::File(FileWriter::new(
+                        instance.add_writer(WriterEnum::File(Box::new(FileWriter::new(
                             file_config.clone(),
                             instance.stop.clone(),
-                        )?));
+                        )?)));
                     }
                 }
                 WriterConfigEnum::Client(client_config) => {
@@ -273,10 +273,10 @@ impl ConfigFile {
                     if merge == FileMerge::MergeReplace {
                         instance.remove_writers(Some(configs.into_keys().collect::<Vec<_>>()));
                     } else if merge == FileMerge::Merge && configs.is_empty() {
-                        instance.add_writer(WriterEnum::Client(ClientWriter::new(
+                        instance.add_writer(WriterEnum::Client(Box::new(ClientWriter::new(
                             client_config.clone(),
                             instance.stop.clone(),
-                        )?));
+                        )?)));
                     }
                 }
                 WriterConfigEnum::Server(server_config) => {
@@ -286,11 +286,11 @@ impl ConfigFile {
                     if merge == FileMerge::MergeReplace {
                         instance.remove_writers(Some(configs.into_keys().collect::<Vec<_>>()));
                     } else if merge == FileMerge::Merge && configs.is_empty() {
-                        instance.add_writer(WriterEnum::Server(LoggingServer::new(
+                        instance.add_writer(WriterEnum::Server(Box::new(LoggingServer::new(
                             server_config.clone(),
                             instance.server_tx.clone(),
                             instance.stop.clone(),
-                        )?));
+                        )?)));
                     }
                 }
                 WriterConfigEnum::Callback(callback_config) => {
@@ -298,10 +298,10 @@ impl ConfigFile {
                     if merge == FileMerge::MergeReplace {
                         instance.remove_writers(Some(configs.into_keys().collect::<Vec<_>>()));
                     } else if merge == FileMerge::Merge && configs.is_empty() {
-                        instance.add_writer(WriterEnum::Callback(CallbackWriter::new(
+                        instance.add_writer(WriterEnum::Callback(Box::new(CallbackWriter::new(
                             callback_config.clone(),
                             instance.stop.clone(),
-                        )?));
+                        )?)));
                     }
                 }
                 WriterConfigEnum::Syslog(syslog_config) => {
@@ -309,10 +309,10 @@ impl ConfigFile {
                     if merge == FileMerge::MergeReplace {
                         instance.remove_writers(Some(configs.into_keys().collect::<Vec<_>>()));
                     } else if merge == FileMerge::Merge && configs.is_empty() {
-                        instance.add_writer(WriterEnum::Syslog(SyslogWriter::new(
+                        instance.add_writer(WriterEnum::Syslog(Box::new(SyslogWriter::new(
                             syslog_config.clone(),
                             instance.stop.clone(),
-                        )?));
+                        )?)));
                     }
                 }
             }

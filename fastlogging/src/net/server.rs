@@ -542,13 +542,13 @@ impl LoggingServer {
         Ok(())
     }
 
-    pub fn set_encryption(&mut self, key: EncryptionMethod) -> Result<(), LoggingError> {
+    pub fn set_encryption(&mut self, method: EncryptionMethod) -> Result<(), LoggingError> {
         self.config
             .lock()
             .unwrap()
-            .set_encryption(key.clone())
+            .set_encryption(method.clone())
             .map_err(|e| {
-                LoggingError::InvalidEncryption("LoggingServer".to_string(), key, e.to_string())
+                LoggingError::InvalidEncryption("LoggingServer".to_string(), method, e.to_string())
             })
     }
 }

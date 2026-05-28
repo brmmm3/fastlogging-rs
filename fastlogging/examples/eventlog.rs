@@ -2,13 +2,13 @@
 
 use fastlogging::LoggingError;
 #[cfg(windows)]
-use fastlogging::{Logging, DEBUG};
+use fastlogging::{DEBUG, Logging};
 
 fn main() -> Result<(), LoggingError> {
     #[cfg(windows)]
     {
         eventlog::register("fastlogging").map_err(|e| LoggingError::InvalidValue(e.to_string()))?;
-        let mut logger = Logging::new(None, None, None, Some(DEBUG), None, None)?;
+        let mut logger = Logging::new(DEBUG, "root", None, None, None)?;
         logger.trace("Trace Message")?;
         logger.debug("Debug Message")?;
         logger.info("Info Message")?;

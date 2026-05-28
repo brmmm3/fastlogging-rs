@@ -66,8 +66,8 @@ impl Logger {
         self.level
     }
 
-    pub fn set_domain(&mut self, domain: String) {
-        self.domain = domain;
+    pub fn set_domain(&mut self, domain: &str) {
+        self.domain = domain.to_string();
     }
 
     // Logging calls

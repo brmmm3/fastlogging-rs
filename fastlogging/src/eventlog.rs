@@ -1,14 +1,14 @@
 use std::{
     fmt,
     sync::{
-        atomic::{AtomicBool, Ordering},
         Arc, Mutex,
+        atomic::{AtomicBool, Ordering},
     },
     thread::{self, JoinHandle},
     time::Duration,
 };
 
-use flume::{bounded, Receiver, SendError, Sender};
+use flume::{Receiver, SendError, Sender, bounded};
 use regex::Regex;
 
 use crate::LoggingError;
@@ -95,6 +95,7 @@ pub struct SyslogWriter {
     tx: Sender<SyslogTypeEnum>,
     sync_rx: Receiver<u8>,
     thr: Option<JoinHandle<()>>,
+    pub(crate) debug: u8,
 }
 
 impl SyslogWriter {
@@ -115,6 +116,7 @@ impl SyslogWriter {
                         }
                     })?,
             ),
+            debug: 0,
         })
     }
 
