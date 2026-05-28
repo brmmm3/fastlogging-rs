@@ -17,6 +17,7 @@ use crate::{CEncryptionMethodEnum, CKeyStruct};
 
 /// For further reading ...
 /// [](https://internals.rust-lang.org/t/precise-semantics-of-no-mangle/4098)
+///
 
 /// # Safety
 ///

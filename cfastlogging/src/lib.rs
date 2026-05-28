@@ -7,7 +7,7 @@ pub use logging::*;
 mod util;
 mod writer;
 use once_cell::sync::Lazy;
-use rand::{Rng, distr::Alphanumeric, rng};
+use rand::{RngExt, distr::Alphanumeric, rng};
 pub use writer::*;
 mod logger;
 pub use logger::*;

@@ -58,7 +58,7 @@ pub unsafe extern "C" fn logger_set_level(logger: &mut Logger, level: u8) {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn logger_set_domain(logger: &mut Logger, domain: *const c_char) {
     let c_str = unsafe { CStr::from_ptr(domain) };
-    logger.set_domain(c_str.to_str().unwrap().to_string());
+    logger.set_domain(c_str.to_str().unwrap());
 }
 
 // Logger calls
