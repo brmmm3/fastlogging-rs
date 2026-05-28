@@ -6,10 +6,11 @@ members = [
     "fastlogging",
     "pyfastlogging",
     "cfastlogging",
-    #"cxxfastlogging",
+    "cxxfastlogging",
     #"cppfastlogging",
     #"gofastlogging",
-    "jfastlogging",
+    "jfastlogging-jni",
+    "jfastlogging-ffm",
 ]
 
 [profile.release]
