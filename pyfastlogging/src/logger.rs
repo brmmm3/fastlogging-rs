@@ -91,7 +91,7 @@ impl Logger {
     }
 
     pub fn set_domain(&mut self, domain: String) {
-        self.instance.set_domain(domain);
+        self.instance.set_domain(&domain);
     }
 
     // Logging calls
