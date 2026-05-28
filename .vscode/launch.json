@@ -2,6 +2,14 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "type": "java",
+      "name": "ConsoleExample",
+      "request": "launch",
+      "mainClass": "org.logging.examples.ConsoleExample",
+      "projectName": "org.logging-FastLogging",
+      "vmArgs": "-Djava.library.path=/usr/java/packages/lib:/usr/lib/x86_64-linux-gnu/jni:/usr/lib/x86_64-linux-gnu:/lib/x86_64-linux-gnu:/usr/lib/jni:/lib:/usr/lib:./jfastlogging-jni/FastLogging/lib"
+    },
+    {
       "name": "C/C++ Runner: Debug Session",
       "type": "cppdbg",
       "request": "launch",
