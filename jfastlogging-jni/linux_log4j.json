@@ -1,0 +1,112 @@
+{
+  "Linux" : {
+    "short" : {
+      "exc" : {
+        "nolog" : {
+          "EXCEPTION" : 0.024,
+          "ERROR" : 0.026,
+          "INFO" : 0.027,
+          "DEBUG" : 0.041,
+          "WARNING" : 0.025,
+          "CRITICAL" : 0.024
+        },
+        "rotate" : {
+          "EXCEPTION" : 0.394,
+          "ERROR" : 0.705,
+          "INFO" : 1.293,
+          "DEBUG" : 1.581,
+          "WARNING" : 0.992,
+          "CRITICAL" : 0.388
+        },
+        "file" : {
+          "EXCEPTION" : 0.381,
+          "ERROR" : 0.663,
+          "INFO" : 1.228,
+          "DEBUG" : 1.529,
+          "WARNING" : 0.946,
+          "CRITICAL" : 0.378
+        }
+      },
+      "noexc" : {
+        "nolog" : {
+          "EXCEPTION" : 0.035,
+          "ERROR" : 0.035,
+          "INFO" : 0.034,
+          "DEBUG" : 0.087,
+          "WARNING" : 0.029,
+          "CRITICAL" : 0.028
+        },
+        "rotate" : {
+          "EXCEPTION" : 0.313,
+          "ERROR" : 0.61,
+          "INFO" : 1.219,
+          "DEBUG" : 1.54,
+          "WARNING" : 0.929,
+          "CRITICAL" : 0.312
+        },
+        "file" : {
+          "EXCEPTION" : 0.314,
+          "ERROR" : 0.605,
+          "INFO" : 1.169,
+          "DEBUG" : 1.64,
+          "WARNING" : 0.892,
+          "CRITICAL" : 0.307
+        }
+      }
+    },
+    "long" : {
+      "exc" : {
+        "nolog" : {
+          "EXCEPTION" : 0.023,
+          "ERROR" : 0.025,
+          "INFO" : 0.027,
+          "DEBUG" : 0.028,
+          "WARNING" : 0.026,
+          "CRITICAL" : 0.025
+        },
+        "rotate" : {
+          "EXCEPTION" : 0.409,
+          "ERROR" : 0.703,
+          "INFO" : 1.351,
+          "DEBUG" : 1.64,
+          "WARNING" : 0.993,
+          "CRITICAL" : 0.4
+        },
+        "file" : {
+          "EXCEPTION" : 0.386,
+          "ERROR" : 0.674,
+          "INFO" : 1.279,
+          "DEBUG" : 1.521,
+          "WARNING" : 0.958,
+          "CRITICAL" : 0.38
+        }
+      },
+      "noexc" : {
+        "nolog" : {
+          "EXCEPTION" : 0.024,
+          "ERROR" : 0.024,
+          "INFO" : 0.027,
+          "DEBUG" : 0.028,
+          "WARNING" : 0.028,
+          "CRITICAL" : 0.024
+        },
+        "rotate" : {
+          "EXCEPTION" : 0.329,
+          "ERROR" : 0.656,
+          "INFO" : 1.248,
+          "DEBUG" : 1.557,
+          "WARNING" : 0.941,
+          "CRITICAL" : 0.332
+        },
+        "file" : {
+          "EXCEPTION" : 0.307,
+          "ERROR" : 0.608,
+          "INFO" : 1.182,
+          "DEBUG" : 1.503,
+          "WARNING" : 0.915,
+          "CRITICAL" : 0.312
+        }
+      }
+    }
+  }
+}
