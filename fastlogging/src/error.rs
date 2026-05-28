@@ -1,5 +1,6 @@
 use std::io;
 
+#[allow(unused_imports)]
 use serde::{Deserialize, Serialize};
 use zip::result::ZipError;
 
