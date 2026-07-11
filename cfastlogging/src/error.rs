@@ -1,6 +1,8 @@
 use std::ffi::{CString, c_char};
 
+#[unsafe(no_mangle)]
 pub static EINIT: isize = 100;
+#[unsafe(no_mangle)]
 pub static EINVAL: isize = 22;
 
 #[repr(C)]
@@ -12,7 +14,7 @@ pub struct Error {
 
 ///  Some C code uses magic values in structures to determine if the pointer
 /// is of the correct type.
-const ERROR_MAGIC: u32 = 0xdeadbeef;
+pub const ERROR_MAGIC: u32 = 0xdeadbeef;
 
 /// Adding this so that we can get a message printed when the Error is freed.
 impl Drop for Error {

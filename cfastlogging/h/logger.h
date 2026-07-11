@@ -1,9 +1,12 @@
 #ifndef CFASTLOGGING_LOGGER_H
 #define CFASTLOGGING_LOGGER_H
 
+#include "def.h"
+
 Logger logger_new(uint8_t level, const char *domain);
 
-Logger logger_new_ext(uint8_t level, const char *domain, int8_t tname, int8_t tid);
+Logger logger_new_ext(uint8_t level, const char *domain, int8_t tname,
+                      int8_t tid);
 
 void logger_set_level(Logger logger, uint8_t level);
 

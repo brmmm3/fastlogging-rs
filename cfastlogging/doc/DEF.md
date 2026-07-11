@@ -14,71 +14,113 @@
 `TRACE` (5) &ensp;&ensp;&ensp;&ensp;&ensp;  Trace messages.  
 `NOTSET` (0) &ensp;&ensp;&ensp;&ensp; All messages are logged.
 
+
 ## Enum `CWriterEnum`
 
-The enum has following values:
+Represents the type of log writer. Used to select or identify a writer backend.
 
-```rust
-pub enum CWriterEnum {
+```c
+typedef enum {
     Root,
     Console,
     File,
     Client,
     Server,
     Callback,
-    Syslog,
-}
+    Syslog
+} CWriterEnum;
 ```
 
-## Enum `CWriterEnums`
+---
 
-The enum has following values:
 
-```rust
-pub struct CWriterEnums {
-    pub cnt: c_uint,
-    pub values: *const CWriterEnum,
-}
+## Struct `CWriterEnums`
+
+Holds an array of writer types.
+
+```c
+typedef struct {
+    unsigned int cnt;           // Number of writers
+    const CWriterEnum* values;  // Pointer to array of writer enums
+} CWriterEnums;
 ```
 
-## Enum `CWriterConfigEnums`
+*Memory management:* The caller is responsible for freeing any dynamically allocated arrays if returned by the API.
 
-The enum has following values:
+---
 
-```rust
-pub struct CEncryptionMethod {
-    typ: CEncryptionMethodEnum,
-    len: u32,
-    key: *const u8,
-}
+
+## Struct `CEncryptionMethod`
+
+Describes an encryption method and key for network writers.
+
+```c
+typedef struct {
+    CEncryptionMethodEnum typ;  // Encryption type (see enum)
+    uint32_t len;               // Length of key
+    const uint8_t* key;         // Pointer to key bytes
+} CEncryptionMethod;
 ```
 
-## Enum `CServerConfig`
+*Pointer usage:* The key pointer must remain valid for the lifetime of the config. If allocated, free after use.
 
-The enum has following values:
+---
 
-```rust
-pub struct CServerConfig {
-    level: u8,
-    address: *const char,
-    port: u16,
-    key: *const CEncryptionMethod,
-    port_file: *const char,
-}
+
+## Struct `CServerConfig`
+
+Describes a server writer configuration.
+
+```c
+typedef struct {
+    uint8_t level;                  // Log level for server
+    const char* address;            // Server address string
+    uint16_t port;                  // Server port
+    const CEncryptionMethod* key;   // Pointer to encryption method
+    const char* port_file;          // Optional: file to write port info
+} CServerConfig;
 ```
 
-## Enum `CServerConfigs`
+*Pointer usage:* All string pointers must be valid UTF-8 null-terminated strings. Do not free until config is unused.
 
-The enum has following values:
+---
 
-```rust
-pub struct CServerConfigs {
-    pub cnt: c_uint,
-    pub keys: *const u32,
-    pub values: *const CServerConfig,
-}
+
+## Struct `CServerConfigs`
+
+Holds an array of server configs, indexed by key.
+
+```c
+typedef struct {
+    unsigned int cnt;               // Number of configs
+    const uint32_t* keys;           // Array of keys (writer IDs)
+    const CServerConfig* values;    // Array of server configs
+} CServerConfigs;
 ```
+
+*Memory management:* If returned by API, free arrays after use if documented as heap-allocated.
+
+---
+
 
 ## `ext_config_new(structured: c_uchar, hostname: c_char, pname: c_char, pid: c_char, tname: c_char, tid: c_char) -> *const ExtConfig`
 
-Create `ExtConfig` instance.
+Create an `ExtConfig` instance for advanced formatting and metadata.
+
+**Parameters:**
+- `structured`: 0 = plain string, 1 = structured/JSON
+- `hostname`: Hostname string
+- `pname`: Process name string
+- `pid`: Process ID string
+- `tname`: Thread name string
+- `tid`: Thread ID string
+
+**Returns:** Pointer to a new ExtConfig struct. Free with `ext_config_free` when done.
+
+---
+
+## Memory Management Notes
+
+- All pointers returned by the API that are not owned by the caller must not be freed.
+- If the API allocates memory (e.g., for arrays or config structs), free with the provided `*_free` function or `free()` if documented.
+- All string pointers must be valid UTF-8 null-terminated strings.

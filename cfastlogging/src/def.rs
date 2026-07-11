@@ -2,11 +2,7 @@ use std::collections::HashMap;
 use std::ffi::{CString, c_char, c_uchar, c_uint, c_ushort};
 use std::ptr::null;
 
-use fastlogging::{
-    EncryptionMethod, ExtConfig, MessageStructEnum, ServerConfig, WriterConfigEnum, WriterEnum,
-};
-
-use crate::CEncryptionMethodEnum;
+use crate::EncryptionMethodEnum;
 
 #[repr(C)]
 pub struct CusizeVec {
@@ -15,7 +11,7 @@ pub struct CusizeVec {
 }
 
 #[repr(C)]
-pub enum CWriterEnum {
+pub enum WriterEnum {
     Root,
     Console,
     File,
@@ -25,55 +21,55 @@ pub enum CWriterEnum {
     Syslog,
 }
 
-impl From<WriterEnum> for CWriterEnum {
-    fn from(value: WriterEnum) -> Self {
+impl From<fastlogging::WriterEnum> for WriterEnum {
+    fn from(value: fastlogging::WriterEnum) -> Self {
         match value {
-            WriterEnum::Root => CWriterEnum::Root,
-            WriterEnum::Console(_console_writer) => CWriterEnum::Console,
-            WriterEnum::File(_file_writer) => CWriterEnum::File,
-            WriterEnum::Client(_client_writer) => CWriterEnum::Client,
-            WriterEnum::Server(_logging_server) => CWriterEnum::Server,
-            WriterEnum::Callback(_callback_writer) => CWriterEnum::Callback,
-            WriterEnum::Syslog(_syslog_writer) => CWriterEnum::Syslog,
+            fastlogging::WriterEnum::Root => WriterEnum::Root,
+            fastlogging::WriterEnum::Console(_console_writer) => WriterEnum::Console,
+            fastlogging::WriterEnum::File(_file_writer) => WriterEnum::File,
+            fastlogging::WriterEnum::Client(_client_writer) => WriterEnum::Client,
+            fastlogging::WriterEnum::Server(_logging_server) => WriterEnum::Server,
+            fastlogging::WriterEnum::Callback(_callback_writer) => WriterEnum::Callback,
+            fastlogging::WriterEnum::Syslog(_syslog_writer) => WriterEnum::Syslog,
         }
     }
 }
 
 #[repr(C)]
-pub struct CWriterEnums {
+pub struct WriterEnums {
     pub cnt: c_uint,
-    pub values: *const CWriterEnum,
+    pub values: *const WriterEnum,
 }
 
 #[repr(C)]
-pub struct CWriterConfigEnums {
+pub struct WriterConfigEnums {
     pub cnt: c_uint,
     pub keys: Vec<usize>,
-    pub values: Vec<WriterConfigEnum>,
+    pub values: Vec<fastlogging::WriterConfigEnum>,
 }
 
 #[repr(C)]
-pub struct CEncryptionMethod {
-    typ: CEncryptionMethodEnum,
+pub struct EncryptionMethod {
+    typ: EncryptionMethodEnum,
     len: u32,
     key: *const u8,
 }
 
-impl From<EncryptionMethod> for CEncryptionMethod {
-    fn from(value: EncryptionMethod) -> Self {
+impl From<fastlogging::EncryptionMethod> for EncryptionMethod {
+    fn from(value: fastlogging::EncryptionMethod) -> Self {
         match value {
-            EncryptionMethod::NONE => CEncryptionMethod {
-                typ: CEncryptionMethodEnum::NONE,
+            fastlogging::EncryptionMethod::NONE => EncryptionMethod {
+                typ: EncryptionMethodEnum::NONE,
                 len: 0,
                 key: null(),
             },
-            EncryptionMethod::AuthKey(key) => CEncryptionMethod {
-                typ: CEncryptionMethodEnum::AuthKey,
+            fastlogging::EncryptionMethod::AuthKey(key) => EncryptionMethod {
+                typ: EncryptionMethodEnum::AuthKey,
                 len: key.len() as u32,
                 key: Box::into_raw(Box::new(key)) as *const u8,
             },
-            EncryptionMethod::AES(key) => CEncryptionMethod {
-                typ: CEncryptionMethodEnum::AES,
+            fastlogging::EncryptionMethod::AES(key) => EncryptionMethod {
+                typ: EncryptionMethodEnum::AES,
                 len: key.len() as u32,
                 key: Box::into_raw(Box::new(key)) as *const u8,
             },
@@ -82,17 +78,17 @@ impl From<EncryptionMethod> for CEncryptionMethod {
 }
 
 #[repr(C)]
-pub struct CServerConfig {
+pub struct ServerConfig {
     level: u8,
     address: *const char,
     port: u16,
-    key: *const CEncryptionMethod,
+    key: *const EncryptionMethod,
     port_file: *const char,
 }
 
-impl From<ServerConfig> for CServerConfig {
-    fn from(config: ServerConfig) -> Self {
-        CServerConfig {
+impl From<fastlogging::ServerConfig> for ServerConfig {
+    fn from(config: fastlogging::ServerConfig) -> Self {
+        ServerConfig {
             level: config.level,
             address: CString::new(config.address)
                 .expect("Error: CString::new()")
@@ -110,10 +106,10 @@ impl From<ServerConfig> for CServerConfig {
 }
 
 #[repr(C)]
-pub struct CServerConfigs {
+pub struct ServerConfigs {
     pub cnt: c_uint,
     pub keys: *const u32,
-    pub values: *const CServerConfig,
+    pub values: *const ServerConfig,
 }
 
 #[repr(C)]
@@ -185,14 +181,14 @@ pub unsafe extern "C" fn ext_config_new(
     pid: c_char,
     tname: c_char,
     tid: c_char,
-) -> *const ExtConfig {
+) -> *const fastlogging::ExtConfig {
     let structured = match structured {
-        0 => MessageStructEnum::String,
-        1 => MessageStructEnum::Json,
-        2 => MessageStructEnum::Xml,
-        _ => MessageStructEnum::String,
+        0 => fastlogging::MessageStructEnum::String,
+        1 => fastlogging::MessageStructEnum::Json,
+        2 => fastlogging::MessageStructEnum::Xml,
+        _ => fastlogging::MessageStructEnum::String,
     };
-    Box::into_raw(Box::new(ExtConfig::new(
+    Box::into_raw(Box::new(fastlogging::ExtConfig::new(
         structured,
         hostname != 0,
         pname != 0,

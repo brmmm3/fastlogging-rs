@@ -6,28 +6,24 @@ use std::ptr;
 use std::sync::Mutex;
 use std::time::{Duration, SystemTime};
 
-use fastlogging::{
-    CallbackWriterConfig, ClientWriterConfig, CompressionMethodEnum, ConsoleWriterConfig,
-    EncryptionMethod, FileWriterConfig, ServerConfig, SyslogWriterConfig, WriterConfigEnum,
-};
 use once_cell::sync::Lazy;
 
 use crate::util::{char2string, option_char2string};
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub enum CEncryptionMethodEnum {
+pub enum EncryptionMethodEnum {
     NONE,
     AuthKey,
     AES,
 }
 
-impl From<&EncryptionMethod> for CEncryptionMethodEnum {
-    fn from(key: &EncryptionMethod) -> Self {
+impl From<&fastlogging::EncryptionMethod> for EncryptionMethodEnum {
+    fn from(key: &fastlogging::EncryptionMethod) -> Self {
         match key {
-            EncryptionMethod::NONE => CEncryptionMethodEnum::NONE,
-            EncryptionMethod::AuthKey(_key) => CEncryptionMethodEnum::AuthKey,
-            EncryptionMethod::AES(_key) => CEncryptionMethodEnum::AES,
+            fastlogging::EncryptionMethod::NONE => EncryptionMethodEnum::NONE,
+            fastlogging::EncryptionMethod::AuthKey(_key) => EncryptionMethodEnum::AuthKey,
+            fastlogging::EncryptionMethod::AES(_key) => EncryptionMethodEnum::AES,
         }
     }
 }
@@ -35,7 +31,7 @@ impl From<&EncryptionMethod> for CEncryptionMethodEnum {
 #[repr(C)]
 #[derive(Debug, Clone, PartialEq)]
 pub struct CKeyStruct {
-    pub typ: CEncryptionMethodEnum,
+    pub typ: EncryptionMethodEnum,
     pub len: c_uint,
     pub key: *const u8,
 }
@@ -47,9 +43,9 @@ pub struct CKeyStruct {
 pub unsafe extern "C" fn console_writer_config_new(
     level: c_uchar,
     colors: c_char,
-) -> *mut WriterConfigEnum {
-    Box::into_raw(Box::new(WriterConfigEnum::Console(
-        ConsoleWriterConfig::new(level, colors != 0),
+) -> *mut fastlogging::WriterConfigEnum {
+    Box::into_raw(Box::new(fastlogging::WriterConfigEnum::Console(
+        fastlogging::ConsoleWriterConfig::new(level, colors != 0),
     )))
 }
 
@@ -64,8 +60,8 @@ pub unsafe extern "C" fn file_writer_config_new(
     backlog: c_uint,
     timeout: c_int,
     time: c_longlong,
-    compression: *mut CompressionMethodEnum,
-) -> *mut WriterConfigEnum {
+    compression: *mut fastlogging::CompressionMethodEnum,
+) -> *mut fastlogging::WriterConfigEnum {
     let timeout = if timeout < 0 {
         None
     } else {
@@ -81,8 +77,8 @@ pub unsafe extern "C" fn file_writer_config_new(
     } else {
         Some(unsafe { *Box::from_raw(compression) })
     };
-    Box::into_raw(Box::new(WriterConfigEnum::File(
-        FileWriterConfig::new(
+    Box::into_raw(Box::new(fastlogging::WriterConfigEnum::File(
+        fastlogging::FileWriterConfig::new(
             level,
             PathBuf::from(char2string(path)),
             size as usize,
@@ -103,23 +99,21 @@ pub unsafe extern "C" fn client_writer_config_new(
     level: c_uchar,
     address: *const c_char,
     key: *mut CKeyStruct,
-) -> *mut WriterConfigEnum {
+) -> *mut fastlogging::WriterConfigEnum {
     let key = if key.is_null() {
-        EncryptionMethod::NONE
+        fastlogging::EncryptionMethod::NONE
     } else {
         let c_key = unsafe { *Box::from_raw(key) };
         let key = unsafe { slice::from_raw_parts(c_key.key, c_key.len as usize) }.to_vec();
-        if c_key.typ == CEncryptionMethodEnum::AuthKey {
-            EncryptionMethod::AuthKey(key)
+        if c_key.typ == EncryptionMethodEnum::AuthKey {
+            fastlogging::EncryptionMethod::AuthKey(key)
         } else {
-            EncryptionMethod::AES(key)
+            fastlogging::EncryptionMethod::AES(key)
         }
     };
-    Box::into_raw(Box::new(WriterConfigEnum::Client(ClientWriterConfig::new(
-        level,
-        char2string(address),
-        key,
-    ))))
+    Box::into_raw(Box::new(fastlogging::WriterConfigEnum::Client(
+        fastlogging::ClientWriterConfig::new(level, char2string(address), key),
+    )))
 }
 
 /// # Safety
@@ -130,27 +124,25 @@ pub unsafe extern "C" fn server_config_new(
     level: c_uchar,
     address: *const c_char,
     key: *mut CKeyStruct,
-) -> *mut WriterConfigEnum {
+) -> *mut fastlogging::WriterConfigEnum {
     let key = if key.is_null() {
-        EncryptionMethod::NONE
+        fastlogging::EncryptionMethod::NONE
     } else {
         let c_key = unsafe { *Box::from_raw(key) };
-        if c_key.typ == CEncryptionMethodEnum::NONE {
-            EncryptionMethod::NONE
+        if c_key.typ == EncryptionMethodEnum::NONE {
+            fastlogging::EncryptionMethod::NONE
         } else {
             let key = unsafe { slice::from_raw_parts(c_key.key, c_key.len as usize) }.to_vec();
-            if c_key.typ == CEncryptionMethodEnum::AuthKey {
-                EncryptionMethod::AuthKey(key)
+            if c_key.typ == EncryptionMethodEnum::AuthKey {
+                fastlogging::EncryptionMethod::AuthKey(key)
             } else {
-                EncryptionMethod::AES(key)
+                fastlogging::EncryptionMethod::AES(key)
             }
         }
     };
-    Box::into_raw(Box::new(WriterConfigEnum::Server(ServerConfig::new(
-        level,
-        char2string(address),
-        key,
-    ))))
+    Box::into_raw(Box::new(fastlogging::WriterConfigEnum::Server(
+        fastlogging::ServerConfig::new(level, char2string(address), key),
+    )))
 }
 
 /// # Safety
@@ -162,15 +154,18 @@ pub unsafe extern "C" fn syslog_writer_config_new(
     hostname: *const c_char,
     pname: *const c_char,
     pid: c_uint,
-) -> *mut WriterConfigEnum {
-    Box::into_raw(Box::new(WriterConfigEnum::Syslog(SyslogWriterConfig::new(
-        level,
-        option_char2string(hostname),
-        char2string(pname),
-        pid,
-    ))))
+) -> *mut fastlogging::WriterConfigEnum {
+    Box::into_raw(Box::new(fastlogging::WriterConfigEnum::Syslog(
+        fastlogging::SyslogWriterConfig::new(
+            level,
+            option_char2string(hostname),
+            char2string(pname),
+            pid,
+        ),
+    )))
 }
 
+#[unsafe(no_mangle)]
 pub static CALLBACK_C_FUNC: Lazy<
     Mutex<Option<extern "C" fn(c_uchar, *const c_char, *const c_char)>>,
 > = Lazy::new(|| Mutex::new(None));
@@ -197,13 +192,13 @@ pub fn callback_func(
 pub unsafe extern "C" fn callback_writer_config_new(
     level: c_uchar,
     callback: extern "C" fn(c_uchar, *const c_char, *const c_char),
-) -> *mut WriterConfigEnum {
+) -> *mut fastlogging::WriterConfigEnum {
     if callback as *mut c_ulong != ptr::null_mut() {
         *CALLBACK_C_FUNC.lock().unwrap() = Some(callback);
     } else {
         *CALLBACK_C_FUNC.lock().unwrap() = None;
     }
-    Box::into_raw(Box::new(WriterConfigEnum::Callback(
-        CallbackWriterConfig::new(level, Some(Box::new(callback_func))),
+    Box::into_raw(Box::new(fastlogging::WriterConfigEnum::Callback(
+        fastlogging::CallbackWriterConfig::new(level, Some(Box::new(callback_func))),
     )))
 }

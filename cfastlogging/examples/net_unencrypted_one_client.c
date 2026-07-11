@@ -8,14 +8,14 @@
 // Sample library usage.
 int main(void) {
   // Server
-  CWriterConfigEnum server_writers[] = {
+  WriterConfigEnum server_writers[] = {
       console_writer_config_new(DEBUG, 1),
       file_writer_config_new(DEBUG, "/tmp/cfastlogging.log", 1024, 3, -1, -1,
                              CompressionMethodEnum_Store)};
   Logging logging_server =
       logging_new(DEBUG, "LOGSRV", server_writers, 2, NULL, NULL);
   // Set root writer
-  CWriterTypeEnum server = server_config_new(DEBUG, "127.0.0.1", NULL);
+  WriterTypeEnum server = server_config_new(DEBUG, "127.0.0.1", NULL);
   logging_set_root_writer_config(logging_server, server);
   // logging_set_debug(logging_server, 3);
   logging_sync_all(logging_server, 5.0);
@@ -23,8 +23,8 @@ int main(void) {
   const char *address_port =
       logging_get_root_server_address_port(logging_server);
   printf("address_port=%s\n", address_port);
-  CKeyStruct *key = logging_get_server_auth_key(logging_server);
-  CWriterConfigEnum client_writers[1];
+  KeyStruct *key = logging_get_server_auth_key(logging_server);
+  WriterConfigEnum client_writers[1];
   client_writers[0] = client_writer_config_new(DEBUG, address_port, key);
   Logging logging_client =
       logging_new(DEBUG, "LOGCLIENT", client_writers, 1, NULL, NULL);

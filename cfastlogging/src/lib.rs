@@ -13,12 +13,13 @@ mod logger;
 pub use logger::*;
 pub mod root;
 
+#[unsafe(no_mangle)]
 pub static AUTH_KEY: Lazy<Vec<u8>> =
     Lazy::new(|| rng().sample_iter(&Alphanumeric).take(32).collect());
 
 #[repr(C)]
-pub struct CKeyStruct {
-    pub typ: CEncryptionMethodEnum,
+pub struct KeyStruct {
+    pub typ: EncryptionMethodEnum,
     pub len: c_uint,
     pub key: *const u8,
 }
@@ -28,13 +29,13 @@ pub struct CKeyStruct {
 /// Create encryption key.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn create_key(
-    typ: CEncryptionMethodEnum,
+    typ: EncryptionMethodEnum,
     len: c_uint,
     key: *const u8,
-) -> *const CKeyStruct {
+) -> *const KeyStruct {
     let (key_len, key_ptr) = match typ {
-        CEncryptionMethodEnum::NONE => (0, null()),
-        CEncryptionMethodEnum::AuthKey | CEncryptionMethodEnum::AES => {
+        EncryptionMethodEnum::NONE => (0, null()),
+        EncryptionMethodEnum::AuthKey | EncryptionMethodEnum::AES => {
             if !key.is_null() {
                 (len, key)
             } else {
@@ -47,7 +48,7 @@ pub unsafe extern "C" fn create_key(
             }
         }
     };
-    Box::into_raw(Box::new(CKeyStruct {
+    Box::into_raw(Box::new(KeyStruct {
         typ,
         len: key_len,
         key: key_ptr,
@@ -58,6 +59,6 @@ pub unsafe extern "C" fn create_key(
 ///
 /// Create encryption key.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn create_random_key(typ: CEncryptionMethodEnum) -> *const CKeyStruct {
+pub unsafe extern "C" fn create_random_key(typ: EncryptionMethodEnum) -> *const KeyStruct {
     unsafe { create_key(typ, 0, null()) }
 }

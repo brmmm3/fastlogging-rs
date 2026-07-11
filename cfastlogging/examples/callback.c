@@ -1,4 +1,5 @@
 #include "h/cfastlogging.h"
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,7 +12,7 @@ void writer_callback(uint8_t level, const char *domain, const char *message) {
 //
 // Sample library usage.
 int main(void) {
-  CWriterConfigEnum writers[] = {
+  WriterConfigEnum writers[] = {
       callback_writer_config_new(DEBUG, writer_callback)};
   // WriterConfigEnum callback_writer = callback_writer_config_enum_new(DEBUG,
   // NULL);

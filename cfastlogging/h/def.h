@@ -21,43 +21,38 @@
 #define TRACE 5
 #define NOTSET 0
 
-typedef struct Cu32StringVec
-{
-    uint32_t cnt;
-    uint32_t *keys;
-    char **values;
+typedef struct Cu32StringVec {
+  uint32_t cnt;
+  uint32_t *keys;
+  char **values;
 } Cu32StringVec;
 
-typedef struct Cu32u16Vec
-{
-    uint32_t cnt;
-    uint32_t *keys;
-    uint16_t *values;
+typedef struct Cu32u16Vec {
+  uint32_t cnt;
+  uint32_t *keys;
+  uint16_t *values;
 } Cu32u16Vec;
 
 // Simple enum
-typedef enum CLevelSyms: uint8_t
-{
-    LevelSyms_Sym = 0,
-    LevelSyms_Short = 1,
-    LevelSyms_Str = 2
+typedef enum LevelSyms : uint8_t {
+  LevelSyms_Sym = 0,
+  LevelSyms_Short = 1,
+  LevelSyms_Str = 2
 } CLevelSyms;
 
-typedef enum CFileTypeEnum: uint8_t
-{
-    FileTypeEnum_Message = 0,
-    FileTypeEnum_Sync = 1,
-    FileTypeEnum_Rotate = 2,
-    FileTypeEnum_Stop = 3
+typedef enum FileTypeEnum : uint8_t {
+  FileTypeEnum_Message = 0,
+  FileTypeEnum_Sync = 1,
+  FileTypeEnum_Rotate = 2,
+  FileTypeEnum_Stop = 3
 } CFileTypeEnum;
 
 // Simple enum
-typedef enum CCompressionMethodEnum: uint8_t
-{
-    CompressionMethodEnum_Store = 0,
-    CompressionMethodEnum_Deflate = 1,
-    CompressionMethodEnum_Zstd = 2,
-    CompressionMethodEnum_Lzma = 3
+typedef enum CompressionMethodEnum : uint8_t {
+  CompressionMethodEnum_Store = 0,
+  CompressionMethodEnum_Deflate = 1,
+  CompressionMethodEnum_Zstd = 2,
+  CompressionMethodEnum_Lzma = 3
 } CCompressionMethodEnum;
 
 /* Complex enum
@@ -74,10 +69,10 @@ typedef enum CWriterTypeEnum: uint8_t
     WriterTypeEnum_Syslog = 8
 } CWriterTypeEnum;*/
 
-typedef void* CWriterTypeEnum;
+typedef void *WriterTypeEnum;
 
 /* Complex enum
-typedef enum CWriterConfigEnum: uint8_t
+typedef enum WriterConfigEnum: uint8_t
 {
     WriterConfigEnum_Root = 0,
     WriterConfigEnum_Console = 1,
@@ -86,20 +81,20 @@ typedef enum CWriterConfigEnum: uint8_t
     WriterConfigEnum_Server = 4,
     WriterConfigEnum_Callback = 5,
     WriterConfigEnum_Syslog = 6
-} CWriterConfigEnum;
+} WriterConfigEnum;
 
 typedef struct CWriterConfig
 {
-    CWriterConfigEnum typ;
+    WriterConfigEnum typ;
     void *config;
 } CWriterConfig;*/
 
-typedef void* CWriterConfigEnum;
+typedef void *WriterConfigEnum;
 
-typedef struct CWriterConfigEnums {
-    uint32_t cnt;
-    CWriterConfigEnum *values;
-} CWriterConfigEnums;
+typedef struct WriterConfigEnums {
+  uint32_t cnt;
+  WriterConfigEnum *values;
+} WriterConfigEnums;
 
 /* Complex enum
 typedef enum CWriterEnum: uint8_t
@@ -119,72 +114,65 @@ typedef struct CWriter
     void *writer;
 } CWriter;*/
 
-typedef void* CWriterEnum;
+typedef void *WriterEnum;
 
-typedef struct CWriterEnums {
-    uint32_t cnt;
-    CWriterEnum *values;
-} CWriterEnums;
+typedef struct WriterEnums {
+  uint32_t cnt;
+  WriterEnum *values;
+} WriterEnums;
 
 // Simple enum
-typedef enum CMessageStructEnum: uint8_t
-{
-    MessageStructEnum_String = 0,
-    MessageStructEnum_Json = 1,
-    MessageStructEnum_Xml = 2
-} CMessageStructEnum;
+typedef enum MessageStructEnum : uint8_t {
+  MessageStructEnum_String = 0,
+  MessageStructEnum_Json = 1,
+  MessageStructEnum_Xml = 2
+} MessageStructEnum;
 
-typedef enum CEncryptionMethodEnum: uint8_t
-{
-    EncryptionMethod_NONE = 0,
-    EncryptionMethod_AuthKey = 1,
-    EncryptionMethod_AES = 2
-} CEncryptionMethodEnum;
+typedef enum EncryptionMethodEnum : uint8_t {
+  EncryptionMethod_NONE = 0,
+  EncryptionMethod_AuthKey = 1,
+  EncryptionMethod_AES = 2
+} EncryptionMethodEnum;
 
-typedef struct CExtConfig
-{
-    CMessageStructEnum structured;  // enum MessageStructEnum
-    int8_t hostname;
-    int8_t pname;
-    int8_t pid;
-    int8_t tname;
-    int8_t tid;
-} CExtConfig;
+typedef struct ExtConfig {
+  MessageStructEnum structured; // enum MessageStructEnum
+  int8_t hostname;
+  int8_t pname;
+  int8_t pid;
+  int8_t tname;
+  int8_t tid;
+} ExtConfig;
 
-typedef struct CKeyStruct
-{
-    CEncryptionMethodEnum typ;
-    uint32_t len;
-    const uint8_t *key;
-} CKeyStruct;
+typedef struct KeyStruct {
+  EncryptionMethodEnum typ;
+  uint32_t len;
+  const uint8_t *key;
+} KeyStruct;
 
-typedef struct CClientWriterConfig
-{
-    int8_t enabled;
-    uint8_t level;
-    const char *domain_filter;
-    const char *message_filter;
-    const char *address;
-    uint16_t port;
-    CKeyStruct *key;  // EncryptionMethod,
-    uint8_t debug;
-} CClientWriterConfig;
+typedef struct ClientWriterConfig {
+  int8_t enabled;
+  uint8_t level;
+  const char *domain_filter;
+  const char *message_filter;
+  const char *address;
+  uint16_t port;
+  KeyStruct *key; // EncryptionMethod,
+  uint8_t debug;
+} ClientWriterConfig;
 
-typedef struct CServerConfig
-{
-    uint8_t level;
-    const char *address;
-    uint16_t port;
-    CKeyStruct *key;
-    const char *port_file;
-} CServerConfig;
+typedef struct ServerConfig {
+  uint8_t level;
+  const char *address;
+  uint16_t port;
+  KeyStruct *key;
+  const char *port_file;
+} ServerConfig;
 
-typedef struct CServerConfigs
-{
-    uint32_t cnt;
-    uint32_t *keys;
-    CServerConfig *values;
-} CServerConfigs;
+typedef struct ServerConfigs {
+  uint32_t cnt;
+  uint32_t *keys;
+  ServerConfig *values;
+} ServerConfigs;
 
 typedef void *Logging;
 

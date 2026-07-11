@@ -7,11 +7,11 @@
 //
 // Sample library usage.
 int main(void) {
-  CWriterConfigEnum writers[] = {console_writer_config_new(DEBUG, 1)};
+  WriterConfigEnum writers[] = {console_writer_config_new(DEBUG, 1)};
   Logging logging = logging_new(DEBUG, NULL,
                                 writers, // Pointer to writers array
                                 1, NULL, NULL);
-  CExtConfig *ext_config = ext_config_new(MessageStructEnum_Xml, 1, 0, 1, 0, 1);
+  ExtConfig *ext_config = ext_config_new(MessageStructEnum_Xml, 1, 0, 1, 0, 1);
   logging_set_ext_config(logging, ext_config);
   printf("ext_config.structured=%d\n", ext_config->structured);
   printf("ext_config.hostname=%d\n", ext_config->hostname);

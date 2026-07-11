@@ -1,11 +1,12 @@
 #ifndef CFASTLOGGING_LOGGING_H
 #define CFASTLOGGING_LOGGING_H
 
-#include "def.h"
 #include <stddef.h>
 
-CExtConfig *ext_config_new(CMessageStructEnum structured, int8_t hostname,
-                           int8_t pname, int8_t pid, int8_t tname, int8_t tid);
+#include "def.h"
+
+ExtConfig *ext_config_new(MessageStructEnum structured, int8_t hostname,
+                          int8_t pname, int8_t pid, int8_t tname, int8_t tid);
 
 // Logging module
 
@@ -13,7 +14,7 @@ Logging logging_new_default();
 
 Logging logging_new(uint8_t level, const char *domain,
                     void **configs, // This is a Vec<WriterConfigEnum>
-                    size_t config_count, CExtConfig *ext_config,
+                    size_t config_count, ExtConfig *ext_config,
                     const char *config_path);
 
 int logging_apply_config(Logging logging, const char *path);
@@ -26,40 +27,40 @@ void logging_set_domain(Logging logging, const char *domain);
 
 void logging_set_level2sym(Logging logging, uint8_t level2sym);
 
-void logging_set_ext_config(Logging logging, CExtConfig *ext_config);
+void logging_set_ext_config(Logging logging, ExtConfig *ext_config);
 
 void logging_add_logger(Logging logging, Logger logger);
 
 void logging_remove_logger(Logging logging, Logger logger);
 
-int logging_set_root_writer_config(Logging logging, CWriterConfigEnum config);
+int logging_set_root_writer_config(Logging logging, WriterConfigEnum config);
 
-int logging_set_root_writer(Logging logging, CWriterEnum writer);
+int logging_set_root_writer(Logging logging, WriterEnum writer);
 
-int logging_add_writer_config(Logging logging, CWriterConfigEnum config);
+int logging_add_writer_config(Logging logging, WriterConfigEnum config);
 
-int logging_add_writer(Logging logging, CWriterEnum config);
+int logging_add_writer(Logging logging, WriterEnum config);
 
 int logging_remove_writer(Logging logging, uint32_t wid);
 
-int logging_add_writer_configs(Logging logging, CWriterConfigEnums *configs,
+int logging_add_writer_configs(Logging logging, WriterConfigEnums *configs,
                                uint32_t config_cnt);
 
-int logging_add_writers(Logging logging, CWriterEnums *writers,
+int logging_add_writers(Logging logging, WriterEnums *writers,
                         uint32_t writer_cnt);
 
-CWriterEnums *logging_remove_writers(Logging logging, uint32_t *wids,
-                                     uint32_t wid_cnt);
+WriterEnums *logging_remove_writers(Logging logging, uint32_t *wids,
+                                    uint32_t wid_cnt);
 
 int logging_enable(Logging logging, uint32_t wid);
 
 int logging_disable(Logging logging, uint32_t wid);
 
-int logging_enable_type(Logging logging, CWriterTypeEnum typ);
+int logging_enable_type(Logging logging, WriterTypeEnum typ);
 
-int logging_disable_type(Logging logging, CWriterTypeEnum typ);
+int logging_disable_type(Logging logging, WriterTypeEnum typ);
 
-int logging_sync(Logging logging, CWriterTypeEnum *types, uint32_t type_cnt,
+int logging_sync(Logging logging, WriterTypeEnum *types, uint32_t type_cnt,
                  double timeout);
 
 int logging_sync_all(Logging logging, double timeout);
@@ -70,21 +71,20 @@ int logging_rotate(Logging logging, const char *path);
 
 // Network
 
-int logging_set_encryption(Logging logging, uint32_t wid,
-                           const CKeyStruct *key);
+int logging_set_encryption(Logging logging, uint32_t wid, const KeyStruct *key);
 
 // Config
 
 void logging_set_debug(Logging logging, uint32_t debug);
 
-const CWriterConfigEnum *logging_get_writer_config(Logging logging,
-                                                   uint32_t wid);
+const WriterConfigEnum *logging_get_writer_config(Logging logging,
+                                                  uint32_t wid);
 
-const CWriterConfigEnums *logging_get_writer_configs(Logging logging);
+const WriterConfigEnums *logging_get_writer_configs(Logging logging);
 
-const CServerConfig *logging_get_server_config(Logging logging);
+const ServerConfig *logging_get_server_config(Logging logging);
 
-const CServerConfigs *logging_get_server_configs(Logging logging);
+const ServerConfigs *logging_get_server_configs(Logging logging);
 
 const char *logging_get_root_server_address_port(Logging logging);
 
@@ -94,7 +94,7 @@ const Cu32StringVec *logging_get_server_addresses(Logging logging);
 
 const Cu32u16Vec *logging_get_server_ports(Logging logging);
 
-CKeyStruct *logging_get_server_auth_key(Logging logging);
+KeyStruct *logging_get_server_auth_key(Logging logging);
 
 const char *logging_get_config_string(Logging logging);
 

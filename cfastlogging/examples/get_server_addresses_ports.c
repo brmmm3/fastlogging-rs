@@ -8,12 +8,12 @@
 // Sample library usage.
 int main(void) {
   // Server
-  CWriterConfigEnum server_writers[] = {
+  WriterConfigEnum server_writers[] = {
       console_writer_config_new(DEBUG, 1),
       server_config_new(DEBUG, "127.0.0.1", NULL)};
   Logging logging_server =
       logging_new(DEBUG, "LOGSRV", server_writers, 2, NULL, NULL);
-  CWriterConfigEnum server = server_config_new(DEBUG, "127.0.0.1", NULL);
+  WriterConfigEnum server = server_config_new(DEBUG, "127.0.0.1", NULL);
   printf("server_config=%p\n", server);
   logging_set_root_writer_config(logging_server, server);
   logging_sync_all(logging_server, 5.0);

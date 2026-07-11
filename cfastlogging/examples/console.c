@@ -7,7 +7,7 @@
 //
 // Sample library usage.
 int main(void) {
-  CWriterConfigEnum writers[] = {console_writer_config_new(DEBUG, 1)};
+  WriterConfigEnum writers[] = {console_writer_config_new(DEBUG, 1)};
   Logging logging = logging_new(DEBUG, NULL, writers, 1, NULL, NULL);
   logging_trace(logging, "Trace Message");
   logging_debug(logging, "Debug Message");

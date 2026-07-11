@@ -1,12 +1,21 @@
 # Configuration
 
-The configuration can bei either done by API and/or configuration file.
-Supported file types for the configuration file are `JSON`, `YAML` and `XML`.
-The configuration file must be named `fastlogging.<EXT>`.
-The location must be either the current working directory or defined by the
-environment variable `FASTLOGGING_CONFIG_FILE`.
+The configuration can be set via API or configuration file.
 
-An example for the configuration file in `JSON`:
+- **Supported file types:** `JSON`, `YAML`, `XML`
+- **File name:** `fastlogging.<EXT>` (e.g., `fastlogging.json`)
+- **Location:** Current working directory or as defined by the environment variable `FASTLOGGING_CONFIG_FILE`.
+
+## Minimal Example
+
+```json
+{
+  "level": 20,
+  "domain": "root"
+}
+```
+
+## Example: Full JSON Configuration
 
 ```json
 {

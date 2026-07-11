@@ -1,4 +1,7 @@
+
 # Examples
+
+This section demonstrates how to use cfastlogging in C projects. All examples include basic error handling. See the end for build and run instructions.
 
 ## Logging to Console with Logging instance
 
@@ -10,16 +13,16 @@
 
 int main(void)
 {
-    CWriterConfigEnum writers[] = { console_writer_config_new(DEBUG, 1) };
+    WriterConfigEnum writers[] = { console_writer_config_new(DEBUG, 1) };
     Logging logging = logging_new(DEBUG,
                                   NULL,
                                   writers, // Pointer to writers array
                                   1, // Array size / Number of writers
                                   NULL,
                                   NULL);
-    logging_trace(logging, "Trace Message");
-    logging_debug(logging, "Debug Message");
-    logging_info(logging, "Info Message");
+    if (logging_trace(logging, "Trace Message") != 0) fprintf(stderr, "Trace failed\n");
+    if (logging_debug(logging, "Debug Message") != 0) fprintf(stderr, "Debug failed\n");
+    if (logging_info(logging, "Info Message") != 0) fprintf(stderr, "Info failed\n");
     logging_shutdown(logging, 0);
     return 0;
 }
@@ -35,7 +38,7 @@ int main(void)
 
 int main(void)
 {
-    CWriterConfigEnum writers[] = { file_writer_config_new(DEBUG,
+    WriterConfigEnum writers[] = { file_writer_config_new(DEBUG,
                                                            "/tmp/cfastlogging.log",
                                                            1024,
                                                            3,
@@ -48,9 +51,9 @@ int main(void)
                                   1, // Array size / Number of writers
                                   NULL,
                                   NULL);
-    logging_trace(logging, "Trace Message");
-    logging_debug(logging, "Debug Message");
-    logging_info(logging, "Info Message");
+    if (logging_trace(logging, "Trace Message") != 0) fprintf(stderr, "Trace failed\n");
+    if (logging_debug(logging, "Debug Message") != 0) fprintf(stderr, "Debug failed\n");
+    if (logging_info(logging, "Info Message") != 0) fprintf(stderr, "Info failed\n");
     logging_shutdown(logging, 0);
     return 0;
 }
@@ -67,7 +70,7 @@ int main(void)
 int main(void)
 {
     // Server
-    CWriterConfigEnum server_writers[] = { console_writer_config_new(DEBUG, 1),
+    WriterConfigEnum server_writers[] = { console_writer_config_new(DEBUG, 1),
                                            file_writer_config_new(DEBUG,
                                                                   "/tmp/cfastlogging.log",
                                                                   1024,
@@ -89,7 +92,7 @@ int main(void)
     const char *address_port = logging_get_root_server_address_port(logging_server);
     printf("address_port=%s\n", address_port);
     CKeyStruct *key = logging_get_server_auth_key(logging_server);
-    CWriterConfigEnum client_writers[1];
+    WriterConfigEnum client_writers[1];
     client_writers[0] = client_writer_config_new(DEBUG, address_port, key);
     Logging logging_client = logging_new(DEBUG,
                                          "LOGCLIENT",
@@ -99,13 +102,13 @@ int main(void)
                                          NULL);
     printf("Send logs\n");
     // Test logging
-    logging_trace(logging_client, "Trace Message");
-    logging_debug(logging_client, "Debug Message");
-    logging_info(logging_client, "Info Message");
+    if (logging_trace(logging_client, "Trace Message") != 0) fprintf(stderr, "Client trace failed\n");
+    if (logging_debug(logging_client, "Debug Message") != 0) fprintf(stderr, "Client debug failed\n");
+    if (logging_info(logging_client, "Info Message") != 0) fprintf(stderr, "Client info failed\n");
 
-    logging_trace(logging_server, "Trace Message");
-    logging_debug(logging_server, "Debug Message");
-    logging_info(logging_server, "Info Message");
+    if (logging_trace(logging_server, "Trace Message") != 0) fprintf(stderr, "Server trace failed\n");
+    if (logging_debug(logging_server, "Debug Message") != 0) fprintf(stderr, "Server debug failed\n");
+    if (logging_info(logging_server, "Info Message") != 0) fprintf(stderr, "Server info failed\n");
 
     logging_sync_all(logging_client, 1.0);
     logging_sync_all(logging_server, 1.0);
@@ -131,16 +134,16 @@ void writer_callback(uint8_t level, const char *domain, const char *message) {
 
 int main(void)
 {
-    CWriterConfigEnum writers[] = { callback_writer_config_new(DEBUG, writer_callback) };
+    WriterConfigEnum writers[] = { callback_writer_config_new(DEBUG, writer_callback) };
     Logging logging = logging_new(DEBUG,
                                   NULL,
                                   writers,
                                   1,
                                   NULL,
                                   NULL);
-    logging_trace(logging, "Trace Message");
-    logging_debug(logging, "Debug Message");
-    logging_info(logging, "Info Message");
+    if (logging_trace(logging, "Trace Message") != 0) fprintf(stderr, "Trace failed\n");
+    if (logging_debug(logging, "Debug Message") != 0) fprintf(stderr, "Debug failed\n");
+    if (logging_info(logging, "Info Message") != 0) fprintf(stderr, "Info failed\n");
     logging_shutdown(logging, 0);
     return 0;
 }
@@ -156,16 +159,16 @@ int main(void)
 
 int main(void)
 {
-    CWriterConfigEnum writers[] = { syslog_writer_config_new(DEBUG, "HOSTNAME", "PNAME", 1234) };
+    WriterConfigEnum writers[] = { syslog_writer_config_new(DEBUG, "HOSTNAME", "PNAME", 1234) };
     Logging logging = logging_new(DEBUG,
                                   NULL,
                                   writers,
                                   1,
                                   NULL,
                                   NULL);
-    logging_trace(logging, "Trace Message");
-    logging_debug(logging, "Debug Message");
-    logging_info(logging, "Info Message");
+    if (logging_trace(logging, "Trace Message") != 0) fprintf(stderr, "Trace failed\n");
+    if (logging_debug(logging, "Debug Message") != 0) fprintf(stderr, "Debug failed\n");
+    if (logging_info(logging, "Info Message") != 0) fprintf(stderr, "Info failed\n");
     logging_shutdown(logging, 0);
     return 0;
 }
@@ -184,17 +187,17 @@ int main(void)
 void *loggerThreadFun(void *vargp)
 {
     Logger logger = (Logger)vargp;
-    logger_trace(logger, "Trace Message");
-    logger_debug(logger, "Debug Message");
-    logger_info(logger, "Info Message");
+    if (logger_trace(logger, "Trace Message") != 0) fprintf(stderr, "Logger trace failed\n");
+    if (logger_debug(logger, "Debug Message") != 0) fprintf(stderr, "Logger debug failed\n");
+    if (logger_info(logger, "Info Message") != 0) fprintf(stderr, "Logger info failed\n");
     return NULL;
 }
 
 int main(void)
 {
     pthread_t thread_id;
-    CWriterConfigEnum writers[] = { console_writer_config_new(DEBUG, 1) };
-    CExtConfig *ext_config = ext_config_new(CompressionMethodEnum_Store, 1, 1, 1, 1, 1);
+    WriterConfigEnum writers[] = { console_writer_config_new(DEBUG, 1) };
+    ExtConfig *ext_config = ext_config_new(CompressionMethodEnum_Store, 1, 1, 1, 1, 1);
     Logging logging = logging_new(DEBUG,
                                   NULL,
                                   writers,
@@ -204,11 +207,32 @@ int main(void)
     Logger logger = logger_new_ext(DEBUG, "LoggerThread", 1, 1);
     logging_add_logger(logging, logger);
     pthread_create(&thread_id, NULL, loggerThreadFun, (void *)logger);
-    logging_trace(logging, "Trace Message");
-    logging_debug(logging, "Debug Message");
-    logging_info(logging, "Info Message");
+    if (logging_trace(logging, "Trace Message") != 0) fprintf(stderr, "Trace failed\n");
+    if (logging_debug(logging, "Debug Message") != 0) fprintf(stderr, "Debug failed\n");
+    if (logging_info(logging, "Info Message") != 0) fprintf(stderr, "Info failed\n");
     pthread_join(thread_id, NULL);
     logging_shutdown(logging, 0);
     return 0;
+
+---
+
+## Building and Running Examples
+
+To build the examples, use your C compiler and link against the cfastlogging library. For example (GCC):
+
+```sh
+gcc -I./h -L./build/Debug -lcfastlogging -o example_console examples/console.c
+./example_console
+```
+
+Replace `console.c` with the desired example file. On Windows, use `.dll` and `.exe` as appropriate.
+
+**Note:** Ensure the cfastlogging shared library is in your library path (e.g., `LD_LIBRARY_PATH` or copy DLL to the executable directory on Windows).
+
+---
+
+## Error Handling
+
+All logging functions return 0 on success and a negative value on error. Always check return values in production code.
 }
 ```
