@@ -6,10 +6,7 @@ pub fn get_str_result<'a>(ptr: *const u8, len: usize) -> Result<&'a str, std::st
 pub fn get_option_str<'a>(ptr: *const u8, len: usize) -> Option<&'a str> {
     if len > 0 {
         let slice = unsafe { std::slice::from_raw_parts(ptr, len) };
-        match std::str::from_utf8(slice) {
-            Ok(s) => Some(s),
-            Err(_) => None,
-        }
+        std::str::from_utf8(slice).ok()
     } else {
         None
     }

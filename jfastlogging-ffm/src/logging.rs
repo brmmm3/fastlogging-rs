@@ -49,7 +49,7 @@ pub unsafe extern "C" fn loggingNew(
         Some(*unsafe { Box::from_raw(ext_config) })
     };
     let config_path = if !config_path_ptr.is_null() && config_path_len > 0 {
-        get_option_str(config_path_ptr, config_path_len).map(|s| PathBuf::from(s))
+        get_option_str(config_path_ptr, config_path_len).map(PathBuf::from)
     } else {
         None
     };
