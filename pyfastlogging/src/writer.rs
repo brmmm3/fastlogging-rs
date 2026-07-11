@@ -9,7 +9,7 @@ use pyo3::{IntoPyObjectExt, prelude::*};
 use crate::def::{CompressionMethodEnum, MessageStructEnum};
 use crate::{EncryptionMethod, LoggingError};
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Debug, Clone)]
 pub struct ExtConfig(pub fastlogging::ExtConfig);
 
@@ -43,7 +43,7 @@ impl ExtConfig {
     }
 }
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Debug, Clone)]
 pub struct RootConfig(pub fastlogging::RootConfig);
 
@@ -82,7 +82,7 @@ impl RootConfig {
     }
 }
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Debug, Clone)]
 pub struct ConsoleWriterConfig(pub fastlogging::ConsoleWriterConfig);
 
@@ -126,7 +126,7 @@ impl From<&fastlogging::ConsoleWriterConfig> for ConsoleWriterConfig {
     }
 }
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Debug, Clone)]
 pub struct FileWriterConfig(pub fastlogging::FileWriterConfig);
 
@@ -179,7 +179,7 @@ impl From<&fastlogging::FileWriterConfig> for FileWriterConfig {
     }
 }
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Debug, Clone)]
 pub struct ServerConfig(pub fastlogging::ServerConfig);
 
@@ -225,7 +225,7 @@ impl From<&fastlogging::ServerConfig> for ServerConfig {
     }
 }
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Debug, Clone)]
 pub struct ClientWriterConfig(pub fastlogging::ClientWriterConfig);
 
@@ -275,7 +275,7 @@ impl From<&fastlogging::ClientWriterConfig> for ClientWriterConfig {
     }
 }
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Debug, Clone)]
 pub struct SyslogWriterConfig(pub fastlogging::SyslogWriterConfig);
 
@@ -358,7 +358,7 @@ pub fn callback_func(
     Ok(())
 }
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Debug, Clone)]
 pub struct CallbackWriterConfig(pub fastlogging::CallbackWriterConfig);
 

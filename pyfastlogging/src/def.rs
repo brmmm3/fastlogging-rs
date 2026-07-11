@@ -5,7 +5,7 @@ use pyo3::{exceptions::PyValueError, prelude::*};
 use crate::writer::{CallbackWriterConfig, RootConfig, SyslogWriterConfig};
 use crate::{ClientWriterConfig, ConsoleWriterConfig, FileWriterConfig, ServerConfig};
 
-#[pyclass(eq, eq_int)]
+#[pyclass(eq, eq_int, from_py_object)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Level2Sym {
     NotSet = 0,
@@ -64,7 +64,7 @@ impl Level2Sym {
     }
 }
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Debug, Clone)]
 pub struct LevelSyms(pub fastlogging::LevelSyms);
 
@@ -94,7 +94,7 @@ impl LevelSyms {
     }
 }
 
-#[pyclass(eq, eq_int)]
+#[pyclass(eq, eq_int, from_py_object)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MessageStructEnum {
     String,
@@ -124,7 +124,7 @@ impl MessageStructEnum {
     }
 }
 
-#[pyclass(eq, eq_int)]
+#[pyclass(eq, eq_int, from_py_object)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CompressionMethodEnum {
     /// Do not compress the log files
@@ -160,7 +160,7 @@ impl CompressionMethodEnum {
     }
 }
 
-#[pyclass(eq)]
+#[pyclass(eq, from_py_object)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum EncryptionMethod {
     NONE {},
@@ -201,7 +201,7 @@ impl EncryptionMethod {
     }
 }
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Debug, Clone)]
 pub enum WriterTypeEnum {
     Root {},
@@ -265,7 +265,7 @@ impl WriterTypeEnum {
     }
 }
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Debug, Clone)]
 pub enum WriterConfigEnum {
     Root { config: RootConfig },
