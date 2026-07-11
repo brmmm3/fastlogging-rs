@@ -1,50 +1,67 @@
 package fastlogging
 
 /*
-#cgo LDFLAGS: -L. -L../lib -lcfastlogging
+#include <stdlib.h>
+#cgo CFLAGS: -I../h
+#cgo LDFLAGS: -L../lib -lcfastlogging
 #include "../h/cfastlogging.h"
 */
 import "C"
-import "unsafe"
+import (
+	"fmt"
+	"unsafe"
+)
 
-// Log-Levels
-const NOLOG = C.NOLOG
-const EXCEPTION = C.EXCEPTION
-const CRITICAL = C.CRITICAL
-const FATAL = C.FATAL
-const ERROR = C.ERROR
-const WARNING = C.WARNING
-const WARN = C.WARN
-const SUCCESS = C.SUCCESS
-const INFO = C.INFO
-const DEBUG = C.DEBUG
-const TRACE = C.TRACE
-const NOTSET = C.NOTSET
+// Log level constants for fastlogging
+const (
+	NOLOG     = C.NOLOG     // No logging
+	EXCEPTION = C.EXCEPTION // Exception level
+	CRITICAL  = C.CRITICAL  // Critical level
+	FATAL     = C.FATAL     // Fatal level
+	ERROR     = C.ERROR     // Error level
+	WARNING   = C.WARNING   // Warning level
+	WARN      = C.WARN      // Warn level
+	SUCCESS   = C.SUCCESS   // Success level
+	INFO      = C.INFO      // Info level
+	DEBUG     = C.DEBUG     // Debug level
+	TRACE     = C.TRACE     // Trace level
+	NOTSET    = C.NOTSET    // Not set
+)
 
+// Cu32StringVec represents a vector of uint32 keys and string values.
 type Cu32StringVec struct {
 	Cnt    uint32
 	Keys   []uint32
 	Values []string
 }
 
+// Cu32u16Vec represents a vector of uint32 keys and uint16 values.
 type Cu32u16Vec struct {
 	Cnt    uint32
 	Keys   []uint32
 	Values []uint16
 }
 
-type LevelSyms int
+// LevelSymbol controls the symbol format for log levels.
+type LevelSymbol int
 
 const (
-	/// Use 1 character symbol (!, F, E, W, ...)
-	Sym LevelSyms = iota
-	/// Use 3 character text (EXC, FTL, ERR, WRN, ...)
+	// Sym uses 1 character symbol (!, F, E, W, ...)
+	Sym LevelSymbol = iota
+	// Short uses 3 character text (EXC, FTL, ERR, WRN, ...)
 	Short
-	/// Use long text (EXCEPTION, FATAL, ERROR, WARNING, ...). This is the default.
+	// Str uses long text (EXCEPTION, FATAL, ERROR, WARNING, ...). This is the default.
 	Str
 )
 
-func (s LevelSyms) Into() C.CLevelSyms {
+// Into converts LevelSymbol to the underlying C enum value.
+//
+// The result is a plain uint8 rather than a cgo-generated type: cgo creates a
+// distinct, non-interchangeable Go type per package for every C type, even
+// when two "import C" blocks include the exact same header. Returning a
+// package-local C type here would make this method unusable from the other
+// gofastlogging packages (logging/logger/writer).
+func (s LevelSymbol) Into() uint8 {
 	switch s {
 	case Sym:
 		return 0
@@ -56,43 +73,87 @@ func (s LevelSyms) Into() C.CLevelSyms {
 	return 0
 }
 
-type FileTypeEnum int
+// FileType represents the type of file operation for logging.
+type FileType int
 
 const (
-	Message FileTypeEnum = iota
-	Sync
-	Rotate
-	Stop
+	MessageOp FileType = iota
+	SyncOp
+	RotateOp
+	StopOp
 )
 
-func (s FileTypeEnum) Into() C.CFileTypeEnum {
+// Into converts FileType to the underlying C enum value. See [LevelSymbol.Into].
+func (s FileType) Into() uint8 {
 	switch s {
-	case Message:
+	case MessageOp:
 		return 0
-	case Sync:
+	case SyncOp:
 		return 1
-	case Rotate:
+	case RotateOp:
 		return 2
-	case Stop:
+	case StopOp:
 		return 3
 	}
 	return 0
 }
 
-type CompressionMethodEnum int
+// MessageStruct specifies the message structure format.
+type MessageStruct int
 
 const (
-	/// Do not compress the log files
-	Store CompressionMethodEnum = iota
-	/// Compress the log files by the Deflate algorithm
-	Deflate
-	/// Compress the log files by the Zstandard algorithm
-	Zstd
-	/// Compress the log files by the Lzma algorithm
-	Lzma
+	String MessageStruct = iota
+	Json
+	Xml
 )
 
-func (s CompressionMethodEnum) Into() C.CCompressionMethodEnum {
+// Into converts MessageStruct to the underlying C enum value. See [LevelSymbol.Into].
+func (s MessageStruct) Into() uint8 {
+	switch s {
+	case String:
+		return 0
+	case Json:
+		return 1
+	case Xml:
+		return 2
+	}
+	return 0
+}
+
+// EncryptionMethod specifies the encryption algorithm.
+type EncryptionMethod int
+
+const (
+	NONE EncryptionMethod = iota
+	AuthKey
+	AES
+)
+
+// Into converts EncryptionMethod to the underlying C enum value. See [LevelSymbol.Into].
+func (s EncryptionMethod) Into() uint8 {
+	switch s {
+	case NONE:
+		return 0
+	case AuthKey:
+		return 1
+	case AES:
+		return 2
+	}
+	return 0
+}
+
+// CompressionMethod specifies the compression algorithm for log files.
+type CompressionMethod int
+
+const (
+	Store   CompressionMethod = iota // Do not compress the log files
+	Deflate                          // Compress with Deflate
+	Zstd                             // Compress with Zstandard
+	Lzma                             // Compress with Lzma
+)
+
+// Into converts CompressionMethod to the underlying C enum value. See [LevelSymbol.Into].
+func (s CompressionMethod) Into() uint8 {
 	switch s {
 	case Store:
 		return 0
@@ -106,93 +167,85 @@ func (s CompressionMethodEnum) Into() C.CCompressionMethodEnum {
 	return 0
 }
 
+// ServerConfig wraps the C server config pointer.
+//
+// The field is unsafe.Pointer (rather than a cgo-generated pointer type) so
+// that values can be constructed and read from any gofastlogging package.
+// See the comment on LevelSymbol.Into for why.
 type ServerConfig struct {
-	Config *C.CServerConfig
+	Config unsafe.Pointer
 }
 
+// ServerConfigs wraps the C server configs pointer.
 type ServerConfigs struct {
-	Config *C.CServerConfigs
+	Config unsafe.Pointer
 }
 
+// WriterConfigEnum wraps a C WriterConfigEnum handle (a `void*` in C).
 type WriterConfigEnum struct {
-	Config C.CWriterConfigEnum
+	Config unsafe.Pointer
 }
 
-type WriterConfigEnums struct {
-	Configs *C.CWriterConfigEnums
+// WriterConfigs wraps the C writer config enums pointer.
+type WriterConfigs struct {
+	Configs unsafe.Pointer
 }
 
-type WriterTypeEnum struct {
-	Typ C.CWriterTypeEnum
+// WriterConfigEnums is an alias for WriterConfigs.
+type WriterConfigEnums = WriterConfigs
+
+// WriterType wraps the C writer type enum value.
+type WriterType struct {
+	Typ uint8
 }
 
-type WriterEnum struct {
-	Writer C.CWriterEnum
+// WriterTypeEnum is an alias for WriterType.
+type WriterTypeEnum = WriterType
+
+// Writer wraps a C CWriterEnum handle (a `void*` in C).
+type Writer struct {
+	Writer unsafe.Pointer
 }
 
-type WriterEnums struct {
-	Writers *C.CWriterEnums
+// WriterEnum is an alias for Writer.
+type WriterEnum = Writer
+
+// Writers wraps the C writer enums pointer.
+type Writers struct {
+	Writers unsafe.Pointer
 }
 
-func WriterEnumsNew(writers *C.CWriterEnums) WriterEnums {
-	return WriterEnums{Writers: writers}
+// WriterEnums is an alias for Writers.
+type WriterEnums = Writers
+
+// NewWriters creates a Writers struct from a C pointer.
+func NewWriters(writers unsafe.Pointer) Writers {
+	return Writers{Writers: writers}
 }
 
-type MessageStructEnum int
-
-const (
-	String MessageStructEnum = iota
-	Json
-	Xml
-)
-
-func (s MessageStructEnum) Into() C.CMessageStructEnum {
-	switch s {
-	case String:
-		return 0
-	case Json:
-		return 1
-	case Xml:
-		return 2
-	}
-	return 0
+// WriterEnumsNew is an alias for NewWriters.
+func WriterEnumsNew(writers unsafe.Pointer) WriterEnums {
+	return NewWriters(writers)
 }
 
-type EncryptionMethodEnum int
-
-const (
-	NONE EncryptionMethodEnum = iota
-	AuthKey
-	AES
-)
-
-func (s EncryptionMethodEnum) Into() C.CEncryptionMethodEnum {
-	switch s {
-	case NONE:
-		return 0
-	case AuthKey:
-		return 1
-	case AES:
-		return 2
-	}
-	return 0
+// Key wraps the C key struct pointer.
+type Key struct {
+	Key unsafe.Pointer
 }
 
-type KeyStruct struct {
-	Key *C.CKeyStruct
-}
+// KeyStruct is an alias for Key.
+type KeyStruct = Key
 
+// ExtConfig wraps the C extended config pointer.
 type ExtConfig struct {
-	Config *C.CExtConfig
+	Config unsafe.Pointer
 }
 
-func ExtConfigNew(
-	structured MessageStructEnum,
-	hostname bool,
-	pname bool,
-	pid bool,
-	tname bool,
-	tid bool) ExtConfig {
+// NewExtConfig creates a new ExtConfig.
+func NewExtConfig(
+	structured MessageStruct,
+	hostname, pname, pid, tname, tid bool,
+) ExtConfig {
 	var c_hostname C.int8_t
 	if hostname {
 		c_hostname = 1
@@ -213,18 +266,14 @@ func ExtConfigNew(
 	if tid {
 		c_tid = 1
 	}
-	return ExtConfig{C.ext_config_new(structured.Into(), c_hostname, c_pname, c_pid, c_tname, c_tid)}
+	cfg := C.ext_config_new(C.CMessageStructEnum(structured.Into()), c_hostname, c_pname, c_pid, c_tname, c_tid)
+	return ExtConfig{Config: unsafe.Pointer(cfg)}
 }
 
-func RemoveWriters(wids []uint32, wid_cnt uint32) WriterEnums {
-	writers := C.root_remove_writers((*C.uint32_t)(unsafe.Pointer(&wids[0])), C.uint32_t(wid_cnt))
-	return WriterEnumsNew(writers)
-}
-
-func GetServerConfig() ServerConfig {
-	return ServerConfig{Config: (*C.CServerConfig)(unsafe.Pointer(C.root_get_server_config()))}
-}
-
-func GetServerAuthKey() KeyStruct {
-	return KeyStruct{Key: (*C.CKeyStruct)(unsafe.Pointer(C.root_get_server_auth_key()))}
+// wrapCError converts a C int error code to a Go error
+func wrapCError(code int) error {
+	if code == 0 {
+		return nil
+	}
+	return fmt.Errorf("fastlogging error: code %d", code)
 }
