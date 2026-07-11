@@ -43,7 +43,7 @@ serde = { version = "1.0", optional = true }
 serde_derive = { version = "1.0", optional = true }
 serde_json = { version = "1.0" }
 serde_yaml = { version = "0.9", optional = true }
-quick-xml = { version = "0.40", features = ["serialize"], optional = true }
+quick-xml = { version = "0.41", features = ["serialize"], optional = true }
 windows-sys = { version = "0.61", features = [
     "Win32",
     "Win32_Foundation",
@@ -65,7 +65,7 @@ criterion = { version = "0.8", features = ["html_reports"] }
 tempfile = "3.27"
 
 [target.'cfg(unix)'.dev-dependencies]
-fork = "0.7"
+fork = "0.8"
 
 #[[bench]]
 #name = "benchmarks"

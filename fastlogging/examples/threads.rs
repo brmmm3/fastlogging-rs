@@ -6,7 +6,7 @@ use fastlogging::{
 
 fn main() -> Result<(), LoggingError> {
     let mut logging = Logging::default();
-    logging.set_ext_config(&mut ExtConfig::new(
+    logging.set_ext_config(&ExtConfig::new(
         MessageStructEnum::String,
         true,
         true,

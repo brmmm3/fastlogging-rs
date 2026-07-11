@@ -4,7 +4,7 @@ use std::{
     time::Duration,
 };
 
-use fastlogging::{root, LoggingError};
+use fastlogging::{LoggingError, root};
 
 fn run_parent(child: u32) -> Result<(), LoggingError> {
     println!("# {} Run parent. Child has pid {child}.", process::id());
@@ -40,7 +40,9 @@ fn main() -> Result<(), LoggingError> {
         let mut child = Command::new(std::env::current_exe()?)
             .spawn()
             .expect("failed to execute child");
-        run_parent(child.id())?;
+        if let Err(err) = run_parent(child.id()) {
+            eprintln!("Error in parent: {err}");
+        }
         child.wait()?;
     }
     println!("# {} Continue main", process::id());
