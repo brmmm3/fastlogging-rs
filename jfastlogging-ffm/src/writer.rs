@@ -5,7 +5,7 @@ use std::time::{Duration, SystemTime};
 
 use fastlogging::{
     CallbackWriterConfig, ClientWriterConfig, CompressionMethodEnum, ConsoleWriterConfig,
-    EncryptionMethod, FileWriterConfig, ServerConfig, SyslogWriterConfig,
+    EncryptionMethod, FileWriterConfig, ServerConfig, SyslogWriterConfig, WriterConfigEnum,
 };
 use once_cell::sync::Lazy;
 
@@ -13,19 +13,21 @@ use crate::get_option_str;
 
 /// # Safety
 ///
-/// Create a new ConsoleWriterConfig (FFM).
+/// Create a ConsoleWriterConfig and wrap it in a WriterConfigEnum (FFM).
+/// The returned pointer is heap-allocated and must eventually be consumed by
+/// loggingNew / loggingAddWriterConfig, which take ownership.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn consoleWriterConfigNew(
-    level: u8,
-    colors: bool,
-) -> *mut ConsoleWriterConfig {
-    let console = ConsoleWriterConfig::new(level, colors);
-    Box::into_raw(Box::new(console))
+pub unsafe extern "C" fn consoleWriterConfigNew(level: u8, colors: bool) -> *mut WriterConfigEnum {
+    Box::into_raw(Box::new(WriterConfigEnum::Console(
+        ConsoleWriterConfig::new(level, colors),
+    )))
 }
 
 /// # Safety
 ///
-/// Create a new FileWriterConfig (FFM).
+/// Create a FileWriterConfig and wrap it in a WriterConfigEnum (FFM).
+/// `timeout_secs` = 0 means no timeout; `time_secs` = 0 means no scheduled time.
+/// Returns null on invalid arguments or construction failure.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn fileWriterConfigNew(
     level: u8,
@@ -36,7 +38,7 @@ pub unsafe extern "C" fn fileWriterConfigNew(
     timeout_secs: u64,
     time_secs: u64,
     compression: i8,
-) -> *mut FileWriterConfig {
+) -> *mut WriterConfigEnum {
     if path_ptr.is_null() || path_len == 0 {
         return std::ptr::null_mut();
     }
@@ -61,7 +63,7 @@ pub unsafe extern "C" fn fileWriterConfigNew(
         3 => CompressionMethodEnum::Lzma,
         _ => return std::ptr::null_mut(),
     });
-    let writer = match FileWriterConfig::new(
+    let config = match FileWriterConfig::new(
         level,
         PathBuf::from(path),
         size,
@@ -70,15 +72,17 @@ pub unsafe extern "C" fn fileWriterConfigNew(
         time,
         compression,
     ) {
-        Ok(w) => w,
+        Ok(c) => c,
         Err(_) => return std::ptr::null_mut(),
     };
-    Box::into_raw(Box::new(writer))
+    Box::into_raw(Box::new(WriterConfigEnum::File(config)))
 }
 
 /// # Safety
 ///
-/// Create a new ClientWriterConfig (FFM).
+/// Create a ClientWriterConfig and wrap it in a WriterConfigEnum (FFM).
+/// `encryption`: 0 = NONE, 1 = AuthKey, 2 = AES.
+/// Returns null on invalid arguments.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn clientWriterConfigNew(
     level: u8,
@@ -87,7 +91,7 @@ pub unsafe extern "C" fn clientWriterConfigNew(
     encryption: i8,
     key_ptr: *const u8,
     key_len: usize,
-) -> *mut ClientWriterConfig {
+) -> *mut WriterConfigEnum {
     if address_ptr.is_null() || address_len == 0 {
         return std::ptr::null_mut();
     }
@@ -105,12 +109,16 @@ pub unsafe extern "C" fn clientWriterConfigNew(
             EncryptionMethod::AES(key_bytes)
         }
     };
-    Box::into_raw(Box::new(ClientWriterConfig::new(level, address, key)))
+    Box::into_raw(Box::new(WriterConfigEnum::Client(ClientWriterConfig::new(
+        level, address, key,
+    ))))
 }
 
 /// # Safety
 ///
-/// Create a new ServerConfig (FFM).
+/// Create a ServerConfig and wrap it in a WriterConfigEnum (FFM).
+/// `encryption`: 0 = NONE, 1 = AuthKey, 2 = AES.
+/// Returns null on invalid arguments.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn serverConfigNew(
     level: u8,
@@ -119,7 +127,7 @@ pub unsafe extern "C" fn serverConfigNew(
     encryption: i8,
     key_ptr: *const u8,
     key_len: usize,
-) -> *mut ServerConfig {
+) -> *mut WriterConfigEnum {
     if address_ptr.is_null() || address_len == 0 {
         return std::ptr::null_mut();
     }
@@ -137,12 +145,16 @@ pub unsafe extern "C" fn serverConfigNew(
             EncryptionMethod::AES(key_bytes)
         }
     };
-    Box::into_raw(Box::new(ServerConfig::new(level, address, key)))
+    Box::into_raw(Box::new(WriterConfigEnum::Server(ServerConfig::new(
+        level, address, key,
+    ))))
 }
 
 /// # Safety
 ///
-/// Create a new SyslogWriterConfig (FFM).
+/// Create a SyslogWriterConfig and wrap it in a WriterConfigEnum (FFM).
+/// `hostname_ptr` may be null (means "no hostname").
+/// Returns null on invalid arguments.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn syslogWriterConfigNew(
     level: u8,
@@ -151,10 +163,10 @@ pub unsafe extern "C" fn syslogWriterConfigNew(
     pname_ptr: *const u8,
     pname_len: usize,
     pid: u32,
-) -> *mut SyslogWriterConfig {
+) -> *mut WriterConfigEnum {
     let hostname = if !hostname_ptr.is_null() && hostname_len > 0 {
         match get_option_str(hostname_ptr, hostname_len) {
-            Some(s) => Some(s),
+            Some(s) => Some(s.to_string()),
             None => return std::ptr::null_mut(),
         }
     } else {
@@ -167,12 +179,9 @@ pub unsafe extern "C" fn syslogWriterConfigNew(
         Some(s) => s,
         None => return std::ptr::null_mut(),
     };
-    Box::into_raw(Box::new(SyslogWriterConfig::new(
-        level,
-        hostname.map(|v| v.to_string()),
-        pname,
-        pid,
-    )))
+    Box::into_raw(Box::new(WriterConfigEnum::Syslog(SyslogWriterConfig::new(
+        level, hostname, pname, pid,
+    ))))
 }
 
 pub static CALLBACK_JAVA_FUNC: Lazy<
@@ -198,15 +207,16 @@ fn rust_cb_func(
 
 /// # Safety
 ///
-/// Create a new CallbackWriterConfig (FFM).
+/// Register a Java callback and create a CallbackWriterConfig wrapped in a
+/// WriterConfigEnum (FFM).  The callback is stored globally; only one
+/// callback is active at a time.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn callbackWriterConfigNew(
     java_cb_func: extern "C" fn(i32, *const u8, usize, *const u8, usize),
     level: u8,
-) -> *mut CallbackWriterConfig {
+) -> *mut WriterConfigEnum {
     CALLBACK_JAVA_FUNC.lock().unwrap().replace(java_cb_func);
-    Box::into_raw(Box::new(CallbackWriterConfig::new(
-        level,
-        Some(Box::new(rust_cb_func)),
+    Box::into_raw(Box::new(WriterConfigEnum::Callback(
+        CallbackWriterConfig::new(level, Some(Box::new(rust_cb_func))),
     )))
 }

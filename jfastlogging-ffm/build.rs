@@ -20,12 +20,32 @@ fn main() {
         header_path.display()
     );
     let config = cbindgen::Config {
-        language: cbindgen::Language::C, // Generate C headers (required for jextract)
-        cpp_compat: true,                // Ensure C compatibility (no C++ features)
+        language: cbindgen::Language::C,
+        cpp_compat: true,
         header: Some(String::from(
-            "#ifndef JFASTLOGGING_FFM_H\n#define JFASTLOGGING_FFM_H\n#include <stdint.h>\n",
-        )), // Optional: Custom header guard and includes
-        trailer: Some(String::from("#endif // JFASTLOGGING_FFM_H\n")), // Close header guard
+            "#ifndef JFASTLOGGING_FFM_H\n\
+             #define JFASTLOGGING_FFM_H\n\
+             \n\
+             #include <stdint.h>\n\
+             #include <stdbool.h>\n\
+             \n\
+             /* Opaque handles for Rust types from the fastlogging crate.\n\
+              * cbindgen only analyses this crate's own source and cannot\n\
+              * generate definitions for types that come from external\n\
+              * dependencies.  All of these types are used exclusively as\n\
+              * pointer-behind-opaque-handle; the layout is managed by Rust. */\n\
+             typedef struct ExtConfig        ExtConfig;\n\
+             typedef struct Logging          Logging;\n\
+             typedef struct Logger           Logger;\n\
+             typedef struct WriterConfigEnum WriterConfigEnum;\n\
+             typedef struct WriterTypeEnum   WriterTypeEnum;\n\
+             typedef struct WriterEnum       WriterEnum;\n\
+             typedef struct LevelSyms        LevelSyms;\n\
+             \n\
+            ",
+        )),
+
+        trailer: Some(String::from("#endif // JFASTLOGGING_FFM_H\n")),
         ..Default::default()
     };
 

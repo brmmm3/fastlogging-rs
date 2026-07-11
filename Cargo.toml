@@ -10,7 +10,7 @@ members = [
     #"cppfastlogging",  --> Use make
     #"gofastlogging",  --> Use make
     "jfastlogging-jni",
-    #"jfastlogging-ffm",
+    "jfastlogging-ffm",
 ]
 
 [profile.release]
