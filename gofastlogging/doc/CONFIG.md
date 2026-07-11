@@ -1,12 +1,31 @@
+
 # Configuration
 
-The configuration can bei either done by API and/or configuration file.
-Supported file types for the configuration file are `JSON`, `YAML` and `XML`.
-The configuration file must be named `fastlogging.<EXT>`.
-The location must be either the current working directory or defined by the
-environment variable `FASTLOGGING_CONFIG_FILE`.
+You can configure gofastlogging either programmatically (recommended for Go) or via configuration file.
 
-An example for the configuration file in `JSON`:
+## Configuration File
+
+Supported file types: **JSON**, **YAML**, **XML**  
+File name: `fastlogging.<EXT>` (e.g. `fastlogging.json`, `fastlogging.yaml`, `fastlogging.xml`)
+
+File location:  
+- Current working directory, or  
+- Path specified by the environment variable `FASTLOGGING_CONFIG_FILE`
+
+To use a config file, set the environment variable before running your Go program:
+
+```sh
+export FASTLOGGING_CONFIG_FILE=/path/to/fastlogging.json
+```
+
+Or place the config file in the working directory.
+
+## Example Configuration Files
+
+### JSON
+
+```json
+...existing code...
 
 ```json
 {
@@ -49,7 +68,8 @@ An example for the configuration file in `JSON`:
 }
 ```
 
-The same in `YAML`:
+
+### YAML
 
 ```yaml
 level: 0
@@ -85,7 +105,8 @@ syslog: null
 level2sym: Sym
 ```
 
-The same in `XML`:
+
+### XML
 
 ```xml
 <FileConfig>
@@ -126,4 +147,33 @@ The same in `XML`:
     <syslog />
     <level2sym>Sym</level2sym>
 </FileConfig>
+
+## Go API Integration
+
+You can load configuration from file or build it programmatically. Example:
+
+```go
+import logging "gofastlogging/fastlogging"
+
+func main() {
+  // Load from config file (if FASTLOGGING_CONFIG_FILE is set)
+  logger := logging.Default()
+  logger.Info("Logger configured from file!")
+
+  // Or build config in Go:
+  console, err := logging.ConsoleWriterConfigNew(logging.DEBUG, true)
+  if err != nil {
+    panic(err)
+  }
+  writers := []logging.WriterConfigEnum{console}
+  logger2 := logging.New(logging.DEBUG, nil, writers, nil, nil)
+  logger2.Info("Logger configured in Go!")
+}
 ```
+
+## Best Practices
+
+- Prefer Go API for dynamic or programmatic configuration.
+- Use config files for static, environment-based, or multi-language setups.
+- Always check for errors when creating writer configs in Go.
+

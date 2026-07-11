@@ -1,85 +1,89 @@
-# API of the LOGGING module
 
-## `Logging(level: int = NOTSET, domain: str = "root", configs: List[WriterConfigEnum], ext_config: ExtConfig = None, config_path: str = None, indent: Tuple[int, int, int] = None)`
+# gofastlogging: Go API Reference
 
-Create `Logging` instance.  
-`level` if not provided is set to `NOTSET`.  
-`domain` if not provided is set to `root`.  
-`configs` contains a list of writers configs.  
-`ext_config` if provided sets the extended formatting configuration.
-`config_path` if provided the configuration is loaded from a file.
-With `indent`, if provided, log messages are indented with the following parameters:  
-`indent = (offset, increment, maximum)`  
-`offset` = Initial indent level  
-`increment` = Increment of indent by call level  
-`maximum` = Maximum increment
+This document describes the idiomatic Go API for the fastlogging package.
 
-## `shutdown(now: bool = False)`
+---
 
-Shutdown fastlogging module. If optional argument `now` is `True` then this call will wait until all writers have written all logs.
+## type Logging
 
-## `set_level(wid: int, level: int)`
+```go
+type Logging struct { /* ... */ }
+```
 
-Set log level for writer with writer id `wid` to `level`.
+### func New(level uint8, domain *string, writers []WriterConfigEnum, extConfig *ExtConfig, configPath *string) *Logging
 
-## `set_domain(domain: str)`
+Creates a new logger instance. Use writer constructors for all writers. Example:
 
-Set log domain.
+```go
+console, err := fastlogging.ConsoleWriterConfigNew(fastlogging.DEBUG, true)
+if err != nil { log.Fatal(err) }
+logger := fastlogging.New(fastlogging.DEBUG, nil, []fastlogging.WriterConfigEnum{console}, nil, nil)
+```
 
-## `set_level2sym(level2sym: LevelSyms)`
+### func (l *Logging) Trace(msg string)
+### func (l *Logging) Debug(msg string)
+### func (l *Logging) Info(msg string)
+### func (l *Logging) Success(msg string)
+### func (l *Logging) Warning(msg string)
+### func (l *Logging) Error(msg string)
+### func (l *Logging) Fatal(msg string)
 
-Set log level symbols used for log messages.
+Log a message at the specified level.
 
-## `set_ext_config(ext_config: ExtConfig)`
+### func (l *Logging) Shutdown(now bool)
+
+Shutdown the logger. If `now` is true, waits for all logs to flush.
+
+### func (l *Logging) SetLevel(writerID int, level uint8)
+
+Set log level for a writer by ID.
+
+### func (l *Logging) SetDomain(domain string)
+
+Set the log domain for this logger.
+
+### func (l *Logging) SetLevelSymbols(levelSyms LevelSymbol)
+
+Set the log level symbol format (Sym, Short, Str).
+
+### func (l *Logging) SetExtConfig(extConfig *ExtConfig)
 
 Set extended formatting configuration.
 
-## `add_logger(logger: Logger)`
+### func (l *Logging) AddWriter(config WriterConfigEnum) int
 
-## `remove_logger(logger: Logger)`
+Add a writer. Returns the writer ID.
 
-## `set_root_writer(config: Config) -> int`
+### func (l *Logging) RemoveWriter(writerID int) error
 
-`Config` must be one of:
+Remove a writer by ID.
 
-- [ClientWriterConfig](DEF.md#ClientWriterConfig)
-- [ServerConfig](DEF.md#ServerConfig)
+### func (l *Logging) AddWriters(configs []WriterConfigEnum) []int
 
-If config has wrong class type an exception is thrown.
+Add multiple writers. Returns their IDs.
 
-## `add_writer(config: Config) -> int`
+---
 
-`Config` must be one of:
+## Writer Constructors
 
-- [RootConfig](DEF.md#RootConfig)
-- [ConsoleWriterConfig](DEF.md#ConsoleWriterConfig)
-- [FileWriterConfig](DEF.md#FileWriterConfig)
-- [ClientWriterConfig](DEF.md#ClientWriterConfig)
-- [ServerConfig](DEF.md#ServerConfig)
-- [SyslogWriterConfig](DEF.md#SyslogWriterConfig)
-- [CallbackWriterConfig](DEF.md#CallbackWriterConfig)
+- ConsoleWriterConfigNew(level uint8, colors bool) (WriterConfigEnum, error)
+- FileWriterConfigNew(level uint8, path string, size uint32, backlog uint32, timeout int32, time int64, compression CompressionMethodEnum) (WriterConfigEnum, error)
+- ServerConfigNew(level uint8, address string, key *KeyStruct) (WriterConfigEnum, error)
+- ClientWriterConfigNew(level uint8, address string, key *KeyStruct) (WriterConfigEnum, error)
+- SyslogWriterConfigNew(level uint8, hostname, pname string, pid uint32) (WriterConfigEnum, error)
+- CallbackWriterConfigNew(level uint8, callback func(level uint8, domain, message string)) (WriterConfigEnum, CallbackHandle, error)
 
-If config has wrong class type an exception is thrown.
-The method returns the `id` of the new writer.
+See WRITERS.md for details.
 
-## `remove_writer(wid: int) -> Config | None`
+---
 
-`wid` is the writer id. If valid the configuration of the writer will be returned.
+## Best Practices
 
-## `add_writers(configs: List[Config]) -> int`
+- Always check errors when creating writer configs.
+- Use `defer handle.UnregisterCallback()` for callback writers.
+- Use the Go API for dynamic configuration, or config files for static setups.
 
-`Config` must be one of:
-
-- [RootConfig](DEF.md#RootConfig)
-- [ConsoleWriterConfig](DEF.md#ConsoleWriterConfig)
-- [FileWriterConfig](DEF.md#FileWriterConfig)
-- [ClientWriterConfig](DEF.md#ClientWriterConfig)
-- [ServerConfig](DEF.md#ServerConfig)
-- [SyslogWriterConfig](DEF.md#SyslogWriterConfig)
-- [CallbackWriterConfig](DEF.md#CallbackWriterConfig)
-
-If a config has wrong class type an exception is thrown.
-The method returns a list of `id` of the new writers.
 
 ## `remove_writers(wid: List[int] = None) -> Config | None`
 

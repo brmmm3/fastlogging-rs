@@ -52,7 +52,7 @@ This class is for configuring extended formatting setting. It has following memb
 
 ```go
 type ExtConfig struct {
-    Config *C.CExtConfig
+    Config *C.ExtConfig
 }
 ```
 
@@ -152,7 +152,7 @@ type ServerConfigs struct {
 
 ```go
 type WriterConfigEnum struct {
-    Config *C.CWriterConfigEnum
+    Config *C.WriterConfigEnum
 }
 ```
 
@@ -160,7 +160,7 @@ type WriterConfigEnum struct {
 
 ```go
 type WriterConfigEnums struct {
-    Config *C.CWriterConfigEnums
+    Config *C.WriterConfigEnums
 }
 ```
 

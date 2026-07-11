@@ -1,28 +1,26 @@
-# Examples
+---
+# gofastlogging: Idiomatic Go Usage & Examples
 
-## Logging to Console with Logging instance
+## Quick Start
+
+Install dependencies and build the C library as described in the README. Then:
 
 ```go
 package main
 
-// NOTE: There should be NO space between the comments and the `import "C"` line.
-
-/*
-#cgo LDFLAGS: -L. -L../../lib -lcfastlogging
-#include "../../h/cfastlogging.h"
-*/
-import "C"
-import logging "gofastlogging/fastlogging"
+import (
+    "log"
+    logging "gofastlogging/fastlogging"
+)
 
 func main() {
-    writers := []logging.WriterConfigEnum{logging.ConsoleWriterConfigNew(logging.DEBUG, true)}
+    console, err := logging.ConsoleWriterConfigNew(logging.DEBUG, true)
+    if err != nil {
+        log.Fatal(err)
+    }
+    writers := []logging.WriterConfigEnum{console}
     logger := logging.New(logging.DEBUG, nil, writers, nil, nil)
-    logger.Trace("Trace message")
-    logger.Debug("Debug message")
-    logger.Info("Info Message")
-    logger.Warning("Warning Message")
-    logger.Error("Error Message")
-    logger.Fatal("Fatal Message")
+    logger.Info("Hello, world!")
     logger.Shutdown(false)
 }
 ```
@@ -32,25 +30,17 @@ func main() {
 ```go
 package main
 
-// NOTE: There should be NO space between the comments and the `import "C"` line.
-
-/*
-#cgo LDFLAGS: -L. -L../../lib -lcfastlogging
-#include "../../h/cfastlogging.h"
-*/
-import "C"
 import (
+    "log"
     "gofastlogging/fastlogging/root"
 )
 
 func main() {
-    root.Init()
-    root.Trace("Trace message")
-    root.Debug("Debug message")
-    root.Info("Info Message")
-    root.Warning("Warning Message")
-    root.Error("Error Message")
-    root.Fatal("Fatal Message")
+    err := root.Init()
+    if err != nil {
+        log.Fatal(err)
+    }
+    root.Info("Root logger example")
     root.Shutdown(false)
 }
 ```
@@ -60,23 +50,23 @@ func main() {
 ```go
 package main
 
-// NOTE: There should be NO space between the comments and the `import "C"` line.
-
-/*
-#cgo LDFLAGS: -L. -L../../lib -lcfastlogging
-#include "../../h/cfastlogging.h"
-*/
-import "C"
-import logging "gofastlogging/fastlogging"
+import (
+    "log"
+    logging "gofastlogging/fastlogging"
+)
 
 func main() {
-    writers := []logging.WriterConfigEnum{logging.FileWriterConfigNew(logging.DEBUG,
+    file, err := logging.FileWriterConfigNew(logging.DEBUG,
         "/tmp/gofastlogging.log",
         1024,
         3,
         -1,
         -1,
-        logging.Store)}
+        logging.Store)
+    if err != nil {
+        log.Fatal(err)
+    }
+    writers := []logging.WriterConfigEnum{file}
     logger := logging.New(logging.DEBUG, nil, writers, nil, nil)
     logger.Trace("Trace message")
     logger.Debug("Debug message")
@@ -86,7 +76,44 @@ func main() {
     logger.Fatal("Fatal Message")
     logger.Shutdown(false)
 }
+
 ```
+
+## Using the Callback Writer
+
+```go
+package main
+
+import (
+    "fmt"
+    "os"
+    logging "gofastlogging/fastlogging"
+)
+
+func main() {
+    callback := func(level uint8, domain, message string) {
+        fmt.Fprintf(os.Stdout, "[CALLBACK] Level: %d, Domain: %s, Message: %s\n", level, domain, message)
+    }
+    writer, handle, err := logging.CallbackWriterConfigNew(logging.DEBUG, callback)
+    if err != nil {
+        panic(err)
+    }
+    defer handle.UnregisterCallback()
+    logger := logging.New(logging.DEBUG, nil, []logging.WriterConfigEnum{writer}, nil, nil)
+    logger.Info("Hello from callback writer!")
+    logger.Error("This is an error message.")
+    logger.Shutdown(false)
+}
+```
+
+## Best Practices
+
+- Always check errors when creating writer configs.
+- Use `defer handle.UnregisterCallback()` for callback writers to avoid memory leaks.
+- Prefer context.Context for advanced use cases (see API docs).
+- Use the provided constructors for all writer types for memory safety and idiomatic Go.
+
+---
 
 ## Logging via network sockets
 
