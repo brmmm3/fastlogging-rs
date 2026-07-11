@@ -6,41 +6,33 @@
 
 // Console writer
 
-CWriterConfigEnum console_writer_config_new(uint8_t level,
-                                            int8_t colors);
+WriterConfigEnum console_writer_config_new(uint8_t level, int8_t colors);
 
 // File writer
 
-CWriterConfigEnum file_writer_config_new(uint8_t level,
-                                         const char *path,
-                                         uint32_t size,
-                                         uint32_t backlog,
-                                         int32_t timeout,
-                                         int64_t time,
-                                         CCompressionMethodEnum compression);
+WriterConfigEnum file_writer_config_new(uint8_t level, const char *path,
+                                        uint32_t size, uint32_t backlog,
+                                        int32_t timeout, int64_t time,
+                                        CCompressionMethodEnum compression);
 
 // Client writer
 
-CWriterConfigEnum client_writer_config_new(uint8_t level,
-                                           const char *address,
-                                           const CKeyStruct *key);
+WriterConfigEnum client_writer_config_new(uint8_t level, const char *address,
+                                          const CKeyStruct *key);
 
 // Server
 
-CWriterConfigEnum server_config_new(uint8_t level,
-                                    const char *address,
-                                    const CKeyStruct *key);
+WriterConfigEnum server_config_new(uint8_t level, const char *address,
+                                   const CKeyStruct *key);
 
 // Syslog writer
 
-CWriterConfigEnum syslog_writer_config_new(uint8_t level,
-                                           const char *hostname,
-                                           const char *pname,
-                                           uint32_t pid);
+WriterConfigEnum syslog_writer_config_new(uint8_t level, const char *hostname,
+                                          const char *pname, uint32_t pid);
 
 // Callback writer
 
-CWriterConfigEnum callback_writer_config_new(uint8_t level,
-                                             void (*callback)(uint8_t, const char *, const char *));
+WriterConfigEnum callback_writer_config_new(
+    uint8_t level, void (*callback)(uint8_t, const char *, const char *));
 
 #endif

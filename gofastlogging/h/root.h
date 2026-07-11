@@ -15,23 +15,23 @@ void root_set_domain(const char *domain);
 
 void root_set_level2sym(uint8_t level2sym);
 
-void root_set_ext_config(CExtConfig *ext_config);
+void root_set_ext_config(ExtConfig *ext_config);
 
 void root_add_logger(Logger logger);
 
 void root_remove_logger(Logger logger);
 
-int root_set_root_writer_config(CWriterConfigEnum config);
+int root_set_root_writer_config(WriterConfigEnum config);
 
 int root_set_root_writer(CWriterEnum writer);
 
-int root_add_writer_config(CWriterConfigEnum config);
+int root_add_writer_config(WriterConfigEnum config);
 
 int root_add_writer(CWriterEnum config);
 
 int root_remove_writer(uint32_t wid);
 
-int root_add_writer_configs(CWriterConfigEnums *configs, uint32_t config_cnt);
+int root_add_writer_configs(WriterConfigEnums *configs, uint32_t config_cnt);
 
 int root_add_writers(CWriterEnums *writers, uint32_t writer_cnt);
 
@@ -61,9 +61,9 @@ int root_set_encryption(uint32_t wid, const CKeyStruct *key);
 
 void root_set_debug(uint32_t debug);
 
-const CWriterConfigEnum *root_get_writer_config(uint32_t wid);
+const WriterConfigEnum *root_get_writer_config(uint32_t wid);
 
-const CWriterConfigEnums *root_get_writer_configs();
+const WriterConfigEnums *root_get_writer_configs();
 
 const CServerConfig *root_get_server_config();
 
