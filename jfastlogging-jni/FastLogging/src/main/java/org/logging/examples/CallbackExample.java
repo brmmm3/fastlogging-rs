@@ -6,7 +6,7 @@ import org.logging.FastLogging.CallbackWriterConfigLog;
 import org.logging.FastLogging.Logging;
 
 class CallbackExample implements CallbackWriterConfigLog {
-    public void log(int level, String domain, String message) {
+    public void onLog(int level, String domain, String message) {
         System.out.println(String.format("Java-CB: %d %s: %s", level, domain, message));
     }
 

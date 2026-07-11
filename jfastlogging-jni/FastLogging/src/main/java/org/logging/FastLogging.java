@@ -189,7 +189,7 @@ public class FastLogging {
 	}
 
 	public interface CallbackWriterConfigLog {
-		void log(int level, String domain, String message);
+		void onLog(int level, String domain, String message);
 	}
 
 	public static native long callbackWriterConfigNew(int level, CallbackWriterConfigLog callback);

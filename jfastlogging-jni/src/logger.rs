@@ -1,53 +1,49 @@
-use jni::Env as JNIEnv;
-
+use jni::jni_mangle;
 use jni::objects::{JClass, JString};
-
 use jni::sys::{jboolean, jint, jlong};
 
 use fastlogging::Logger;
 
-use crate::log_message;
+use crate::{enter_jni, log_message};
 
 /// # Safety
 ///
 /// This function creates a new instance.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerNew(
-    mut env: JNIEnv,
+#[allow(non_snake_case)]
+#[jni_mangle("logging.FastLogging.loggerNew")]
+pub fn loggerNew(
+    env: jni::EnvUnowned,
     _class: JClass,
     level: jint, // Global log level
     domain: JString,
 ) -> jlong {
-    let domain: String = match domain.try_to_string(&env) {
-        Ok(s) => s.into(),
-        Err(err) => {
-            env.throw(err.to_string()).unwrap();
-            return 0;
-        }
-    };
-    let logger = Logger::new(level as u8, domain);
-    Box::into_raw(Box::new(logger)) as jlong
+    enter_jni(env, |env| {
+        let domain: String = match domain.try_to_string(env) {
+            Ok(s) => s,
+            Err(err) => {
+                env.throw(err.to_string()).unwrap();
+                return Ok(0);
+            }
+        };
+        let logger = Logger::new(level as u8, domain);
+        Ok(Box::into_raw(Box::new(logger)) as jlong)
+    })
 }
 
 /// # Safety
 ///
 /// This function creates a new extended instance.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerNewExt(
-    mut env: JNIEnv,
+#[allow(non_snake_case)]
+#[jni_mangle("logging.FastLogging.loggerNewExt")]
+pub fn loggerNewExt(
+    _env: jni::EnvUnowned,
     _class: JClass,
     level: jint, // Global log level
     domain: JString,
     tname: jboolean,
     tid: jboolean,
 ) -> jlong {
-    let domain: String = match domain.try_to_string(&env) {
-        Ok(s) => s.into(),
-        Err(err) => {
-            env.throw(err.to_string()).unwrap();
-            return 0;
-        }
-    };
+    let domain: String = JString::to_string(&domain);
     let logger = Logger::new_ext(level as u8, domain, tname, tid);
     Box::into_raw(Box::new(logger)) as jlong
 }
@@ -55,33 +51,24 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerNewExt(
 /// # Safety
 ///
 /// Set log level.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerSetLevel(
-    mut _env: JNIEnv,
-    _class: JClass,
-    logger: &mut Logger,
-    level: jint,
-) {
+#[allow(non_snake_case)]
+#[jni_mangle("logging.FastLogging.loggerSetLevel")]
+pub fn loggerSetLevel(_env: jni::EnvUnowned, _class: JClass, logger: &mut Logger, level: jint) {
     logger.set_level(level as u8);
 }
 
 /// # Safety
 ///
 /// Set log domain.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerSetDomain(
-    mut env: JNIEnv,
+#[allow(non_snake_case)]
+#[jni_mangle("logging.FastLogging.loggerSetDomain")]
+pub fn loggerSetDomain(
+    _env: jni::EnvUnowned,
     _class: JClass,
     logger: &mut Logger,
     domain: JString,
 ) -> jint {
-    let domain: String = match domain.try_to_string(&env) {
-        Ok(s) => s.into(),
-        Err(err) => {
-            env.throw(err.to_string()).unwrap();
-            return -1;
-        }
-    };
+    let domain: String = JString::to_string(&domain);
     logger.set_domain(&domain);
     0
 }
@@ -89,22 +76,31 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerSetDomain(
 /// # Safety
 ///
 /// trace message.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerTrace(
-    mut env: JNIEnv,
+#[allow(non_snake_case)]
+#[jni_mangle("logging.FastLogging.loggerTrace")]
+pub fn loggerTrace(
+    env: jni::EnvUnowned,
     _class: JClass,
     logger: &mut Logger,
     message: JString,
 ) -> jint {
-    log_message!(env, logger, trace, message)
+    enter_jni(env, |env| {
+        let message: String = JString::to_string(&message);
+        if let Err(err) = logger.trace(&message) {
+            env.throw(err.to_string()).unwrap();
+            return Ok(-1);
+        }
+        Ok(0)
+    })
 }
 
 /// # Safety
 ///
 /// debug message.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerDebug(
-    mut env: JNIEnv,
+#[allow(non_snake_case)]
+#[jni_mangle("logging.FastLogging.loggerDebug")]
+pub fn loggerDebug(
+    env: jni::EnvUnowned,
     _class: JClass,
     logger: &mut Logger,
     message: JString,
@@ -115,9 +111,10 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerDebug(
 /// # Safety
 ///
 /// debug message.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerInfo(
-    mut env: JNIEnv,
+#[allow(non_snake_case)]
+#[jni_mangle("logging.FastLogging.loggerInfo")]
+pub fn loggerInfo(
+    env: jni::EnvUnowned,
     _class: JClass,
     logger: &mut Logger,
     message: JString,
@@ -128,9 +125,10 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerInfo(
 /// # Safety
 ///
 /// trace message.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerSuccess(
-    mut env: JNIEnv,
+#[allow(non_snake_case)]
+#[jni_mangle("logging.FastLogging.loggerSuccess")]
+pub fn loggerSuccess(
+    env: jni::EnvUnowned,
     _class: JClass,
     logger: &mut Logger,
     message: JString,
@@ -141,9 +139,10 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerSuccess(
 /// # Safety
 ///
 /// debug message.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerWarning(
-    mut env: JNIEnv,
+#[allow(non_snake_case)]
+#[jni_mangle("logging.FastLogging.loggerWarning")]
+pub fn loggerWarning(
+    env: jni::EnvUnowned,
     _class: JClass,
     logger: &mut Logger,
     message: JString,
@@ -154,9 +153,10 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerWarning(
 /// # Safety
 ///
 /// error message.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerError(
-    mut env: JNIEnv,
+#[allow(non_snake_case)]
+#[jni_mangle("logging.FastLogging.loggerError")]
+pub fn loggerError(
+    env: jni::EnvUnowned,
     _class: JClass,
     logger: &mut Logger,
     message: JString,
@@ -167,9 +167,10 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerError(
 /// # Safety
 ///
 /// error message.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerCritical(
-    mut env: JNIEnv,
+#[allow(non_snake_case)]
+#[jni_mangle("logging.FastLogging.loggerCritical")]
+pub fn loggerCritical(
+    env: jni::EnvUnowned,
     _class: JClass,
     logger: &mut Logger,
     message: JString,
@@ -180,9 +181,10 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerCritical(
 /// # Safety
 ///
 /// error message.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerFatal(
-    mut env: JNIEnv,
+#[allow(non_snake_case)]
+#[jni_mangle("logging.FastLogging.loggerFatal")]
+pub fn loggerFatal(
+    env: jni::EnvUnowned,
     _class: JClass,
     logger: &mut Logger,
     message: JString,
@@ -193,9 +195,10 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerFatal(
 /// # Safety
 ///
 /// error message.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerException(
-    mut env: JNIEnv,
+#[allow(non_snake_case)]
+#[jni_mangle("logging.FastLogging.loggerException")]
+pub fn loggerException(
+    env: jni::EnvUnowned,
     _class: JClass,
     logger: &mut Logger,
     message: JString,
