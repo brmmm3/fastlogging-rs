@@ -2,9 +2,6 @@
 
 using namespace logging;
 
-// File: console.cpp
-//
-// Sample library usage.
 int main(void)
 {
     Logging logging = Logging::Default();

@@ -1,27 +1,29 @@
 #include "h/cppfastlogging.hpp"
+#include <cstdio>
 
 using namespace logging;
 
-// File: net_unencrypted_one_client.cpp
-//
-// Sample library usage.
 int main(void)
 {
     // Server
-    WriterConfig server_writers[] = {ConsoleWriterConfig(DEBUG, 1),
-                                     FileWriterConfig(DEBUG, "/tmp/cfastlogging.log", 1024, 3)};
-    Logging *logging_server = new Logging(DEBUG, "LOGSRV", server_writers);
-    WriterConfig *server = new ServerConfig(DEBUG, "127.0.0.1");
-    logging_server->set_root_writer_config(server);
+    Logging *logging_server = new Logging(DEBUG, "LOGSRV");
+    logging_server->add_writer_config(ConsoleWriterConfig(DEBUG, true));
+    logging_server->add_writer_config(
+        FileWriterConfig(DEBUG, "/tmp/cfastlogging.log", 1024, 3));
+    ServerConfig srv(DEBUG, "127.0.0.1");
+    logging_server->add_writer_config(srv);
+    logging_server->set_root_writer_config(srv);
     logging_server->sync_all(5.0);
+
     // Client
     const char *address_port = logging_server->get_root_server_address_port();
-    printf("address=%s\n", address_port);
+    printf("address=%s\n", address_port ? address_port : "(null)");
     rust::KeyStruct *key = logging_server->get_server_auth_key();
-    WriterConfig client_writers[] = {ClientWriterConfig(DEBUG, address_port, key)};
-    Logging *logging_client = new Logging(DEBUG, "LOGCLIENT", client_writers);
+
+    Logging *logging_client = new Logging(DEBUG, "LOGCLIENT");
+    logging_client->add_writer_config(ClientWriterConfig(DEBUG, address_port, key));
+
     printf("Send logs\n");
-    // Test logging
     logging_client->trace("Trace Message");
     logging_client->debug("Debug Message");
     logging_client->info("Info Message");
@@ -29,6 +31,7 @@ int main(void)
     logging_client->warning("Warning Message");
     logging_client->error("Error Message");
     logging_client->fatal("Fatal Message");
+
     logging_client->sync_all(1.0);
     logging_server->sync_all(1.0);
     printf("Shutdown Loggers\n");

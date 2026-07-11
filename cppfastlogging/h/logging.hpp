@@ -1,468 +1,277 @@
 #pragma once
 
-#include <cstdarg>
 #include <cstdint>
 #include <cstdlib>
-#include <iostream>
-#include <new>
-#include <vector>
-
-using namespace std;
-
+#include <string>
 #include "def.hpp"
 #include "logger.hpp"
 #include "writer.hpp"
 
-namespace rust
-{
-    /// Forward-declaration of opaque type to use as pointer to the Rust object.
-    struct Logging;
-} // namespace logging::rust
+// ---- C API declarations (must match cfastlogging/h/logging.h exactly) -------
 
-extern "C"
-{
-    rust::ExtConfig *ext_config_new(rust::MessageStructEnum structured,
-                                    int8_t hostname,
-                                    int8_t pname,
-                                    int8_t pid,
-                                    int8_t tname,
-                                    int8_t tid);
+extern "C" {
 
-    rust::Logging *logging_new_default();
+rust::ExtConfig *ext_config_new(rust::MessageStructEnum structured,
+                                int8_t hostname, int8_t pname, int8_t pid,
+                                int8_t tname, int8_t tid);
 
-    /// For further reading ...
-    /// #[no_mangle] - // https://internals.rust-lang.org/t/precise-semantics-of-no-mangle/4098
-    rust::Logging *logging_new(uint8_t level,
-                               const char *domain,
-                               rust::WriterConfigEnum *configs_ptr,
-                               uint config_cnt,
-                               rust::ExtConfig *ext_config,
-                               const char *config_path);
+rust::Logging *logging_new_default();
 
-    int logging_apply_config(rust::Logging *logging, const char *path);
+rust::Logging *logging_new(uint8_t level, const char *domain,
+                            rust::WriterConfigEnum *configs_ptr,
+                            uint32_t config_cnt,
+                            rust::ExtConfig *ext_config,
+                            const char *config_path);
 
-    int logging_shutdown(rust::Logging *logging, uint8_t now);
+int  logging_apply_config(rust::Logging *logging, const char *path);
+int  logging_shutdown(rust::Logging *logging, int8_t now);
 
-    int logging_set_level(rust::Logging *logging, uint8_t level);
+// wid = writer id returned by logging_add_writer_config (0 = root writer)
+int  logging_set_level(rust::Logging *logging, uint32_t wid, uint8_t level);
+void logging_set_domain(rust::Logging *logging, const char *domain);
+void logging_set_level2sym(rust::Logging *logging, uint8_t level2sym);
+void logging_set_ext_config(rust::Logging *logging, rust::ExtConfig *ext_config);
 
-    void logging_set_domain(rust::Logging *logging, const char *domain);
+void logging_add_logger(rust::Logging *logging, rust::Logger *logger);
+void logging_remove_logger(rust::Logging *logging, rust::Logger *logger);
 
-    void logging_set_level2sym(rust::Logging *logging, uint8_t level2sym);
+int logging_set_root_writer_config(rust::Logging *logging,
+                                   rust::WriterConfigEnum *config);
+int logging_add_writer_config(rust::Logging *logging,
+                              rust::WriterConfigEnum *config);
+void logging_remove_writer(rust::Logging *logging, uint32_t wid);
 
-    void logging_set_ext_config(rust::Logging *logging, rust::ExtConfig *ext_config);
+int logging_enable(rust::Logging *logging, uint32_t wid);
+int logging_disable(rust::Logging *logging, uint32_t wid);
+int logging_enable_type(rust::Logging *logging, rust::WriterTypeEnum typ);
+int logging_disable_type(rust::Logging *logging, rust::WriterTypeEnum typ);
 
-    void logging_add_logger(rust::Logging *logging, rust::Logger *logger);
+intptr_t logging_sync(rust::Logging *logging, rust::WriterTypeEnum *types,
+                      uint32_t type_cnt, double timeout);
+intptr_t logging_sync_all(rust::Logging *logging, double timeout);
+intptr_t logging_rotate(rust::Logging *logging, const char *path);
 
-    void logging_remove_logger(rust::Logging *logging, rust::Logger *logger);
+// wid identifies which writer to reconfigure (use WriterTypeEnum cast to select)
+int logging_set_encryption(rust::Logging *logging, rust::WriterTypeEnum writer,
+                           const rust::KeyStruct *key);
 
-    int logging_set_root_writer_config(rust::Logging *logging, rust::WriterConfigEnum *config);
+void logging_set_debug(rust::Logging *logging, uint32_t debug);
 
-    int logging_set_root_writer(rust::Logging *logging, rust::WriterEnum writer);
+rust::WriterConfigEnum  *logging_get_writer_config(rust::Logging *logging, uint32_t wid);
+rust::ServerConfig      *logging_get_server_config(rust::Logging *logging, uint32_t wid);
+rust::ServerConfigs     *logging_get_server_configs(rust::Logging *logging);
+const char              *logging_get_root_server_address_port(rust::Logging *logging);
+const rust::Cu32StringVec *logging_get_server_addresses_ports(rust::Logging *logging);
+const rust::Cu32StringVec *logging_get_server_addresses(rust::Logging *logging);
+const rust::Cu32u16Vec    *logging_get_server_ports(rust::Logging *logging);
+rust::KeyStruct           *logging_get_server_auth_key(rust::Logging *logging);
+const char                *logging_get_config_string(rust::Logging *logging);
 
-    int logging_add_writer_config(rust::Logging *logging, rust::WriterConfigEnum *config);
+int logging_save_config(rust::Logging *logging, const char *path);
 
-    int logging_add_writer(rust::Logging *logging, rust::WriterEnum *writer);
+intptr_t logging_trace(const rust::Logging *logging, const char *message);
+intptr_t logging_debug(const rust::Logging *logging, const char *message);
+intptr_t logging_info(const rust::Logging *logging, const char *message);
+intptr_t logging_success(const rust::Logging *logging, const char *message);
+intptr_t logging_warning(const rust::Logging *logging, const char *message);
+intptr_t logging_error(const rust::Logging *logging, const char *message);
+intptr_t logging_critical(const rust::Logging *logging, const char *message);
+intptr_t logging_fatal(const rust::Logging *logging, const char *message);
+intptr_t logging_exception(const rust::Logging *logging, const char *message);
 
-    void logging_remove_writer(rust::Logging *logging, uint32_t wid);
-
-    int logging_add_writer_configs(rust::Logging *logging, rust::WriterConfigEnums *configs);
-
-    int logging_add_writers(rust::Logging *logging, rust::WriterEnums *writers);
-
-    WriterEnumVec *logging_remove_writers(rust::Logging *logging, uint32_t *wids, uint32_t wid_cnt);
-
-    int logging_enable(rust::Logging *logging, uint32_t wid);
-
-    int logging_disable(rust::Logging *logging, uint32_t wid);
-
-    int logging_enable_type(rust::Logging *logging, rust::WriterTypeEnum typ);
-
-    int logging_disable_type(rust::Logging *logging, rust::WriterTypeEnum typ);
-
-    intptr_t logging_sync(rust::Logging *logging, rust::WriterTypeEnums *types, double timeout);
-
-    intptr_t logging_sync_all(rust::Logging *logging, double timeout);
-
-    // File writer
-
-    intptr_t logging_rotate(rust::Logging *logging, const char *path);
-
-    // Network
-
-    intptr_t logging_set_encryption(rust::Logging *logging, rust::WriterTypeEnum writer, rust::EncryptionMethodEnum encryption, char *key);
-
-    // Config
-
-    void logging_set_debug(rust::Logging *logging, uint32_t debug);
-
-    rust::WriterConfigEnum *logging_get_writer_config(rust::Logging *logging, uint32_t wid);
-
-    rust::WriterConfigEnums *logging_get_writer_configs(rust::Logging *logging);
-
-    rust::ServerConfig *logging_get_server_config(rust::Logging *logging);
-
-    rust::ServerConfigs *logging_get_server_configs(rust::Logging *logging);
-
-    const char *logging_get_root_server_address_port(rust::Logging *logging);
-
-    const Cu32StringVec_t *logging_get_server_addresses_ports(rust::Logging *logging);
-
-    const Cu32StringVec_t *logging_get_server_addresses(rust::Logging *logging);
-
-    const Cu32u16Vec_t *logging_get_server_ports(rust::Logging *logging);
-
-    rust::KeyStruct *logging_get_server_auth_key(rust::Logging *logging);
-
-    const char *logging_get_config_string(rust::Logging *logging);
-
-    int logging_save_config(rust::Logging *logging, const char *path);
-
-    // Logging calls
-
-    intptr_t logging_trace(const rust::Logging *logging, const char *message);
-
-    intptr_t logging_debug(const rust::Logging *logging, const char *message);
-
-    intptr_t logging_info(const rust::Logging *logging, const char *message);
-
-    intptr_t logging_success(const rust::Logging *logging, const char *message);
-
-    intptr_t logging_warning(const rust::Logging *logging, const char *message);
-
-    intptr_t logging_error(const rust::Logging *logging, const char *message);
-
-    intptr_t logging_critical(const rust::Logging *logging, const char *message);
-
-    intptr_t logging_fatal(const rust::Logging *logging, const char *message);
-
-    intptr_t logging_exception(const rust::Logging *logging, const char *message);
 } // extern "C"
 
-namespace logging
-{
-    enum class MessageStruct: uint8_t
-    {
-        String = 0,
-        Json = 1,
-        Xml = 2
-    };
+// ---- C++ wrapper classes -----------------------------------------------
 
-    class ExtConfig
-    {
-    public:
-        rust::ExtConfig *config = NULL;
+namespace logging {
 
-        ExtConfig(MessageStruct structured,
-                  int8_t hostname,
-                  int8_t pname,
-                  int8_t pid,
-                  int8_t tname,
-                  int8_t tid)
-        {
-            rust::MessageStructEnum structured_enum = rust::MessageStructEnum::String;
-            switch (structured) {
-                case MessageStruct::String:
-                    // Already handled above
-                    break;
-                case MessageStruct::Json:
-                    structured_enum = rust::MessageStructEnum::Json;
-                    break;
-                case MessageStruct::Xml:
-                    structured_enum = rust::MessageStructEnum::Xml;
-            }
-            config = ext_config_new(structured_enum, hostname, pname, pid, tname, tid);
-        }
+enum class MessageStruct : uint8_t { String = 0, Json = 1, Xml = 2 };
 
-        ~ExtConfig()
-        {
-            config = NULL;
-        }
-    };
+class ExtConfig {
+public:
+  rust::ExtConfig *config = nullptr;
 
-    class Logging
-    {
-        rust::Logging *logging = NULL;
+  ExtConfig(MessageStruct structured,
+            int8_t hostname, int8_t pname, int8_t pid,
+            int8_t tname, int8_t tid) {
+    config = ext_config_new(
+        static_cast<rust::MessageStructEnum>(structured),
+        hostname, pname, pid, tname, tid);
+  }
+  ~ExtConfig() { config = nullptr; }
+};
 
-    public:
-        Logging(uint8_t level = NOTSET,
-                const char *domain = NULL,
-                WriterConfig configs[] = NULL,
-                ExtConfig *ext_config = NULL,
-                const char *config_path = NULL)
-        {
-            if (domain == NULL) {
-                domain = "root";
-            }
-            uint32_t config_cnt = 0;
-            if (configs != NULL) {
-                config_cnt = sizeof(*configs);
-                if (config_cnt > 0) {
-                    config_cnt /= sizeof(configs[0]);
-                }
-            }
-            rust::ExtConfig *ext_config_ptr = NULL;
-            if (ext_config != NULL) {
-                ext_config_ptr = ext_config->config;
-            }
-            logging = logging_new(level,
-                                  domain,
-                                  NULL,
-                                  0,
-                                  ext_config_ptr,
-                                  config_path);
-            //rust::WriterConfigEnum *configs_ptr = (rust::WriterConfigEnum *)malloc(config_cnt * sizeof(rust::WriterConfigEnum *));
-            for (uint32_t i = 0; i < config_cnt; i++) {
-                //configs_ptr[i] = configs[i].config;
-                logging_add_writer_config(logging, configs[i].config);
-            }
-        }
+class Logging {
+public:
+  // ---- Constructors ----
 
-        ~Logging()
-        {
-            logging_shutdown(logging, 0);
-            logging = NULL;
-        }
+  /// Create a Logging instance with no writers (add them via add_writer_config).
+  explicit Logging(uint8_t level = NOTSET, const char *domain = nullptr,
+                   ExtConfig *ext_config = nullptr,
+                   const char *config_path = nullptr)
+      : logging_(nullptr) {
+    if (!domain) domain = "root";
+    rust::ExtConfig *ec = ext_config ? ext_config->config : nullptr;
+    logging_ = logging_new(level, domain, nullptr, 0, ec, config_path);
+  }
 
-        void _intern_set_logging(rust::Logging *logging)
-        {
-            this->logging = logging;
-        }
+  /// Create a Logging instance and pre-configure N writer configs supplied as a
+  /// C array.  The template parameter N is deduced automatically:
+  ///
+  ///   WriterConfig writers[] = { ConsoleWriterConfig(DEBUG), ... };
+  ///   Logging logging(DEBUG, "root", writers);
+  template <std::size_t N>
+  Logging(uint8_t level, const char *domain,
+          WriterConfig (&configs)[N],
+          ExtConfig *ext_config = nullptr,
+          const char *config_path = nullptr)
+      : logging_(nullptr) {
+    if (!domain) domain = "root";
+    rust::ExtConfig *ec = ext_config ? ext_config->config : nullptr;
+    logging_ = logging_new(level, domain, nullptr, 0, ec, config_path);
+    for (std::size_t i = 0; i < N; ++i)
+      logging_add_writer_config(logging_, configs[i].config);
+  }
 
-        int apply_config(const char *path)
-        {
-            return logging_apply_config(logging, path);
-        }
+  /// Default-initialised logger with a console writer at DEBUG level.
+  static Logging Default() {
+    Logging l;
+    l.logging_ = logging_new_default();
+    return l;
+  }
 
-        int shutdown(bool now)
-        {
-            return logging_shutdown(logging, (uint8_t)now);
-        }
-
-        void set_level(uint8_t level)
-        {
-            logging_set_level(logging, level);
-        }
-
-        void set_domain(char *domain)
-        {
-            logging_set_domain(logging, domain);
-        }
-
-        void set_level2sym(uint8_t level2sym)
-        {
-            logging_set_level2sym(logging, level2sym);
-        }
-
-        void set_ext_config(ExtConfig *ext_config)
-        {
-            logging_set_ext_config(logging, ext_config->config);
-        }
-
-        void add_logger(Logger *logger)
-        {
-            logging_add_logger(logging, logger->logger);
-        }
-
-        void remove_logger(Logger *logger)
-        {
-            logging_remove_logger(logging, logger->logger);
-        }
-
-        void set_root_writer_config(WriterConfig *writer)
-        {
-            logging_set_root_writer_config(logging, writer->config);
-        }
-
-        int add_writer_config(WriterConfig *config)
-        {
-            return logging_add_writer_config(logging, config);
-        }
-
-        int add_writer(rust::WriterEnum *writer)
-        {
-            return logging_add_writer(logging, writer);
-        }
-
-        void remove_writer(uint32_t wid)
-        {
-            logging_remove_writer(logging, wid);
-        }
-
-        int add_writer_configs(rust::WriterConfigEnum **configs, uint32_t config_cnt)
-         {
-            return logging_add_writer_configs(logging, configs, config_cnt);
-        }
-
-        int add_writers(rust::WriterEnum **writers, uint32_t writer_cnt)
-        {
-            return logging_add_writers(logging, writers, writer_cnt);
-        }
-
-        int remove_writers(uint32_t *wids, uint32_t wid_cnt)
-        {
-            return logging_remove_writers(logging, wids, wid_cnt);
-        }
-
-        int enable(uint32_t wid)
-        {
-            return logging_enable(logging, wid);
-        }
-
-        int disable(uint32_t wid) {
-            return logging_disable(logging, wid);
-        }
-
-        int enable_type(rust::WriterTypeEnum typ) {
-            return logging_enable_type(logging, typ);
-        }
-
-        int disable_type(rust::WriterTypeEnum typ) {
-            return logging_disable_type(logging, typ);
-        }
-
-        int sync(rust::WriterTypeEnum *types, uint32_t type_cnt, double timeout)
-        {
-            return logging_sync(logging, types, type_cnt, timeout);
-        }
-
-        int sync_all(double timeout)
-        {
-            return logging_sync_all(logging, timeout);
-        }
-
-        // File writer
-
-        int rotate(const char *path)
-        {
-            return logging_rotate(logging, path);
-        }
-
-        // Network
-
-        int set_encryption(rust::WriterTypeEnum writer, rust::EncryptionMethodEnum encryption, char *key)
-        {
-            return logging_set_encryption(logging, writer, encryption, key);
-        }
-
-        // Config
-
-        void set_debug(uint8_t debug)
-        {
-            logging_set_debug(debug);
-        }
-
-        rust::WriterConfigEnum *get_writer_config(uint32_t wid)
-        {
-            return logging_get_writer_config(logging, wid);
-        }
-
-        rust::WriterConfigEnums *get_writer_configs()
-        {
-            return logging_get_writer_configs(logging);
-        }
-
-        rust::ServerConfig *get_server_config(uint32_t wid)
-        {
-            return logging_get_server_config(logging, wid);
-        }
-
-        rust::ServerConfigs *get_server_configs()
-        {
-            return logging_get_server_configs(logging);
-        }
-
-        const char *get_root_server_address_port()
-        {
-            return logging_get_root_server_address_port(logging);
-        }
-
-        const Cu32StringVec_t *get_server_addresses_ports()
-        {
-            return logging_get_server_addresses_ports(logging);
-        }
-
-        const Cu32StringVec_t *get_server_addresses()
-        {
-            return logging_get_server_addresses(logging);
-        }
-
-        const Cu32u16Vec_t *get_server_ports()
-        {
-            return logging_get_server_ports(logging);
-        }
-
-        rust::KeyStruct *get_server_auth_key()
-        {
-            return logging_get_server_auth_key(logging);
-        }
-
-        const char *get_config_string()
-        {
-            return logging_get_config_string(logging);
-        }
-
-        int save_config(const char *path)
-        {
-            return logging_save_config(logging, path);
-        }
-
-        // Logging calls
-
-        int trace(std::string message)
-        {
-            return logging_trace(logging, message.c_str());
-        }
-
-        int debug(std::string message)
-        {
-            return logging_debug(logging, message.c_str());
-        }
-
-        int info(std::string message)
-        {
-            return logging_info(logging, message.c_str());
-        }
-
-        int success(std::string message)
-        {
-            return logging_success(logging, message.c_str());
-        }
-
-        int warn(std::string message)
-        {
-            return logging_warning(logging, message.c_str());
-        }
-
-        int warning(std::string message)
-        {
-            return logging_warning(logging, message.c_str());
-        }
-
-        int error(std::string message)
-        {
-            return logging_error(logging, message.c_str());
-        }
-
-        int critical(std::string message)
-        {
-            return logging_critical(logging, message.c_str());
-        }
-
-        int fatal(std::string message)
-        {
-            return logging_fatal(logging, message.c_str());
-        }
-
-        int exception(std::string message)
-        {
-            return logging_exception(logging, message.c_str());
-        }
-    };
-
-    Logging Default()
-    {
-        Logging logging = Logging();
-        logging._intern_set_logging(logging_new_default());
-        return logging;
+  ~Logging() {
+    if (logging_) {
+      logging_shutdown(logging_, 0);
+      logging_ = nullptr;
     }
-}
+  }
+
+  Logging(const Logging &) = delete;
+  Logging &operator=(const Logging &) = delete;
+  Logging(Logging &&other) noexcept : logging_(other.logging_) {
+    other.logging_ = nullptr;
+  }
+  Logging &operator=(Logging &&other) noexcept {
+    if (this != &other) {
+      logging_ = other.logging_;
+      other.logging_ = nullptr;
+    }
+    return *this;
+  }
+
+  // ---- Configuration ----
+
+  int  apply_config(const char *path) { return logging_apply_config(logging_, path); }
+  int  shutdown(bool now) { return logging_shutdown(logging_, now ? 1 : 0); }
+
+  /// Set log level of writer `wid` (pass 0 for the root/default writer).
+  int  set_level(uint32_t wid, uint8_t level) {
+    return logging_set_level(logging_, wid, level);
+  }
+  void set_domain(const char *domain) { logging_set_domain(logging_, domain); }
+  void set_level2sym(uint8_t level2sym) {
+    logging_set_level2sym(logging_, level2sym);
+  }
+  void set_ext_config(ExtConfig *ext_config) {
+    logging_set_ext_config(logging_, ext_config->config);
+  }
+
+  void add_logger(Logger &logger) {
+    logging_add_logger(logging_, logger.raw());
+  }
+  void add_logger(Logger *logger) {
+    if (logger) logging_add_logger(logging_, logger->raw());
+  }
+  void remove_logger(Logger &logger) {
+    logging_remove_logger(logging_, logger.raw());
+  }
+  void remove_logger(Logger *logger) {
+    if (logger) logging_remove_logger(logging_, logger->raw());
+  }
+
+  /// Transfer ownership of config to this Logging instance.
+  int add_writer_config(WriterConfig &config) {
+    return logging_add_writer_config(logging_, config.config);
+  }
+  /// Convenience overload for temporaries: Logging::add_writer_config(ConsoleWriterConfig(DEBUG))
+  int add_writer_config(WriterConfig &&config) {
+    return logging_add_writer_config(logging_, config.config);
+  }
+  int add_writer_config(WriterConfig *config) {
+    return config ? logging_add_writer_config(logging_, config->config) : -1;
+  }
+
+  /// Set the root writer config (must be a Client or Server config).
+  int set_root_writer_config(WriterConfig &config) {
+    return logging_set_root_writer_config(logging_, config.config);
+  }
+  int set_root_writer_config(WriterConfig *config) {
+    return config ? logging_set_root_writer_config(logging_, config->config) : -1;
+  }
+
+  void remove_writer(uint32_t wid) { logging_remove_writer(logging_, wid); }
+  int  enable(uint32_t wid)        { return logging_enable(logging_, wid); }
+  int  disable(uint32_t wid)       { return logging_disable(logging_, wid); }
+  int  enable_type(rust::WriterTypeEnum typ)  { return logging_enable_type(logging_, typ); }
+  int  disable_type(rust::WriterTypeEnum typ) { return logging_disable_type(logging_, typ); }
+
+  int sync(rust::WriterTypeEnum *types, uint32_t cnt, double timeout) {
+    return logging_sync(logging_, types, cnt, timeout);
+  }
+  int sync_all(double timeout)     { return logging_sync_all(logging_, timeout); }
+  int rotate(const char *path)     { return logging_rotate(logging_, path); }
+
+  int set_encryption(rust::WriterTypeEnum writer, const rust::KeyStruct *key) {
+    return logging_set_encryption(logging_, writer, key);
+  }
+  void set_debug(uint32_t debug)   { logging_set_debug(logging_, debug); }
+
+  // ---- Queries ----
+
+  rust::ServerConfig     *get_server_config(uint32_t wid = 0) {
+    return logging_get_server_config(logging_, wid);
+  }
+  rust::ServerConfigs    *get_server_configs() {
+    return logging_get_server_configs(logging_);
+  }
+  const char             *get_root_server_address_port() {
+    return logging_get_root_server_address_port(logging_);
+  }
+  const rust::Cu32StringVec *get_server_addresses_ports() {
+    return logging_get_server_addresses_ports(logging_);
+  }
+  const rust::Cu32StringVec *get_server_addresses() {
+    return logging_get_server_addresses(logging_);
+  }
+  const rust::Cu32u16Vec    *get_server_ports() {
+    return logging_get_server_ports(logging_);
+  }
+  rust::KeyStruct *get_server_auth_key() {
+    return logging_get_server_auth_key(logging_);
+  }
+  const char *get_config_string() {
+    return logging_get_config_string(logging_);
+  }
+  int save_config(const char *path) { return logging_save_config(logging_, path); }
+
+  // ---- Log calls ----
+
+  int trace(const std::string &m)     const { return logging_trace(logging_, m.c_str()); }
+  int debug(const std::string &m)     const { return logging_debug(logging_, m.c_str()); }
+  int info(const std::string &m)      const { return logging_info(logging_, m.c_str()); }
+  int success(const std::string &m)   const { return logging_success(logging_, m.c_str()); }
+  int warn(const std::string &m)      const { return logging_warning(logging_, m.c_str()); }
+  int warning(const std::string &m)   const { return logging_warning(logging_, m.c_str()); }
+  int error(const std::string &m)     const { return logging_error(logging_, m.c_str()); }
+  int critical(const std::string &m)  const { return logging_critical(logging_, m.c_str()); }
+  int fatal(const std::string &m)     const { return logging_fatal(logging_, m.c_str()); }
+  int exception(const std::string &m) const { return logging_exception(logging_, m.c_str()); }
+
+  rust::Logging *raw() const { return logging_; }
+
+private:
+  rust::Logging *logging_ = nullptr;
+};
+
+} // namespace logging

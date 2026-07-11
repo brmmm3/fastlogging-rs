@@ -1,13 +1,12 @@
 #include "h/cppfastlogging.hpp"
+#include <cstdio>
 
 using namespace logging;
 
-// File: console_static.cpp
-//
-// Sample library usage.
 int main(void)
 {
-    Logging logging = Init();
+    Logging logging;
+    logging.add_writer_config(ConsoleWriterConfig(DEBUG, true));
     logging.trace("Trace Message");
     logging.debug("Debug Message");
     logging.info("Info Message");
