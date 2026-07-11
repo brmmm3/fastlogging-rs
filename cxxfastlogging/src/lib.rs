@@ -117,7 +117,7 @@ impl Logging {
 
     /// Create a new `Logging` instance with the given global log `level`,
     /// `domain` and writer `configs`.
-    pub fn new(
+    pub fn create(
         level: u8,
         domain: &str,
         configs: Vec<Box<WriterConfig>>,
@@ -411,7 +411,7 @@ pub struct Logger(fastlogging::Logger);
 
 impl Logger {
     /// Create a new logger with the given log `level` and `domain`.
-    pub fn new(level: u8, domain: &str) -> Box<Logger> {
+    pub fn create(level: u8, domain: &str) -> Box<Logger> {
         Box::new(Logger(fastlogging::Logger::new(level, domain)))
     }
 
@@ -833,7 +833,8 @@ pub mod ffi {
         #[Self = "Logging"]
         fn new_default() -> Result<Box<Logging>>;
         #[Self = "Logging"]
-        fn new(level: u8, domain: &str, configs: Vec<Box<WriterConfig>>) -> Result<Box<Logging>>;
+        fn create(level: u8, domain: &str, configs: Vec<Box<WriterConfig>>)
+        -> Result<Box<Logging>>;
 
         fn apply_config(self: &mut Logging, path: &str) -> Result<()>;
         fn shutdown(self: &mut Logging, now: bool) -> Result<()>;
@@ -889,7 +890,7 @@ pub mod ffi {
         type Logger;
 
         #[Self = "Logger"]
-        fn new(level: u8, domain: &str) -> Box<Logger>;
+        fn create(level: u8, domain: &str) -> Box<Logger>;
         #[Self = "Logger"]
         fn new_ext(level: u8, domain: &str, tname: bool, tid: bool) -> Box<Logger>;
 

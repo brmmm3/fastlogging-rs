@@ -9,4 +9,4 @@
 //     #include "cxxfastlogging/h/fastlogging.h"
 //
 // instead of depending on cxx's generated include path directly.
-#include "cxxfastlogging/src/lib.rs.h"
+#include "../../target/cxxbridge/cxxfastlogging/src/lib.rs.h"
