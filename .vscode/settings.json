@@ -77,13 +77,14 @@
   "C_Cpp_Runner.msvcSecureNoWarnings": false,
   "idf.pythonInstallPath": "/home/martin/.pyenv/shims/python",
   "java.library.path": [
-        "/usr/java/packages/lib",
-        "/usr/lib/x86_64-linux-gnu/jni",
-        "/usr/lib/x86_64-linux-gnu",
-        "/lib/x86_64-linux-gnu",
-        "/usr/lib/jni",
-        "/lib",
-        "/usr/lib",
-        "./jfastlogging-jni/FastLogging/lib"
-    ]
+    "/usr/java/packages/lib",
+    "/usr/lib/x86_64-linux-gnu/jni",
+    "/usr/lib/x86_64-linux-gnu",
+    "/lib/x86_64-linux-gnu",
+    "/usr/lib/jni",
+    "/lib",
+    "/usr/lib",
+    "./jfastlogging-jni/FastLogging/lib"
+  ],
+  "java.format.settings.url": ".vscode/java-formatter.xml"
 }

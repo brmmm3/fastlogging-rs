@@ -1,11 +1,17 @@
 package org.logging;
 
+import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
+import java.lang.foreign.SegmentAllocator;
+import java.lang.foreign.SymbolLookup;
 
 public class FastLogging {
 
 	static {
 		System.loadLibrary("jfastlogging");
+		Linker linker = Linker.nativeLinker();
+		SymbolLookup lookup = linker.defaultLookup()
+				.or(SymbolLookup.libraryLookup("jfastlogging", SegmentAllocator.nativeAllocator(1)));
 	}
 
 	// Log levels

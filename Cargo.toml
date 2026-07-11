@@ -7,10 +7,10 @@ members = [
     "pyfastlogging",
     "cfastlogging",
     "cxxfastlogging",
-    #"cppfastlogging",
-    #"gofastlogging",
+    #"cppfastlogging",  --> Use make
+    #"gofastlogging",  --> Use make
     "jfastlogging-jni",
-    "jfastlogging-ffm",
+    #"jfastlogging-ffm",
 ]
 
 [profile.release]

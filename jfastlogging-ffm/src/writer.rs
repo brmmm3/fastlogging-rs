@@ -15,7 +15,7 @@ use crate::get_option_str;
 ///
 /// Create a new ConsoleWriterConfig (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_consoleWriterConfigNew(
+pub unsafe extern "C" fn consoleWriterConfigNew(
     level: u8,
     colors: bool,
 ) -> *mut ConsoleWriterConfig {
@@ -27,7 +27,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_consoleWriterConfigNew(
 ///
 /// Create a new FileWriterConfig (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_fileWriterConfigNew(
+pub unsafe extern "C" fn fileWriterConfigNew(
     level: u8,
     path_ptr: *const u8,
     path_len: usize,
@@ -80,7 +80,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_fileWriterConfigNew(
 ///
 /// Create a new ClientWriterConfig (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_clientWriterConfigNew(
+pub unsafe extern "C" fn clientWriterConfigNew(
     level: u8,
     address_ptr: *const u8,
     address_len: usize,
@@ -112,7 +112,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_clientWriterConfigNew(
 ///
 /// Create a new ServerConfig (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_serverConfigNew(
+pub unsafe extern "C" fn serverConfigNew(
     level: u8,
     address_ptr: *const u8,
     address_len: usize,
@@ -144,7 +144,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_serverConfigNew(
 ///
 /// Create a new SyslogWriterConfig (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_syslogWriterConfigNew(
+pub unsafe extern "C" fn syslogWriterConfigNew(
     level: u8,
     hostname_ptr: *const u8,
     hostname_len: usize,
@@ -200,7 +200,7 @@ fn rust_cb_func(
 ///
 /// Create a new CallbackWriterConfig (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_callbackWriterConfigNew(
+pub unsafe extern "C" fn callbackWriterConfigNew(
     java_cb_func: extern "C" fn(i32, *const u8, usize, *const u8, usize),
     level: u8,
 ) -> *mut CallbackWriterConfig {

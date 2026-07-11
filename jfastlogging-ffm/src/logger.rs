@@ -8,7 +8,7 @@ use crate::{get_option_str, log_message};
 ///
 /// This function creates a new instance.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerNew(
+pub unsafe extern "C" fn loggerNew(
     level: i32,
     domain_ptr: *const u8,
     domain_len: usize,
@@ -30,7 +30,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerNew(
 ///
 /// This function creates a new extended instance.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerNewExt(
+pub unsafe extern "C" fn loggerNewExt(
     level: i32,
     domain_ptr: *const u8,
     domain_len: usize,
@@ -54,10 +54,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerNewExt(
 ///
 /// Set log level (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerSetLevel(
-    logger: *mut Logger,
-    level: i32,
-) {
+pub unsafe extern "C" fn loggerSetLevel(logger: *mut Logger, level: i32) {
     if let Some(logger) = unsafe { logger.as_mut() } {
         logger.set_level(level as u8);
     }
@@ -67,7 +64,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerSetLevel(
 ///
 /// Set log domain (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerSetDomain(
+pub unsafe extern "C" fn loggerSetDomain(
     logger: *mut Logger,
     domain_ptr: *const u8,
     domain_len: usize,
@@ -92,7 +89,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerSetDomain(
 ///
 /// trace message (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerTrace(
+pub unsafe extern "C" fn loggerTrace(
     logger: *mut Logger,
     msg_ptr: *const u8,
     msg_len: usize,
@@ -104,7 +101,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerTrace(
 ///
 /// debug message (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerDebug(
+pub unsafe extern "C" fn loggerDebug(
     logger: *mut Logger,
     msg_ptr: *const u8,
     msg_len: usize,
@@ -116,7 +113,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerDebug(
 ///
 /// info message (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerInfo(
+pub unsafe extern "C" fn loggerInfo(
     logger: *mut Logger,
     msg_ptr: *const u8,
     msg_len: usize,
@@ -128,7 +125,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerInfo(
 ///
 /// trace message.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerSuccess(
+pub unsafe extern "C" fn loggerSuccess(
     logger: *mut Logger,
     msg_ptr: *const u8,
     msg_len: usize,
@@ -140,7 +137,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerSuccess(
 ///
 /// debug message.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerWarning(
+pub unsafe extern "C" fn loggerWarning(
     logger: *mut Logger,
     msg_ptr: *const u8,
     msg_len: usize,
@@ -152,7 +149,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerWarning(
 ///
 /// error message.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerError(
+pub unsafe extern "C" fn loggerError(
     logger: *mut Logger,
     msg_ptr: *const u8,
     msg_len: usize,
@@ -164,7 +161,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerError(
 ///
 /// error message.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerCritical(
+pub unsafe extern "C" fn loggerCritical(
     logger: *mut Logger,
     msg_ptr: *const u8,
     msg_len: usize,
@@ -176,7 +173,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerCritical(
 ///
 /// error message.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerFatal(
+pub unsafe extern "C" fn loggerFatal(
     logger: *mut Logger,
     msg_ptr: *const u8,
     msg_len: usize,
@@ -188,7 +185,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerFatal(
 ///
 /// error message.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggerException(
+pub unsafe extern "C" fn loggerException(
     logger: *mut Logger,
     msg_ptr: *const u8,
     msg_len: usize,

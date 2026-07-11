@@ -8,7 +8,7 @@ use fastlogging::{ExtConfig, MessageStructEnum};
 ///
 /// Create new extended configuration.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_extConfigNew(
+pub unsafe extern "C" fn extConfigNew(
     structured: i32,
     hostname: bool,
     pname: bool,

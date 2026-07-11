@@ -11,7 +11,7 @@ use crate::{get_option_str, log_message};
 ///
 /// Create new default instance (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingNewDefault() -> *mut Logging {
+pub unsafe extern "C" fn loggingNewDefault() -> *mut Logging {
     Box::into_raw(Box::new(Logging::default()))
 }
 
@@ -19,7 +19,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingNewDefault() -> *mu
 ///
 /// Create new instance (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingNew(
+pub unsafe extern "C" fn loggingNew(
     level: i32,
     domain_ptr: *const u8,
     domain_len: usize,
@@ -61,10 +61,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingNew(
 ///
 /// This function destroys an instance (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingShutdown(
-    logging: *mut Logging,
-    now: i32,
-) {
+pub unsafe extern "C" fn loggingShutdown(logging: *mut Logging, now: i32) {
     if let Some(logging) = unsafe { logging.as_mut() } {
         let _ = logging.shutdown(now != 0);
         let _boxed_logging = unsafe { Box::from_raw(logging) };
@@ -75,11 +72,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingShutdown(
 ///
 /// Set log level (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingSetLevel(
-    logging: *mut Logging,
-    wid: usize,
-    level: u8,
-) -> i32 {
+pub unsafe extern "C" fn loggingSetLevel(logging: *mut Logging, wid: usize, level: u8) -> i32 {
     if logging.is_null() {
         return -1;
     }
@@ -94,7 +87,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingSetLevel(
 ///
 /// Set log domain (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingSetDomain(
+pub unsafe extern "C" fn loggingSetDomain(
     logging: *mut Logging,
     domain_ptr: *const u8,
     domain_len: usize,
@@ -115,7 +108,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingSetDomain(
 ///
 /// Set log level symbols (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingSetLevel2Sym(
+pub unsafe extern "C" fn loggingSetLevel2Sym(
     logging: *mut Logging,
     level2sym: *mut LevelSyms,
 ) -> i32 {
@@ -132,7 +125,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingSetLevel2Sym(
 ///
 /// Set extended configuration (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingSetExtConfig(
+pub unsafe extern "C" fn loggingSetExtConfig(
     logging: *mut Logging,
     ext_config: *mut ExtConfig,
 ) -> i32 {
@@ -149,10 +142,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingSetExtConfig(
 ///
 /// Add a Logger instance (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingAddLogger(
-    logging: *mut Logging,
-    logger: *mut Logger,
-) -> i32 {
+pub unsafe extern "C" fn loggingAddLogger(logging: *mut Logging, logger: *mut Logger) -> i32 {
     if logging.is_null() || logger.is_null() {
         return -1;
     }
@@ -166,10 +156,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingAddLogger(
 ///
 /// Remove a Logger instance (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingRemoveLogger(
-    logging: *mut Logging,
-    logger: *mut Logger,
-) -> i32 {
+pub unsafe extern "C" fn loggingRemoveLogger(logging: *mut Logging, logger: *mut Logger) -> i32 {
     if logging.is_null() || logger.is_null() {
         return -1;
     }
@@ -183,7 +170,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingRemoveLogger(
 ///
 /// Add a WriterConfig instance (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingAddWriterConfig(
+pub unsafe extern "C" fn loggingAddWriterConfig(
     logging: *mut Logging,
     config: *mut WriterConfigEnum,
 ) -> i32 {
@@ -202,10 +189,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingAddWriterConfig(
 ///
 /// Add a Writer instance (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingAddWriter(
-    logging: *mut Logging,
-    writer: *mut WriterEnum,
-) -> i32 {
+pub unsafe extern "C" fn loggingAddWriter(logging: *mut Logging, writer: *mut WriterEnum) -> i32 {
     if logging.is_null() || writer.is_null() {
         return -1;
     }
@@ -219,10 +203,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingAddWriter(
 ///
 /// Remove a Writer instance (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingRemoveWriter(
-    logging: *mut Logging,
-    wid: usize,
-) -> i32 {
+pub unsafe extern "C" fn loggingRemoveWriter(logging: *mut Logging, wid: usize) -> i32 {
     if logging.is_null() {
         return -1;
     }
@@ -235,7 +216,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingRemoveWriter(
 ///
 /// Add multiple WriterConfig instances (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingAddWriterConfigs(
+pub unsafe extern "C" fn loggingAddWriterConfigs(
     logging: *mut Logging,
     configs_ptr: *const *mut WriterConfigEnum,
     configs_len: usize,
@@ -260,7 +241,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingAddWriterConfigs(
 ///
 /// Sync writers (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingSync(
+pub unsafe extern "C" fn loggingSync(
     logging: *mut Logging,
     writer_ids_ptr: *const WriterTypeEnum,
     writer_ids_len: usize,
@@ -285,10 +266,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingSync(
 ///
 /// Sync all writers (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingSyncAll(
-    logging: *mut Logging,
-    timeout: f64,
-) -> i32 {
+pub unsafe extern "C" fn loggingSyncAll(logging: *mut Logging, timeout: f64) -> i32 {
     if logging.is_null() {
         return -1;
     }
@@ -303,7 +281,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingSyncAll(
 ///
 /// Rotate log file (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingRotate(
+pub unsafe extern "C" fn loggingRotate(
     logging: *mut Logging,
     path_ptr: *const u8,
     path_len: usize,
@@ -328,7 +306,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingRotate(
 ///
 /// Set server/client encryption (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingSetEncryption(
+pub unsafe extern "C" fn loggingSetEncryption(
     logging: *mut Logging,
     wid: usize,
     method: i32,
@@ -360,7 +338,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingSetEncryption(
 ///
 /// Get configuration (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingGetWriterConfig(
+pub unsafe extern "C" fn loggingGetWriterConfig(
     logging: *mut Logging,
     wid: usize,
 ) -> *mut std::ffi::c_void {
@@ -376,7 +354,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingGetWriterConfig(
 ///
 /// Get server configuration (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingGetServerConfig(
+pub unsafe extern "C" fn loggingGetServerConfig(
     logging: *mut Logging,
     wid: usize,
 ) -> *mut std::ffi::c_void {
@@ -392,9 +370,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingGetServerConfig(
 ///
 /// Get server configurations (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingGetServerConfigs(
-    logging: *mut Logging,
-) -> *mut std::ffi::c_void {
+pub unsafe extern "C" fn loggingGetServerConfigs(logging: *mut Logging) -> *mut std::ffi::c_void {
     if logging.is_null() {
         return std::ptr::null_mut();
     }
@@ -407,9 +383,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingGetServerConfigs(
 ///
 /// Get server addresses (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingGetServerAddresses(
-    logging: *mut Logging,
-) -> *mut std::ffi::c_void {
+pub unsafe extern "C" fn loggingGetServerAddresses(logging: *mut Logging) -> *mut std::ffi::c_void {
     if logging.is_null() {
         return std::ptr::null_mut();
     }
@@ -422,9 +396,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingGetServerAddresses(
 ///
 /// Get server ports (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingGetServerPorts(
-    logging: *mut Logging,
-) -> *mut std::ffi::c_void {
+pub unsafe extern "C" fn loggingGetServerPorts(logging: *mut Logging) -> *mut std::ffi::c_void {
     if logging.is_null() {
         return std::ptr::null_mut();
     }
@@ -437,9 +409,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingGetServerPorts(
 ///
 /// Get server auth key (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingGetServerAuthKey(
-    logging: *mut Logging,
-) -> *mut std::ffi::c_void {
+pub unsafe extern "C" fn loggingGetServerAuthKey(logging: *mut Logging) -> *mut std::ffi::c_void {
     if logging.is_null() {
         return std::ptr::null_mut();
     }
@@ -452,9 +422,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingGetServerAuthKey(
 ///
 /// Get config string (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingGetConfigString(
-    logging: *mut Logging,
-) -> *mut std::ffi::c_void {
+pub unsafe extern "C" fn loggingGetConfigString(logging: *mut Logging) -> *mut std::ffi::c_void {
     if logging.is_null() {
         return std::ptr::null_mut();
     }
@@ -467,7 +435,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingGetConfigString(
 ///
 /// Save config (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingSaveConfig(
+pub unsafe extern "C" fn loggingSaveConfig(
     logging: *mut Logging,
     path_ptr: *const u8,
     path_len: usize,
@@ -485,7 +453,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingSaveConfig(
 ///
 /// trace message (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingTrace(
+pub unsafe extern "C" fn loggingTrace(
     logging: *mut Logging,
     msg_ptr: *const u8,
     msg_len: usize,
@@ -497,7 +465,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingTrace(
 ///
 /// debug message (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingDebug(
+pub unsafe extern "C" fn loggingDebug(
     logging: *mut Logging,
     msg_ptr: *const u8,
     msg_len: usize,
@@ -509,7 +477,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingDebug(
 ///
 /// info message (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingInfo(
+pub unsafe extern "C" fn loggingInfo(
     logging: *mut Logging,
     msg_ptr: *const u8,
     msg_len: usize,
@@ -521,7 +489,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingInfo(
 ///
 /// success message (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingSuccess(
+pub unsafe extern "C" fn loggingSuccess(
     logging: *mut Logging,
     msg_ptr: *const u8,
     msg_len: usize,
@@ -533,7 +501,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingSuccess(
 ///
 /// warning message (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingWarning(
+pub unsafe extern "C" fn loggingWarning(
     logging: *mut Logging,
     msg_ptr: *const u8,
     msg_len: usize,
@@ -545,7 +513,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingWarning(
 ///
 /// error message (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingError(
+pub unsafe extern "C" fn loggingError(
     logging: *mut Logging,
     msg_ptr: *const u8,
     msg_len: usize,
@@ -557,7 +525,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingError(
 ///
 /// critical error message (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingCritical(
+pub unsafe extern "C" fn loggingCritical(
     logging: *mut Logging,
     msg_ptr: *const u8,
     msg_len: usize,
@@ -569,7 +537,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingCritical(
 ///
 /// fatal error message (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingFatal(
+pub unsafe extern "C" fn loggingFatal(
     logging: *mut Logging,
     msg_ptr: *const u8,
     msg_len: usize,
@@ -581,7 +549,7 @@ pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingFatal(
 ///
 /// exception error message.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Java_org_logging_FastLogging_loggingException(
+pub unsafe extern "C" fn loggingException(
     logging: *mut Logging,
     msg_ptr: *const u8,
     msg_len: usize,
