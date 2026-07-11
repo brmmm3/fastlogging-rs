@@ -1,27 +1,28 @@
 package main
 
-// NOTE: There should be NO space between the comments and the `import "C"` line.
-
-/*
-#cgo LDFLAGS: -L. -L../../lib -lcfastlogging
-#include "../../h/cfastlogging.h"
-*/
-import "C"
 import (
 	"fmt"
-	logging "gofastlogging/fastlogging"
+	fl "gofastlogging/fastlogging"
+	"gofastlogging/fastlogging/logging"
+	"gofastlogging/fastlogging/writer"
 )
 
 func main() {
-	server_writers := []logging.WriterConfigEnum{
-		logging.ConsoleWriterConfigNew(logging.DEBUG, true),
-		logging.ServerConfigNew(logging.DEBUG, "127.0.0.1", nil),
+	console := writer.ConsoleWriterConfigNew(fl.DEBUG, true)
+	if console == nil {
+		panic("Failed to create writer")
 	}
+	server := writer.ServerConfigNew(fl.DEBUG, "127.0.0.1", nil)
+	if server == nil {
+		panic("Failed to create server")
+	}
+	server_writers := []fl.WriterConfigEnum{*console, *server}
 	domain := "LOGSRV"
-	logger := logging.New(logging.DEBUG, &domain, server_writers, nil, nil)
-	server := logging.ServerConfigNew(logging.DEBUG, "127.0.0.1", nil)
-	fmt.Printf("server_config=%p\n", server)
-	logger.SetRootWriterConfig(server)
+	logger := logging.New(fl.DEBUG, &domain, server_writers, nil, nil)
+	if logger == nil {
+		panic("Failed to create logger")
+	}
+	logger.SetRootWriterConfig(*server)
 	logger.SyncAll(5.0)
 	// Show addresses and ports
 	ports := logger.GetRootServerPorts()

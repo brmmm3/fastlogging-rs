@@ -1,18 +1,15 @@
 package main
 
-// NOTE: There should be NO space between the comments and the `import "C"` line.
-
-/*
-#cgo LDFLAGS: -L. -L../../lib -lcfastlogging
-#include "../../h/cfastlogging.h"
-*/
-import "C"
 import (
-	"gofastlogging/fastlogging/root"
+	root "gofastlogging/fastlogging"
+	"log"
 )
 
 func main() {
-	root.Init()
+	err := root.Init()
+	if err != nil {
+		log.Fatal(err)
+	}
 	root.Trace("Trace message")
 	root.Debug("Debug message")
 	root.Info("Info Message")

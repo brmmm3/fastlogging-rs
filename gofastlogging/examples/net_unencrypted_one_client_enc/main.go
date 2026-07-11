@@ -1,48 +1,58 @@
 package main
 
-// NOTE: There should be NO space between the comments and the `import "C"` line.
-
-/*
-#cgo LDFLAGS: -L. -L../../lib -lcfastlogging
-#include "../../h/cfastlogging.h"
-*/
-import "C"
 import (
 	"fmt"
-	logging "gofastlogging/fastlogging"
+	fl "gofastlogging/fastlogging"
+	"gofastlogging/fastlogging/logging"
+	"gofastlogging/fastlogging/writer"
 )
 
 func main() {
-	server_writers := []logging.WriterConfigEnum{
-		logging.ConsoleWriterConfigNew(logging.DEBUG, true),
-		logging.FileWriterConfigNew(
-			logging.DEBUG,
-			"/tmp/cfastlogging.log",
-			1024,
-			3,
-			-1,
-			-1,
-			logging.Store),
+	console := writer.ConsoleWriterConfigNew(fl.DEBUG, true)
+	if console == nil {
+		panic("Failed to create console writer")
 	}
+	file := writer.FileWriterConfigNew(
+		fl.DEBUG,
+		"/tmp/cfastlogging.log",
+		1024,
+		3,
+		-1,
+		-1,
+		fl.Store)
+	if file == nil {
+		panic("Failed to create file writer")
+	}
+	server_writers := []fl.WriterConfigEnum{*console, *file}
 	server_domain := "LOGSRV"
-	logging_server := logging.New(logging.DEBUG, &server_domain, server_writers, nil, nil)
-	// Set root writer
-	var encryption logging.EncryptionMethodEnum = logging.NONE
-	server_key := logging.CreateRandomKey(encryption.Into())
-	server := logging.ServerConfigNew(logging.DEBUG, "127.0.0.1", &logging.KeyStruct{Key: server_key})
-	logging_server.SetRootWriterConfig(server)
-	//logging_server.SetDebug(3)
+	logging_server := logging.New(fl.DEBUG, &server_domain, server_writers, nil, nil)
+	if logging_server == nil {
+		panic("Failed to create server logger")
+	}
+	// Set root writer, encrypted with a random AES key.
+	// IMPORTANT: server_key is consumed by Rust when the writer config is
+	// created below. Using server_key again afterwards leads to errors!
+	server_key := fl.CreateRandomKey(fl.AES)
+	server := writer.ServerConfigNew(fl.DEBUG, "127.0.0.1", &server_key)
+	if server == nil {
+		panic("Failed to create server writer")
+	}
+	logging_server.SetRootWriterConfig(*server)
 	logging_server.SyncAll(5.0)
 	// Client
 	address_port := logging_server.GetRootServerAddressPort()
 	fmt.Printf("address_port=%s\n", address_port)
 	auth_key := logging_server.GetServerAuthKey()
-	client_writers := []logging.WriterConfigEnum{
-		logging.ClientWriterConfigNew(logging.DEBUG, address_port, &auth_key),
+	client := writer.ClientWriterConfigNew(fl.DEBUG, address_port, &auth_key)
+	if client == nil {
+		panic("Failed to create client writer")
 	}
+	client_writers := []fl.WriterConfigEnum{*client}
 	client_domain := "LOGCLIENT"
-	logging_client := logging.New(logging.DEBUG, &client_domain, client_writers, nil, nil)
-	//logging_client.SetDebug(3)
+	logging_client := logging.New(fl.DEBUG, &client_domain, client_writers, nil, nil)
+	if logging_client == nil {
+		panic("Failed to create client logger")
+	}
 	fmt.Print("Send logs\n")
 	// Test logging
 	logging_client.Trace("Trace message")

@@ -1,30 +1,34 @@
 package main
 
-// NOTE: There should be NO space between the comments and the `import "C"` line.
-
-/*
-#cgo LDFLAGS: -L. -L../../lib -lcfastlogging
-#include "../../h/cfastlogging.h"
-*/
-import "C"
 import (
-	logging "gofastlogging/fastlogging"
-	"unsafe"
+	"fmt"
+	fl "gofastlogging/fastlogging"
+	"gofastlogging/fastlogging/logging"
+	"gofastlogging/fastlogging/writer"
+	"os"
 )
 
-func CallbackWriter(level C.char, domain *C.char, message *C.char) {
-	println("%d %s %s", level, domain, message)
-}
-
 func main() {
-	fn := CallbackWriter
-	writers := []logging.WriterConfigEnum{logging.CallbackWriterConfigNew(logging.DEBUG, uintptr(unsafe.Pointer(&fn)))}
-	logger := logging.New(logging.DEBUG, nil, writers, nil, nil)
-	logger.Trace("Trace message")
-	logger.Debug("Debug message")
-	logger.Info("Info Message")
-	logger.Warning("Warning Message")
-	logger.Error("Error Message")
-	logger.Fatal("Fatal Message")
+	// Define a Go callback function
+	callback := func(level uint8, domain, message string) {
+		fmt.Fprintf(os.Stdout, "[CALLBACK] Level: %d, Domain: %s, Message: %s\n", level, domain, message)
+	}
+
+	// Register the callback writer
+	// NOTE: callback writers are not yet implemented in gofastlogging, so this
+	// will always return an error - see writer.CallbackWriterConfigNew.
+	config, handle, err := writer.CallbackWriterConfigNew(fl.DEBUG, callback)
+	if err != nil {
+		panic(err)
+	}
+	defer handle.UnregisterCallback() // Clean up when done
+
+	// Create a logger with the callback writer
+	logger := logging.New(fl.DEBUG, nil, []fl.WriterConfigEnum{config}, nil, nil)
+	if logger == nil {
+		panic("Failed to create logger")
+	}
+	logger.Info("Hello from callback writer!")
+	logger.Error("This is an error message.")
 	logger.Shutdown(false)
 }

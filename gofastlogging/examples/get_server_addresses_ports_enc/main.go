@@ -1,32 +1,38 @@
 package main
 
-// NOTE: There should be NO space between the comments and the `import "C"` line.
-
-/*
-#cgo LDFLAGS: -L. -L../../lib -lcfastlogging
-#include "../../h/cfastlogging.h"
-*/
-import "C"
 import (
 	"fmt"
-	logging "gofastlogging/fastlogging"
+	fl "gofastlogging/fastlogging"
+	"gofastlogging/fastlogging/logging"
+	"gofastlogging/fastlogging/writer"
 )
 
 func main() {
-	var encryption logging.EncryptionMethodEnum = logging.AES
-	server_key := logging.CreateRandomKey(encryption.Into())
-	server_writers := []logging.WriterConfigEnum{
-		logging.ConsoleWriterConfigNew(logging.DEBUG, true),
-		// IMPORTANT: server_key is consumed here by Rust. Using server_key after this call leads to errors!
-		logging.ServerConfigNew(logging.DEBUG, "127.0.0.1", &logging.KeyStruct{Key: server_key}),
+	console := writer.ConsoleWriterConfigNew(fl.DEBUG, true)
+	if console == nil {
+		panic("Failed to create console writer")
 	}
+	// IMPORTANT: server_key is consumed by Rust when the server writer config
+	// is created below. Using server_key again afterwards leads to errors!
+	server_key := fl.CreateRandomKey(fl.AES)
+	server := writer.ServerConfigNew(fl.DEBUG, "127.0.0.1", &server_key)
+	if server == nil {
+		panic("Failed to create server writer")
+	}
+	server_writers := []fl.WriterConfigEnum{*console, *server}
 	domain := "LOGSRV"
-	logger := logging.New(logging.DEBUG, &domain, server_writers, nil, nil)
+	logger := logging.New(fl.DEBUG, &domain, server_writers, nil, nil)
+	if logger == nil {
+		panic("Failed to create logger")
+	}
 	// IMPORTANT: We have to create another instance of server_key, because it was consumed above.
-	server_key2 := logging.CreateRandomKey(encryption.Into())
-	server := logging.ServerConfigNew(logging.DEBUG, "127.0.0.1", &logging.KeyStruct{Key: server_key2})
-	fmt.Printf("server_config=%p\n", server)
-	logger.SetRootWriterConfig(server)
+	server_key2 := fl.CreateRandomKey(fl.AES)
+	root_server := writer.ServerConfigNew(fl.DEBUG, "127.0.0.1", &server_key2)
+	if root_server == nil {
+		panic("Failed to create root server writer")
+	}
+	fmt.Printf("server_config=%p\n", root_server)
+	logger.SetRootWriterConfig(*root_server)
 	logger.SyncAll(5.0)
 	// Show addresses and ports
 	ports := logger.GetRootServerPorts()

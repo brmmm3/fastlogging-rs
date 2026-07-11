@@ -1,19 +1,14 @@
 package main
 
-// NOTE: There should be NO space between the comments and the `import "C"` line.
-
-/*
-#cgo LDFLAGS: -L. -L../../lib -lcfastlogging
-#include "../../h/cfastlogging.h"
-*/
-import "C"
 import (
-	logging "gofastlogging/fastlogging"
+	fl "gofastlogging/fastlogging"
 	"gofastlogging/fastlogging/logger"
+	"gofastlogging/fastlogging/logging"
+	"gofastlogging/fastlogging/writer"
 	"sync"
 )
 
-func loggerThread(logger_thread logger.Logger, wg *sync.WaitGroup) {
+func loggerThread(logger_thread *logger.Logger, wg *sync.WaitGroup) {
 	logger_thread.Trace("Trace message")
 	logger_thread.Debug("Debug message")
 	logger_thread.Info("Info Message")
@@ -24,10 +19,20 @@ func loggerThread(logger_thread logger.Logger, wg *sync.WaitGroup) {
 }
 
 func main() {
-	writers := []logging.WriterConfigEnum{logging.ConsoleWriterConfigNew(logging.DEBUG, true)}
-	logger_main := logging.New(logging.DEBUG, nil, writers, nil, nil)
+	console := writer.ConsoleWriterConfigNew(fl.DEBUG, true)
+	if console == nil {
+		panic("Failed to create console writer")
+	}
+	writers := []fl.WriterConfigEnum{*console}
+	logger_main := logging.New(fl.DEBUG, nil, writers, nil, nil)
+	if logger_main == nil {
+		panic("Failed to create logger")
+	}
 	logger_name := "LoggerThread"
-	logger_thread := logger.NewExt(logging.DEBUG, &logger_name, 1, 1)
+	logger_thread := logger.NewExt(fl.DEBUG, &logger_name, 1, 1)
+	if logger_thread == nil {
+		panic("Failed to create thread logger")
+	}
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go loggerThread(logger_thread, &wg)

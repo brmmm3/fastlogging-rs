@@ -1,24 +1,28 @@
 package main
 
-// NOTE: There should be NO space between the comments and the `import "C"` line.
-
-/*
-#cgo LDFLAGS: -L. -L../../lib -lcfastlogging
-#include "../../h/cfastlogging.h"
-*/
-import "C"
-import logging "gofastlogging/fastlogging"
+import (
+	fl "gofastlogging/fastlogging"
+	"gofastlogging/fastlogging/logging"
+	"gofastlogging/fastlogging/writer"
+	"log"
+)
 
 func main() {
-	logger := logging.Default()
-	file := logging.FileWriterConfigNew(logging.DEBUG,
+	logger, err := logging.Default()
+	if err != nil {
+		log.Fatal(err)
+	}
+	file := writer.FileWriterConfigNew(fl.DEBUG,
 		"/tmp/gofastlogging.log",
 		1024,
 		3,
 		-1,
 		-1,
-		logging.Store)
-	logger.AddWriterConfig(file)
+		fl.Store)
+	if file == nil {
+		panic("Failed to create file writer")
+	}
+	logger.AddWriterConfig(*file)
 	logger.Trace("Trace message")
 	logger.Debug("Debug message")
 	logger.Info("Info Message")
