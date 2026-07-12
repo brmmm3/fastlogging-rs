@@ -1,0 +1,3 @@
+[global]
+# Disable specific rules
+disable = ["MD013", "MD060"]
