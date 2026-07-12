@@ -1,17 +1,41 @@
-# Writers
+# Examples
 
-Writers are the sinks for log messages. A writer configuration must be created first using the factory functions in the `writer` package (`gofastlogging/fastlogging/writer`), then passed to `logging.New` or `Logging.AddWriterConfig`. All factory functions return `*fl.WriterConfigEnum` (a pointer) and may return `nil` on failure — no error is returned, so check for `nil` if you want to fail loudly. When assembling a `[]fl.WriterConfigEnum` slice for `logging.New`, dereference each pointer with `*`.
+The following examples are available in `gofastlogging/examples/`. Build them with:
 
-## Console Writer
-
-```go
-func ConsoleWriterConfigNew(level uint8, colors bool) *fl.WriterConfigEnum
+```sh
+cd gofastlogging && make build-debug
 ```
 
-- `level` — log level filter (e.g. `fl.DEBUG`)
-- `colors` — enables colored output
+**Prerequisite:** Build the C library first with `cargo build -p cfastlogging`.
 
-### Example
+## 1. Default Logger (`examples/default`)
+
+```go
+package main
+
+import (
+    "fmt"
+    "gofastlogging/fastlogging/logging"
+    "log"
+)
+
+func main() {
+    logger, err := logging.Default()
+    if err != nil {
+        log.Fatal(err)
+    }
+    fmt.Printf("Default logger created: %+v\n", logger)
+    logger.Trace("Trace message")
+    logger.Debug("Debug message")
+    logger.Info("Info Message")
+    logger.Warning("Warning Message")
+    logger.Error("Error Message")
+    logger.Critical("Critical Message")
+    logger.Shutdown(false)
+}
+```
+
+## 2. Console Logger (`examples/console`)
 
 ```go
 package main
@@ -25,45 +49,49 @@ import (
 func main() {
     console := writer.ConsoleWriterConfigNew(fl.DEBUG, true)
     if console == nil {
-        panic("failed to create console writer config")
+        panic("Failed to create writer")
     }
-
-    writers := []fl.WriterConfigEnum{
-        *console,
+    writers := []fl.WriterConfigEnum{*console}
+    logger := logging.New(fl.DEBUG, nil, writers, nil, nil)
+    if logger == nil {
+        panic("Failed to create logger")
     }
-
-    logger := logging.New(writers, fl.DEBUG)
-    defer logger.SyncAll(1.0)
-
-    logger.Debugf("Example", "hello from console writer")
+    logger.Trace("Trace message")
+    logger.Debug("Debug message")
+    logger.Info("Info Message")
+    logger.Warning("Warning Message")
+    logger.Error("Error Message")
+    logger.Fatal("Fatal Message")
+    logger.Shutdown(false)
 }
 ```
 
-## File Writer
+## 3. Root Logger (`examples/console_root`)
 
 ```go
-func FileWriterConfigNew(
-    level uint8,
-    path string,
-    size uint32,
-    backlog uint32,
-    timeout int32,
-    time int64,
-    compression fl.CompressionMethod,
-) *fl.WriterConfigEnum
+package main
+
+import (
+    fl "gofastlogging/fastlogging"
+    "log"
+)
+
+func main() {
+    err := fl.Init()
+    if err != nil {
+        log.Fatal(err)
+    }
+    fl.Trace("Trace message")
+    fl.Debug("Debug message")
+    fl.Info("Info Message")
+    fl.Warning("Warning Message")
+    fl.Error("Error Message")
+    fl.Fatal("Fatal Message")
+    fl.Shutdown(false)
+}
 ```
 
-| Parameter     | Type                      | Description                                                              |
-|---------------|---------------------------|--------------------------------------------------------------------------|
-| `level`       | `uint8`                   | Log level filter                                                         |
-| `path`        | `string`                  | Path to the log file                                                     |
-| `size`        | `uint32`                  | Max file size in bytes before rotation (0 = no size limit)               |
-| `backlog`     | `uint32`                  | Max number of backup files                                               |
-| `timeout`     | `int32`                   | Timeout in seconds after last log message before rotation (-1 = none)    |
-| `time`        | `int64`                   | Time of day for rotation as Unix timestamp seconds (-1 = no time rotation) |
-| `compression` | `fl.CompressionMethod`    | `fl.Store`, `fl.Deflate`, `fl.Zstd`, or `fl.Lzma`                        |
-
-### Example
+## 4. File Logger (`examples/file`)
 
 ```go
 package main
@@ -77,40 +105,28 @@ import (
 func main() {
     file := writer.FileWriterConfigNew(
         fl.DEBUG,
-        "/tmp/myapp.log",
-        1024*1024,
-        5,
-        -1,
-        -1,
-        fl.Store,
-    )
+        "/tmp/cfastlogging.log",
+        1024, 3, -1, -1,
+        fl.Store)
     if file == nil {
-        panic("failed to create file writer config")
+        panic("Failed to create file writer")
     }
-
-    writers := []fl.WriterConfigEnum{
-        *file,
+    writers := []fl.WriterConfigEnum{*file}
+    logger := logging.New(fl.DEBUG, nil, writers, nil, nil)
+    if logger == nil {
+        panic("Failed to create logger")
     }
-
-    logger := logging.New(writers, fl.DEBUG)
-    defer logger.SyncAll(1.0)
-
-    logger.Infof("Example", "hello from file writer")
+    logger.Trace("Trace message")
+    logger.Debug("Debug message")
+    logger.Info("Info Message")
+    logger.Warning("Warning Message")
+    logger.Error("Error Message")
+    logger.Fatal("Fatal Message")
+    logger.Shutdown(false)
 }
 ```
 
-## Syslog Writer
-
-```go
-func SyslogWriterConfigNew(level uint8, hostname, pname string, pid uint32) *fl.WriterConfigEnum
-```
-
-- `level` — log level filter
-- `hostname` — hostname added to log messages
-- `pname` — process name added to log messages
-- `pid` — process ID (0 to skip)
-
-### Example
+## 5. Extended Config (`examples/ext_config`)
 
 ```go
 package main
@@ -122,75 +138,218 @@ import (
 )
 
 func main() {
-    syslog := writer.SyslogWriterConfigNew(fl.DEBUG, "myhost", "myapp", 0)
-    if syslog == nil {
-        panic("failed to create syslog writer config")
+    console := writer.ConsoleWriterConfigNew(fl.DEBUG, true)
+    if console == nil {
+        panic("Failed to create writer")
     }
-
-    writers := []fl.WriterConfigEnum{
-        *syslog,
+    writers := []fl.WriterConfigEnum{*console}
+    logger := logging.New(fl.DEBUG, nil, writers, nil, nil)
+    if logger == nil {
+        panic("Failed to create logger")
     }
-
-    logger := logging.New(writers, fl.DEBUG)
-    defer logger.SyncAll(1.0)
-
-    logger.Infof("Example", "hello from syslog writer")
+    extConfig := fl.NewExtConfig(fl.Xml, true, false, true, false, true)
+    logger.SetExtConfig(extConfig)
+    logger.Trace("Trace message")
+    logger.Debug("Debug message")
+    logger.Info("Info Message")
+    logger.Warning("Warning Message")
+    logger.Error("Error Message")
+    logger.Fatal("Fatal Message")
+    logger.Shutdown(false)
 }
 ```
 
-## Callback Writer
-
-> **NOT YET IMPLEMENTED.** The callback writer currently returns an error and is not functional. The signature and types below document the intended API only.
+## 6. Syslog (`examples/syslog`)
 
 ```go
-func CallbackWriterConfigNew(
-    level uint8,
-    callback func(level uint8, domain, message string),
-) (fl.WriterConfigEnum, CallbackHandle, error)
+package main
+
+import (
+    fl "gofastlogging/fastlogging"
+    "gofastlogging/fastlogging/logging"
+    "gofastlogging/fastlogging/writer"
+)
+
+func main() {
+    syslogWriter := writer.SyslogWriterConfigNew(fl.DEBUG, "hostname", "pname", 1234)
+    if syslogWriter == nil {
+        panic("Failed to create syslog writer")
+    }
+    writers := []fl.WriterConfigEnum{*syslogWriter}
+    logger := logging.New(fl.DEBUG, nil, writers, nil, nil)
+    if logger == nil {
+        panic("Failed to create logger")
+    }
+    logger.Trace("Trace message")
+    logger.Debug("Debug message")
+    logger.Info("Info Message")
+    logger.Warning("Warning Message")
+    logger.Error("Error Message")
+    logger.Fatal("Fatal Message")
+    logger.Shutdown(false)
+}
 ```
 
-### Intended behavior
-
-The callback writer routes log messages into a user-supplied Go callback, allowing the application to react to log lines in-process (for example, to forward them to a UI, an in-memory ring buffer, or another downstream system).
-
-### Intended parameters
-
-- `level` — log level filter
-- `callback` — a Go function with the signature `func(level uint8, domain, message string)`, invoked once per log message that passes the level filter:
-  - `level` — the level of the message
-  - `domain` — the domain string of the message
-  - `message` — the formatted message text
-
-### `CallbackHandle`
-
-The function returns a `CallbackHandle` alongside the writer config. The handle exposes:
+## 7. Threads (`examples/threads`)
 
 ```go
-func (h CallbackHandle) UnregisterCallback()
+package main
+
+import (
+    fl "gofastlogging/fastlogging"
+    "gofastlogging/fastlogging/logger"
+    "gofastlogging/fastlogging/logging"
+    "gofastlogging/fastlogging/writer"
+    "sync"
+)
+
+func loggerThread(lt *logger.Logger, wg *sync.WaitGroup) {
+    lt.Trace("Trace message")
+    lt.Debug("Debug message")
+    lt.Info("Info Message")
+    lt.Warning("Warning Message")
+    lt.Error("Error Message")
+    lt.Fatal("Fatal Message")
+    wg.Done()
+}
+
+func main() {
+    console := writer.ConsoleWriterConfigNew(fl.DEBUG, true)
+    if console == nil {
+        panic("Failed to create console writer")
+    }
+    writers := []fl.WriterConfigEnum{*console}
+    loggerMain := logging.New(fl.DEBUG, nil, writers, nil, nil)
+    if loggerMain == nil {
+        panic("Failed to create logger")
+    }
+    name := "LoggerThread"
+    threadLogger := logger.NewExt(fl.DEBUG, &name, 1, 1)
+    if threadLogger == nil {
+        panic("Failed to create thread logger")
+    }
+    var wg sync.WaitGroup
+    wg.Add(1)
+    go loggerThread(threadLogger, &wg)
+    loggerMain.Trace("Trace message")
+    loggerMain.Debug("Debug message")
+    loggerMain.Info("Info Message")
+    loggerMain.Warning("Warning Message")
+    loggerMain.Error("Error Message")
+    loggerMain.Fatal("Fatal Message")
+    wg.Wait()
+    loggerMain.Shutdown(false)
+}
 ```
 
-Calling `UnregisterCallback()` removes the callback from the writer, after which messages will no longer be delivered to it.
-
-### Current behavior
-
-Calling `CallbackWriterConfigNew` currently returns a non-nil error:
-
-```text
-callback writer not yet implemented
-```
-
-Do not rely on this writer until it is implemented. Track the upstream issue or release notes for updates.
-
-## Adding and removing writers at runtime
-
-In addition to passing writers to `logging.New`, you can add or remove writers after a `Logging` instance has been created:
+## 8. Network — Unencrypted (`examples/net_unencrypted_one_client`)
 
 ```go
-func (l *Logging) AddWriterConfig(config fl.WriterConfigEnum) error
-func (l *Logging) RemoveWriter(wid uint32) error
+package main
+
+import (
+    "fmt"
+    fl "gofastlogging/fastlogging"
+    "gofastlogging/fastlogging/logging"
+    "gofastlogging/fastlogging/writer"
+)
+
+func main() {
+    console := writer.ConsoleWriterConfigNew(fl.DEBUG, true)
+    file := writer.FileWriterConfigNew(fl.DEBUG, "/tmp/cfastlogging.log", 1024, 3, -1, -1, fl.Store)
+    serverWriters := []fl.WriterConfigEnum{*console, *file}
+    serverDomain := "LOGSRV"
+    loggingServer := logging.New(fl.DEBUG, &serverDomain, serverWriters, nil, nil)
+
+    server := writer.ServerConfigNew(fl.DEBUG, "127.0.0.1", nil)
+    loggingServer.SetRootWriterConfig(*server)
+    loggingServer.SyncAll(5.0)
+
+    addrPort := loggingServer.GetRootServerAddressPort()
+    fmt.Printf("address_port=%s\n", addrPort)
+
+    client := writer.ClientWriterConfigNew(fl.DEBUG, addrPort, nil)
+    clientWriters := []fl.WriterConfigEnum{*client}
+    clientDomain := "LOGCLIENT"
+    loggingClient := logging.New(fl.DEBUG, &clientDomain, clientWriters, nil, nil)
+
+    loggingClient.Trace("Trace message")
+    loggingClient.Debug("Debug message")
+    loggingClient.Info("Info Message")
+
+    loggingServer.Trace("Trace message")
+    loggingServer.Debug("Debug message")
+    loggingServer.Info("Info Message")
+
+    loggingClient.SyncAll(1.0)
+    loggingServer.SyncAll(1.0)
+    loggingClient.Shutdown(false)
+    loggingServer.Shutdown(false)
+}
 ```
 
-- `AddWriterConfig` adds a writer configuration to an existing logger. Pass a `fl.WriterConfigEnum` value (not the pointer returned by the factory functions — dereference with `*` first).
-- `RemoveWriter` removes a previously added writer by its writer ID. The writer ID is assigned by the library when the writer is added.
+## 9. Network — Encrypted (`examples/net_unencrypted_one_client_enc`)
 
-See `LOGGING.md` for the full `Logging` API.
+```go
+package main
+
+import (
+    "fmt"
+    fl "gofastlogging/fastlogging"
+    "gofastlogging/fastlogging/logging"
+    "gofastlogging/fastlogging/writer"
+)
+
+func main() {
+    console := writer.ConsoleWriterConfigNew(fl.DEBUG, true)
+    file := writer.FileWriterConfigNew(fl.DEBUG, "/tmp/cfastlogging.log", 1024, 3, -1, -1, fl.Store)
+    serverWriters := []fl.WriterConfigEnum{*console, *file}
+    serverDomain := "LOGSRV"
+    loggingServer := logging.New(fl.DEBUG, &serverDomain, serverWriters, nil, nil)
+
+    // Generate random AES key
+    serverKey := fl.CreateRandomKey(fl.AES)
+    server := writer.ServerConfigNew(fl.DEBUG, "127.0.0.1", &serverKey)
+    loggingServer.SetRootWriterConfig(*server)
+    loggingServer.SyncAll(5.0)
+
+    addrPort := loggingServer.GetRootServerAddressPort()
+    fmt.Printf("address_port=%s\n", addrPort)
+
+    // Retrieve key for client (don't reuse serverKey — it's consumed)
+    authKey := loggingServer.GetServerAuthKey()
+    client := writer.ClientWriterConfigNew(fl.DEBUG, addrPort, &authKey)
+    clientWriters := []fl.WriterConfigEnum{*client}
+    clientDomain := "LOGCLIENT"
+    loggingClient := logging.New(fl.DEBUG, &clientDomain, clientWriters, nil, nil)
+
+    loggingClient.Trace("Trace message")
+    loggingClient.Info("Info Message")
+    loggingServer.Info("Server message")
+
+    loggingClient.SyncAll(1.0)
+    loggingServer.SyncAll(1.0)
+    loggingClient.Shutdown(false)
+    loggingServer.Shutdown(false)
+}
+```
+
+## Available Examples
+
+| Example | Description |
+|---|---|
+| `default` | Default logger (reads config file or defaults) |
+| `console` | Console writer |
+| `console_root` | Root logger (package-level functions) |
+| `console_add_writer` | Adding a writer at runtime |
+| `file` | File writer with rotation |
+| `file_add_writer` | Adding file writer at runtime |
+| `syslog` | Syslog writer |
+| `callback` | Callback writer (not yet implemented) |
+| `threads` | Multi-threaded logging with `Logger` |
+| `ext_config` | Extended formatting config |
+| `net_unencrypted_one_client` | Network logging, unencrypted |
+| `net_unencrypted_one_client_enc` | Network logging, AES encrypted |
+| `get_server_addresses_ports` | Querying server addresses/ports |
+| `get_server_addresses_ports_enc` | Querying server addresses/ports (encrypted) |
+| `get_server_configs` | Querying server configs |
