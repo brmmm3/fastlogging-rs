@@ -1,195 +1,174 @@
 # Definitions
 
-## Log level names and their values
+This page documents all constants, enums, and configuration classes defined in `org.logging.FastLogging`.
 
-`NOLOG` (100) &ensp;&ensp;&ensp;&ensp;&ensp; No logging.  
-`EXCEPTION` (60) &nbsp; Log exception messages. In addition to the message text the exception info (output of traceback.format_exc) is logged (SLOW!).  
-`CRITICAL` (50) &nbsp;&ensp; Log fatal/critical messages. Default color is bright red.  
-`FATAL` (50) &ensp;&ensp;&ensp;&ensp;&ensp; Same as CRITICAL.  
-`ERROR` (40) &ensp;&ensp;&ensp;&ensp;&ensp; Log also error messages. Default color is red.  
-`WARNING` (30) &ensp;&ensp;&ensp; Log also warning messages. Default color is bright yellow.  
-`SUCCESS` (25) &ensp;&ensp;&ensp; Success messages.  
-`INFO` (20) &ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&nbsp; Log also info messages. Default color is bright green.  
-`DEBUG` (10) &ensp;&ensp;&ensp;&ensp;&ensp;  Log also debug messages. Default color is white.  
-`TRACE` (5) &ensp;&ensp;&ensp;&ensp;&ensp;  Trace messages.  
-`NOTSET` (0) &ensp;&ensp;&ensp;&ensp; All messages are logged.
+## Log Level Constants
+
+All log level constants are `public static final int` members of `FastLogging`.
+
+| Constant | Value | Description |
+| --- | --- | --- |
+| `NOLOG` | 100 | No logging |
+| `EXCEPTION` | 60 | Log exception messages |
+| `CRITICAL` | 50 | Log critical messages. Color: bright red |
+| `FATAL` | 50 | Same as `CRITICAL` |
+| `ERROR` | 40 | Log error messages. Color: red |
+| `WARNING` | 30 | Log warning messages. Color: bright yellow |
+| `WARN` | 30 | Same as `WARNING` |
+| `SUCCESS` | 25 | Success messages |
+| `INFO` | 20 | Log info messages. Color: bright green |
+| `DEBUG` | 10 | Log debug messages. Color: white |
+| `TRACE` | 5 | Trace messages |
+| `NOTSET` | 0 | All messages are logged |
+
+## `Level2Sym`
+
+```java
+public static String Level2Sym(int level)
+```
+
+Static method that returns the level name as a `String` (e.g. `"DEBUG"`, `"INFO"`). Returns `"?"` for unknown levels.
 
 ## Enum `LevelSyms`
 
-The enum has following values:
+Controls the symbol style used when rendering log levels.
 
 ```java
-enum LevelSyms {
+public enum LevelSyms {
     Sym(0), Short(1), Str(2);
-
-    private final int value;
-
-    private LevelSyms(int value) {
-        this.value = value;
-    }
-
-    public int getValue() {
-        return value;
-    }
+    // each has getValue() returning the int
 }
 ```
 
+| Value | Name | Description |
+| --- | --- | --- |
+| `Sym` | 0 | 1-char symbol (`!`, `F`, `E`, `W`, ...) |
+| `Short` | 1 | 3-char text (`EXC`, `FTL`, `ERR`, `WRN`, ...) |
+| `Str` | 2 | Long text (`EXCEPTION`, `FATAL`, `ERROR`, ...). Default |
+
 ## Enum `MessageStructEnum`
 
-The enum has following values:
+Controls the message serialization format.
 
 ```java
 public enum MessageStructEnum {
     String(0), Json(1), Xml(2);
-
-    private final int value;
-
-    private MessageStructEnum(int value) {
-        this.value = value;
-    }
-
-    public int getValue() {
-        return value;
-    }
 }
 ```
 
 ## Enum `WriterTypeEnum`
 
-The enum has following values:
+Identifies the writer type. `Root` represents the root logging instance.
 
 ```java
 public enum WriterTypeEnum {
     Root(0), Console(1), File(2), Client(3), Server(4), Syslog(5);
-
-    private final int value;
-
-    private WriterTypeEnum(int value) {
-        this.value = value;
-    }
-
-    public int getValue() {
-        return value;
-    }
 }
 ```
 
 ## Enum `CompressionMethodEnum`
 
-The enum has following values:
+Compression methods applied to rotated backup files.
 
 ```java
 public enum CompressionMethodEnum {
     Store(0), Deflate(1), Zstd(2), Lzma(3);
-
-    private final int value;
-
-    private CompressionMethodEnum(int value) {
-        this.value = value;
-    }
-
-    public int getValue() {
-        return value;
-    }
 }
 ```
 
 ## Enum `EncryptionMethod`
 
-The enum has following values:
+Encryption methods for network client/server traffic.
 
 ```java
 public enum EncryptionMethod {
     NONE(0), AuthKey(1), AES(2);
-
-    private final int value;
-
-    private EncryptionMethod(int value) {
-        this.value = value;
-    }
-
-    public int getValue() {
-        return value;
-    }
 }
 ```
 
 ## Class `ExtConfig`
 
-This class is for configuring extended formatting setting. It has following members:
-
 ```java
-static public class ExtConfig {
-    long instance_ptr = 0;
-
-    public ExtConfig(MessageStructEnum structured, boolean hostname, boolean pname, boolean pid, boolean tname,
-            boolean tid) {
-        instance_ptr = extConfigNew(structured.getValue(), hostname, pname, pid, tname, tid);
-    }
+public static class ExtConfig {
+    long instance_ptr;
+    public ExtConfig(MessageStructEnum structured, boolean hostname, boolean pname, boolean pid, boolean tname, boolean tid)
 }
 ```
+
+Creates an extended formatting configuration. The boolean flags control whether each field is included in log messages:
+
+- `structured` — output format (`String`, `Json`, or `Xml`)
+- `hostname` — include the host name
+- `pname` — include the process name
+- `pid` — include the process ID
+- `tname` — include the thread name
+- `tid` — include the thread ID
 
 ## Class `ConsoleWriterConfig`
 
-```rust
-static public class ConsoleWriterConfig {
-    long instance_ptr = 0;
-
-    public ConsoleWriterConfig(int level) {
-        instance_ptr = consoleWriterConfigNew(level, false);
-    }
-
-    public ConsoleWriterConfig(int level, boolean colors) {
-        instance_ptr = consoleWriterConfigNew(level, colors);
-    }
+```java
+public static class ConsoleWriterConfig {
+    long instance_ptr;
+    public ConsoleWriterConfig(int level)
+    public ConsoleWriterConfig(int level, boolean colors)
 }
 ```
+
+- `level` — log level filter for this writer
+- `colors` — whether to emit ANSI color codes (defaults to `false` in the single-arg constructor)
 
 ## Class `FileWriterConfig`
 
-```rust
-static public class FileWriterConfig {
-    long instance_ptr = 0;
-
-    public FileWriterConfig(int level, String path) {
-        instance_ptr = fileWriterConfigNew(level, path, 0, 0, 0, 0, 0);
-    }
-
-    public FileWriterConfig(int level, String path, int size, int backlog, long timeout, long time,
-            CompressionMethodEnum compression) {
-        instance_ptr = fileWriterConfigNew(level, path, size, backlog, timeout, time, compression.getValue());
-    }
+```java
+public static class FileWriterConfig {
+    long instance_ptr;
+    public FileWriterConfig(int level, String path)
+    public FileWriterConfig(int level, String path, int size, int backlog, long timeout, long time, CompressionMethodEnum compression)
 }
 ```
+
+Full constructor parameters:
+
+- `level` — log level filter
+- `path` — path to log file
+- `size` — max file size in bytes (0 = no limit)
+- `backlog` — max number of backup files
+- `timeout` — timeout in seconds (0 = no timeout)
+- `time` — time of day for rotation as seconds (0 = no time-based rotation)
+- `compression` — compression method for backup files
 
 ## Class `ClientWriterConfig`
 
-```rust
-static public class ClientWriterConfig {
-    long instance_ptr = 0;
-
-    public ClientWriterConfig(int level, String address, int port) {
-        instance_ptr = clientWriterConfigNew(level, address, port, 0, null);
-    }
-
-    public ClientWriterConfig(int level, String address, int port, EncryptionMethod method, String key) {
-        instance_ptr = clientWriterConfigNew(level, address, port, method.getValue(), key);
-    }
+```java
+public static class ClientWriterConfig {
+    long instance_ptr;
+    public ClientWriterConfig(int level, String address, int port)
+    public ClientWriterConfig(int level, String address, int port, EncryptionMethod method, String key)
 }
 ```
+
+- `level` — log level filter
+- `address` — remote server address
+- `port` — remote server port
+- `method` — encryption method (`NONE`, `AuthKey`, or `AES`)
+- `key` — encryption key (ignored when `method` is `NONE`)
 
 ## Class `ServerConfig`
 
-```rust
-static public class ServerConfig {
-    long instance_ptr = 0;
-
-    public ServerConfig(int level, String address, int port) {
-        instance_ptr = serverConfigNew(level, address, port, 0, null);
-    }
-
-    public ServerConfig(int level, String address, int port, EncryptionMethod method, String key) {
-        instance_ptr = serverConfigNew(level, address, port, method.getValue(), key);
-    }
+```java
+public static class ServerConfig {
+    long instance_ptr;
+    public ServerConfig(int level, String address, int port)
+    public ServerConfig(int level, String address, int port, EncryptionMethod method, String key)
 }
 ```
+
+- `level` — log level filter
+- `address` — bind address
+- `port` — listen port
+- `method` — encryption method (`NONE`, `AuthKey`, or `AES`)
+- `key` — encryption key (ignored when `method` is `NONE`)
+
+## Not Yet Wrapped
+
+`SyslogWriterConfig` and `CallbackWriterConfig` do **not** exist as Java wrapper classes yet, although the underlying JNI/Rust layer supports both writer types. Syslog can be partially used via the `Logging(int level, String domain, int syslog)` constructor. The callback writer has no Java wrapper.

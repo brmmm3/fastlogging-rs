@@ -1,52 +1,71 @@
 # Writers
 
-Writers are the sinks for the log messages. To add a writer a writer configuration must be created first and then with the `add_writer` method a new writer is created. To remove a writer the `remove_writer` method must be called.
+Writers are the sinks for log messages. Writer configuration objects are created first, then passed to `Logging` constructors. All writer config classes are nested static classes of `FastLogging` and hold a native pointer (`instance_ptr`).
 
-## `ConsoleWriterConfig(level: int, colors: bool)`
+## Console Writer
 
-Create new console writer configuration.  
-`level` sets the log level filter.  
-If `colors` is `True` the console output will be colored.
+```java
+public static class ConsoleWriterConfig {
+    public ConsoleWriterConfig(int level)
+    public ConsoleWriterConfig(int level, boolean colors)
+}
+```
 
-## `FileWriterConfig(level: int, path: str, size: int = None, backlog: int = None, timeout: Duration = None, time: SystemTime = None, compression: CompressionMethodEnum = None)`
+- `level` — log level filter (e.g. `FastLogging.DEBUG`)
+- `colors` — enables colored output (default false in the single-arg constructor)
 
-Create new file writer configuration.  
-`level` sets the log level filter.  
-`path` is the path to the log file.  
-`size` if provided sets the maximum size of a the log file in bytes. If the file size is reached a file rotation will take place.  
-`backlog` if provided sets the maximum number of backup files.  
-`timeout` if provided sets the timeout after the last log messages. If the timeout is reached a file rotation will take place.
-`time` if provided sets the time of the day when a file rotation will take place.
-`compression` if provided sets the compression method for the backup file. Valid values are `Store`, `Deflate`, `Zstd`, `Lzma`.
+Example:
 
-## `ServerConfig(level: int, address: str, key: EncryptionMethod = None)`
+```java
+ConsoleWriterConfig console = new ConsoleWriterConfig(FastLogging.DEBUG, true);
+Logging logging = new Logging(FastLogging.DEBUG, "root", console);
+```
 
-Create new server configuration.  
-`level` sets the log level filter.  
-`address` is the listening IP address.  
-`key` if provided sets the authentication or AES encryption key.
+## File Writer
 
-## `ClientWriterConfig(level: int, address: str, key: EncryptionMethod = None)`
+```java
+public static class FileWriterConfig {
+    public FileWriterConfig(int level, String path)
+    public FileWriterConfig(int level, String path, int size, int backlog, long timeout, long time, CompressionMethodEnum compression)
+}
+```
 
-Create new client writer configuration.  
-`level` sets the log level filter.  
-`address` is the target IP address.  
-`key` if provided sets the authentication or AES encryption key.
+Parameters:
 
-## `SyslogWriterConfig(level: int, hostname: str = None, pname: str = None, pid: int = 0)`
+- `level` — log level filter
+- `path` — path to the log file
+- `size` — max file size in bytes before rotation (0 = no size limit)
+- `backlog` — max number of backup files
+- `timeout` — timeout in seconds after last log message before rotation (0 = no timeout)
+- `time` — time of day for rotation in seconds (0 = no time-based rotation)
+- `compression` — `CompressionMethodEnum.Store`, `.Deflate`, `.Zstd`, `.Lzma`
 
-Create new syslog writer configuration.  
-`level` sets the log level filter.  
-`hostname` if provided sets the hostname to be added to the log messages.
-`pname` if provided sets the process name to be added to the log messages.
-`pid` if provided sets the process id to be added to the log messages.
+Example:
 
-## `CallbackWriterConfig(level: int, callback: Py<PyAny>)`
+```java
+FileWriterConfig file = new FileWriterConfig(FastLogging.DEBUG, "/tmp/app.log",
+    1048576, 5, 0, 0, CompressionMethodEnum.Store);
+Logging logging = new Logging(FastLogging.DEBUG, "root", file);
+```
 
-Create new callback writer configuration. This writer can be used for individual log message handling.  
-`level` sets the log level filter.  
-`callback` is the Python callback function to be called for every log message. The callback function must have the followin definition: `fct(level: int, domain: str, message: str)`.
+## Syslog Writer
 
-### `set_callback(callback: Py<PyAny> = None)`
+The JNI layer supports syslog (`syslogWriterConfigNew`), but there is no Java `SyslogWriterConfig` wrapper class yet. To use syslog, pass a syslog level to the `Logging(int level, String domain, int syslog)` constructor:
 
-Set a new callback function if provided. In case of `None` the current callback function will be removed, which disabled the callback writer.
+```java
+Logging logging = new Logging(FastLogging.DEBUG, "root", FastLogging.DEBUG);
+```
+
+The `syslog` parameter is an `int` log level (-1 = no syslog).
+
+## Callback Writer
+
+The JNI layer supports callbacks (`callbackWriterConfigNew`), but there is no Java `CallbackWriterConfig` wrapper class in the current release. This is a known gap.
+
+## Adding/removing writers at runtime
+
+```java
+void addWriter(long writerPtr)        // pass writerConfig.instance_ptr
+void removeWriter(WriterTypeEnum writer)
+void removeWriter(WriterTypeEnum writer, String key)
+```

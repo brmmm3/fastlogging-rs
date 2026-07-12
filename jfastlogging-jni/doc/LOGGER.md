@@ -1,69 +1,63 @@
-# API of the LOGGER
+# Logger
 
-## `Logger(level: int, domain: str, indent: Tuple[int, int, int] = None, tname: bool = False, tid: bool = False)`
+The `Logger` class is a non-static inner class of `FastLogging`: `FastLogging.Logger`. It represents a per-thread or per-domain logging handle attached to a `Logging` instance via `addLogger()`.
 
-Create `Logger` instance. `level` and `domain` are clear and need no further explanation.
-With `indent`, if provided, log messages are indented with the following parameters:  
-`indent = (offset, increment, maximum)`  
-`offset` = Initial indent level  
-`increment` = Increment of indent by call level  
-`maximum` = Maximum increment  
-With `tname` is `True` the thread name is added to the log messages.  
-With `tid` is `True` the thread id is added to the log messages.
+Note: Because `Logger` is a non-static inner class, you need a `FastLogging` instance to create one. In practice, since `FastLogging` uses `System.loadLibrary` in its static initializer, you typically just need to reference the class first.
 
-## `set_level(level: u8)`
+## Constructors
 
-Set log level to `level`.
+| Constructor | Description |
+|---|---|
+| `Logger()` | Default: level NOTSET, domain null |
+| `Logger(int level)` | Level, domain null |
+| `Logger(String domain)` | Level NOTSET, domain set |
+| `Logger(int level, String domain)` | Level + domain |
+| `Logger(int level, String domain, boolean tname, boolean tid)` | Level + domain + thread name/id logging |
 
-## `level() -> u8`
+Example:
 
-Get current log level.
+```java
+FastLogging fastLogging = new FastLogging(); // triggers static initializer
+FastLogging.Logger logger = fastLogging.new Logger(FastLogging.DEBUG, "WorkerThread", true, true);
+```
 
-## `set_domain(domain: str)`
+Note: Creating a `FastLogging` instance is not typically necessary (the class only has a static initializer for loading the native library). You can also create a `Logger` from within a `Logging` context or by directly calling the constructor if you have a `FastLogging` instance.
 
-Set log domain.
+## Methods
 
-## `trace(obj: Py<PyAny>)`
+- `void setLevel(int level)` — set log level
+- `void setDomain(String domain)` — set log domain
 
-Log **TRACE** message. `obj` can be any object which can be converted into a string.
-An exception is thrown if `obj` cannot be converted into a string.
+### Logging methods
 
-## `debug(obj: Py<PyAny>)`
+All do client-side level checking. Each takes a `String message`.
 
-Log **DEBUG** message. `obj` can be any object which can be converted into a string.
-An exception is thrown if `obj` cannot be converted into a string.
+| Method | Level check |
+|---|---|
+| `void trace(String message)` | `instance_level <= TRACE` |
+| `void debug(String message)` | `instance_level <= DEBUG` |
+| `void info(String message)` | `instance_level <= INFO` |
+| `void success(String message)` | `instance_level <= SUCCESS` |
+| `void warning(String message)` | `instance_level <= WARN` |
+| `void error(String message)` | `instance_level <= ERROR` |
+| `void critical(String message)` | `instance_level <= CRITICAL` |
+| `void fatal(String message)` | `instance_level <= FATAL` |
+| `void exception(String message)` | `instance_level <= EXCEPTION` |
 
-## `info(obj: Py<PyAny>)`
+### Attaching to a Logging instance
 
-Log **INFO** message. `obj` can be any object which can be converted into a string.
-An exception is thrown if `obj` cannot be converted into a string.
+```java
+ConsoleWriterConfig console = new ConsoleWriterConfig(FastLogging.DEBUG, true);
+Logging logging = new Logging(FastLogging.DEBUG, "root", console);
 
-## `success(obj: Py<PyAny>)`
+FastLogging fastLogging = new FastLogging();
+FastLogging.Logger logger = fastLogging.new Logger(FastLogging.DEBUG, "WorkerThread");
+logging.addLogger(logger.instance_ptr);
 
-Log **SUCCESS** message. `obj` can be any object which can be converted into a string.
-An exception is thrown if `obj` cannot be converted into a string.
+// In another thread:
+logger.info("Message from worker thread");
 
-## `warning(obj: Py<PyAny>)`
+logging.shutdown();
+```
 
-Log **WARNING** message. `obj` can be any object which can be converted into a string.
-An exception is thrown if `obj` cannot be converted into a string.
-
-## `error(obj: Py<PyAny>)`
-
-Log **ERROR** message. `obj` can be any object which can be converted into a string.
-An exception is thrown if `obj` cannot be converted into a string.
-
-## `critical(obj: Py<PyAny>)`
-
-Log **CRITICAL** message. `obj` can be any object which can be converted into a string.
-An exception is thrown if `obj` cannot be converted into a string.
-
-## `fatal(obj: Py<PyAny>)`
-
-Log **FATAL** message. `obj` can be any object which can be converted into a string.
-An exception is thrown if `obj` cannot be converted into a string.
-
-## `exception(obj: Py<PyAny>)`
-
-Log **EXCEPTION** message. `obj` can be any object which can be converted into a string.
-An exception is thrown if `obj` cannot be converted into a string.
+**Note:** `addLogger` and `removeLogger` take `long loggerPtr` — pass `logger.instance_ptr`.

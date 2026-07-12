@@ -1,218 +1,102 @@
-# API of the LOGGING module
+# Logging
 
-## `Logging(level: int = NOTSET, domain: str = "root", configs: List[WriterConfigEnum], ext_config: ExtConfig = None, config_path: str = None, indent: Tuple[int, int, int] = None)`
+The `Logging` class is the primary logger instance. It is a nested static class of `FastLogging`: `FastLogging.Logging`.
 
-Create `Logging` instance.  
-`level` if not provided is set to `NOTSET`.  
-`domain` if not provided is set to `root`.  
-`configs` contains a list of writers configs.  
-`ext_config` if provided sets the extended formatting configuration.
-`config_path` if provided the configuration is loaded from a file.
-With `indent`, if provided, log messages are indented with the following parameters:  
-`indent = (offset, increment, maximum)`  
-`offset` = Initial indent level  
-`increment` = Increment of indent by call level  
-`maximum` = Maximum increment
+## Constructors
 
-## `shutdown(now: bool = False)`
+The `Logging` class has many overloaded constructors. Each combines different writer configs. All take `int level` and `String domain` as the first two parameters. Writer config parameters can be `null` to skip that writer type.
 
-Shutdown fastlogging module. If optional argument `now` is `True` then this call will wait until all writers have written all logs.
+| Constructor | Description |
+|---|---|
+| `Logging()` | Default: level NOTSET, domain "root", no writers |
+| `Logging(int level)` | Level + domain "root", no writers |
+| `Logging(int level, String domain)` | Level + domain, no writers |
+| `Logging(int level, String domain, ExtConfig extConfig)` | With ExtConfig |
+| `Logging(int level, String domain, ConsoleWriterConfig console)` | With console writer |
+| `Logging(int level, String domain, FileWriterConfig file)` | With file writer |
+| `Logging(int level, String domain, ConsoleWriterConfig console, FileWriterConfig file)` | Console + file |
+| `Logging(int level, String domain, FileWriterConfig file, ServerConfig server)` | File + server |
+| `Logging(int level, String domain, FileWriterConfig file, ClientWriterConfig client)` | File + client |
+| `Logging(int level, String domain, ConsoleWriterConfig console, ClientWriterConfig client)` | Console + client |
+| `Logging(int level, String domain, ConsoleWriterConfig console, FileWriterConfig file, ClientWriterConfig client)` | Console + file + client |
+| `Logging(int level, String domain, ConsoleWriterConfig console, FileWriterConfig file, ServerConfig server)` | Console + file + server |
+| `Logging(int level, String domain, ClientWriterConfig client)` | With client writer only |
+| `Logging(int level, String domain, int syslog)` | With syslog (int level, -1 = none) |
+| `Logging(int level, String domain, ExtConfig extConfig, ConsoleWriterConfig console, FileWriterConfig file, ClientWriterConfig client, int syslog)` | Full constructor with all options |
+| `Logging(String path)` | Load config from file path |
 
-## `set_level(wid: int, level: int)`
+Example:
 
-Set log level for writer with writer id `wid` to `level`.
+```java
+ConsoleWriterConfig console = new ConsoleWriterConfig(FastLogging.DEBUG, true);
+Logging logging = new Logging(FastLogging.DEBUG, "root", console);
+logging.info("Hello");
+logging.shutdown();
+```
 
-## `set_domain(domain: str)`
+## Methods
 
-Set log domain.
+### Lifecycle
 
-## `set_level2sym(level2sym: LevelSyms)`
+- `void shutdown()` — shutdown without waiting
+- `void shutdown(boolean now)` — shutdown; if `now` is true, waits for all logs to flush
 
-Set log level symbols used for log messages.
+### Level and domain
 
-## `set_ext_config(ext_config: ExtConfig)`
+- `void setLevel(WriterTypeEnum writer, int level)` — set log level for a writer type
+- `void setLevel(WriterTypeEnum writer, String key, int level)` — set log level for a specific writer by key
+- `void setDomain(String domain)` — set log domain
+- `void setLevel2Sym(LevelSyms level2sym)` — set level symbol format
+- `void setExtConfig(ExtConfig extConfig)` — set extended formatting config
 
-Set extended formatting configuration.
+### Sub-loggers
 
-## `add_logger(logger: Logger)`
+- `void addLogger(long loggerPtr)` — add a Logger by its native pointer
+- `void removeLogger(long loggerPtr)` — remove a Logger by its native pointer
 
-## `remove_logger(logger: Logger)`
+### Writers
 
-## `set_root_writer(config: Config) -> int`
+- `void addWriter(long writerPtr)` — add a writer by its native pointer
+- `void removeWriter(WriterTypeEnum writer)` — remove all writers of a type
+- `void removeWriter(WriterTypeEnum writer, String key)` — remove a specific writer by type and key
 
-`Config` must be one of:
+### Sync
 
-- [ClientWriterConfig](DEF.md#ClientWriterConfig)
-- [ServerConfig](DEF.md#ServerConfig)
+- `void sync(boolean console, boolean file, boolean client, boolean syslog, double timeout)` — sync specific writer types. The boolean flags select which writer types to sync. `timeout` in seconds.
+- `void syncAll(double timeout)` — sync all writers. `timeout` in seconds.
 
-If config has wrong class type an exception is thrown.
+### File rotation
 
-## `add_writer(config: Config) -> int`
+- `void rotate(String path)` — rotate log file at path
 
-`Config` must be one of:
+### Encryption
 
-- [RootConfig](DEF.md#RootConfig)
-- [ConsoleWriterConfig](DEF.md#ConsoleWriterConfig)
-- [FileWriterConfig](DEF.md#FileWriterConfig)
-- [ClientWriterConfig](DEF.md#ClientWriterConfig)
-- [ServerConfig](DEF.md#ServerConfig)
-- [SyslogWriterConfig](DEF.md#SyslogWriterConfig)
-- [CallbackWriterConfig](DEF.md#CallbackWriterConfig)
+- `void setEncryption(EncryptionMethod method, String key)` — set encryption for root server
+- `void setEncryption(String address, EncryptionMethod method, String key)` — set encryption for specific server by address
 
-If config has wrong class type an exception is thrown.
-The method returns the `id` of the new writer.
+### Config
 
-## `remove_writer(wid: int) -> Config | None`
+- `String getConfig(WriterTypeEnum writer, String key)` — get config for a writer
+- `ServerConfig getServerConfig()` — get server config
+- `String getServerAddress()` — get server address
+- `String getServerAuthKey()` — get server auth key
+- `String getConfigString()` — get complete config as string
+- `void getSaveConfig(String path)` — save config to file (note: method name is `getSaveConfig`, not `saveConfig`)
 
-`wid` is the writer id. If valid the configuration of the writer will be returned.
+### Logging methods
 
-## `add_writers(configs: List[Config]) -> int`
+All do client-side level checking before calling JNI. Each takes a `String message`.
 
-`Config` must be one of:
+| Method | Level check |
+|---|---|
+| `void trace(String message)` | `instance_level <= TRACE` |
+| `void debug(String message)` | `instance_level <= DEBUG` |
+| `void info(String message)` | `instance_level <= INFO` |
+| `void success(String message)` | `instance_level <= SUCCESS` |
+| `void warning(String message)` | `instance_level <= WARN` |
+| `void error(String message)` | `instance_level <= ERROR` |
+| `void critical(String message)` | `instance_level <= CRITICAL` |
+| `void fatal(String message)` | `instance_level <= FATAL` |
+| `void exception(String message)` | `instance_level <= EXCEPTION` |
 
-- [RootConfig](DEF.md#RootConfig)
-- [ConsoleWriterConfig](DEF.md#ConsoleWriterConfig)
-- [FileWriterConfig](DEF.md#FileWriterConfig)
-- [ClientWriterConfig](DEF.md#ClientWriterConfig)
-- [ServerConfig](DEF.md#ServerConfig)
-- [SyslogWriterConfig](DEF.md#SyslogWriterConfig)
-- [CallbackWriterConfig](DEF.md#CallbackWriterConfig)
-
-If a config has wrong class type an exception is thrown.
-The method returns a list of `id` of the new writers.
-
-## `remove_writers(wid: List[int] = None) -> Config | None`
-
-Remove list of `wid` writer ids if provided or all writers if `None`. List of writer configurations will be returned.
-
-## `enable(wid: int)`
-
-Enable writer with id `wid`. If `wid` is invalid an exception will be thrown.
-
-## `disable(wid: int)`
-
-Disable writer with id `wid`. If `wid` is invalid an exception will be thrown.
-
-## `enable_type(typ: WriterTypeEnum)`
-
-Enable all writers with type `typ`. If no type with `typ` was found an exception will be thrown.
-
-## `disable_type(typ: WriterTypeEnum)`
-
-Disable all writers with type `typ`. If no type with `typ` was found an exception will be thrown.
-
-## `sync(types: List[WriterTypeEnum], timeout: float = None)`
-
-Sync all writers listed in `types`. If `timeout` is provided and waiting takes longer then an exception is thrown.
-
-## `sync_all(timeout: float = None)`
-
-Sync all writers. If `timeout` is provided and waiting takes longer then an exception is thrown.
-
-## `rotate(path: str = None)`
-
-Rotate log file with path `path` or all log files if `path` is `None`.
-An exception is thrown if file rotation fails.
-
-## `set_encryption(wid: int, key: EncryptionMethod)`
-
-Set authentication or AES encryption key for network client writer or server with id `wid`.
-An exception is thrown if either `wid` doesn't exist or `key` contains invalid invalid data.
-
-## `get_writer_config(wid: int) -> WriterConfigEnum | None`
-
-Get configuration for writer `wid`. Returns `None` if `wid` is invalid.
-
-## `get_server_config(wid: int) -> ServerConfig`
-
-Get server configuration with id `wid`. An exception is thrown if either `wid` is not found or instance is not a server.
-
-## `get_server_configs() -> Dict[int, ServerConfig]`
-
-Get all server configurations. Key is `wid`.
-
-## `get_server_addresses_ports() -> Dict[int, str]`
-
-Get all server addresses and ports. Key is `wid`. Value has syntax `IP:Port`.
-
-## `get_server_addresses() -> Dict[int, ServerConfig]`
-
-Get all server addresses. Key is `wid`. Value has syntax `IP`.
-
-## `get_server_ports() -> Dict[int, int]`
-
-Get all server ports. Key is `wid`. Value is port.
-
-## `get_server_auth_key() -> EncryptionMethod`
-
-Get authentication or AES encryption key of root server instance.
-
-## `get_config_string() -> str`
-
-Get complete configuration as string.
-
-## `save_config(path: str = None)`
-
-Save configuration to file. If `path` is provided then configuration is written to this new path. Otherwise the default path in the configuration is used.
-An exception is thrown is saving the configuration failed.
-
-## `get_parent_pid() -> int | None`
-
-Get process id of parent process for logging or `None` if there is no parent logger.
-
-## `get_parent_client_writer_config() -> ClientWriterConfig | None`
-
-Get configuration of client writer instance which writes logs to the parent process or `None` if there is no parent logger.
-
-## `get_parent_pid_client_writer_config() -> Tuple[int, ClientWriterConfig] | None`
-
-Get parent process id and configuration of client writer instance which writes logs to the parent process or `None` if there is no parent logger.
-
-## `trace(obj: Py<PyAny>)`
-
-Log **TRACE** message. `obj` can be any object which can be converted into a string.
-An exception is thrown if `obj` cannot be converted into a string.
-
-## `debug(obj: Py<PyAny>)`
-
-Log **DEBUG** message. `obj` can be any object which can be converted into a string.
-An exception is thrown if `obj` cannot be converted into a string.
-
-## `info(obj: Py<PyAny>)`
-
-Log **INFO** message. `obj` can be any object which can be converted into a string.
-An exception is thrown if `obj` cannot be converted into a string.
-
-## `success(obj: Py<PyAny>)`
-
-Log **SUCCESS** message. `obj` can be any object which can be converted into a string.
-An exception is thrown if `obj` cannot be converted into a string.
-
-## `warning(obj: Py<PyAny>)`
-
-Log **WARNING** message. `obj` can be any object which can be converted into a string.
-An exception is thrown if `obj` cannot be converted into a string.
-
-## `error(obj: Py<PyAny>)`
-
-Log **ERROR** message. `obj` can be any object which can be converted into a string.
-An exception is thrown if `obj` cannot be converted into a string.
-
-## `critical(obj: Py<PyAny>)`
-
-Log **CRITICAL** message. `obj` can be any object which can be converted into a string.
-An exception is thrown if `obj` cannot be converted into a string.
-
-## `fatal(obj: Py<PyAny>)`
-
-Log **FATAL** message. `obj` can be any object which can be converted into a string.
-An exception is thrown if `obj` cannot be converted into a string.
-
-## `exception(obj: Py<PyAny>)`
-
-Log **EXCEPTION** message. `obj` can be any object which can be converted into a string.
-An exception is thrown if `obj` cannot be converted into a string.
-
-## `set_debug(debug: int)`
-
-Set debug level for root logger. This is only for developers.
+Note: The client-side level check means if the `Logging` was created with a level higher than the message level, the JNI call is never made.
