@@ -1,222 +1,154 @@
+# Logging
 
-# gofastlogging: Go API Reference
-
-This document describes the idiomatic Go API for the fastlogging package.
-
----
-
-## type Logging
+The `Logging` struct is the primary logger instance in the `gofastlogging/fastlogging/logging` package. It owns a set of writers and optional sub-loggers, and exposes the full logging API (`Info`, `Debug`, `Error`, etc.).
 
 ```go
-type Logging struct { /* ... */ }
+import (
+    fl "gofastlogging/fastlogging"
+    "gofastlogging/fastlogging/logging"
+    "gofastlogging/fastlogging/writer"
+)
 ```
 
-### func New(level uint8, domain *string, writers []WriterConfigEnum, extConfig *ExtConfig, configPath *string) *Logging
+## Constructors
 
-Creates a new logger instance. Use writer constructors for all writers. Example:
+### Default
 
 ```go
-console, err := fastlogging.ConsoleWriterConfigNew(fastlogging.DEBUG, true)
-if err != nil { log.Fatal(err) }
-logger := fastlogging.New(fastlogging.DEBUG, nil, []fastlogging.WriterConfigEnum{console}, nil, nil)
+func Default() (*Logging, error)
 ```
 
-### func (l *Logging) Trace(msg string)
-### func (l *Logging) Debug(msg string)
-### func (l *Logging) Info(msg string)
-### func (l *Logging) Success(msg string)
-### func (l *Logging) Warning(msg string)
-### func (l *Logging) Error(msg string)
-### func (l *Logging) Fatal(msg string)
+Creates a `Logging` with default configuration. If the environment variable `FASTLOGGING_CONFIG_FILE` is set, the configuration is read from that file. Otherwise a console writer is created at `INFO` level.
+
+Returns `(*Logging, error)`.
 
-Log a message at the specified level.
+### New
+
+```go
+func New(level uint8, domain *string, configs []fl.WriterConfigEnum, extConfig *fl.ExtConfig, configPath *string) *Logging
+```
 
-### func (l *Logging) Shutdown(now bool)
+Creates a new `Logging` instance. Returns `*Logging` (nil on failure). Does **not** return an error.
 
-Shutdown the logger. If `now` is true, waits for all logs to flush.
+Parameters:
 
-### func (l *Logging) SetLevel(writerID int, level uint8)
-
-Set log level for a writer by ID.
-
-### func (l *Logging) SetDomain(domain string)
-
-Set the log domain for this logger.
-
-### func (l *Logging) SetLevelSymbols(levelSyms LevelSymbol)
-
-Set the log level symbol format (Sym, Short, Str).
-
-### func (l *Logging) SetExtConfig(extConfig *ExtConfig)
-
-Set extended formatting configuration.
-
-### func (l *Logging) AddWriter(config WriterConfigEnum) int
-
-Add a writer. Returns the writer ID.
-
-### func (l *Logging) RemoveWriter(writerID int) error
-
-Remove a writer by ID.
-
-### func (l *Logging) AddWriters(configs []WriterConfigEnum) []int
-
-Add multiple writers. Returns their IDs.
-
----
-
-## Writer Constructors
-
-- ConsoleWriterConfigNew(level uint8, colors bool) (WriterConfigEnum, error)
-- FileWriterConfigNew(level uint8, path string, size uint32, backlog uint32, timeout int32, time int64, compression CompressionMethodEnum) (WriterConfigEnum, error)
-- ServerConfigNew(level uint8, address string, key *KeyStruct) (WriterConfigEnum, error)
-- ClientWriterConfigNew(level uint8, address string, key *KeyStruct) (WriterConfigEnum, error)
-- SyslogWriterConfigNew(level uint8, hostname, pname string, pid uint32) (WriterConfigEnum, error)
-- CallbackWriterConfigNew(level uint8, callback func(level uint8, domain, message string)) (WriterConfigEnum, CallbackHandle, error)
-
-See WRITERS.md for details.
-
----
-
-## Best Practices
-
-- Always check errors when creating writer configs.
-- Use `defer handle.UnregisterCallback()` for callback writers.
-- Use the Go API for dynamic configuration, or config files for static setups.
-
-
-## `remove_writers(wid: List[int] = None) -> Config | None`
-
-Remove list of `wid` writer ids if provided or all writers if `None`. List of writer configurations will be returned.
-
-## `enable(wid: int)`
-
-Enable writer with id `wid`. If `wid` is invalid an exception will be thrown.
-
-## `disable(wid: int)`
-
-Disable writer with id `wid`. If `wid` is invalid an exception will be thrown.
-
-## `enable_type(typ: WriterTypeEnum)`
-
-Enable all writers with type `typ`. If no type with `typ` was found an exception will be thrown.
-
-## `disable_type(typ: WriterTypeEnum)`
-
-Disable all writers with type `typ`. If no type with `typ` was found an exception will be thrown.
-
-## `sync(types: List[WriterTypeEnum], timeout: float = None)`
-
-Sync all writers listed in `types`. If `timeout` is provided and waiting takes longer then an exception is thrown.
-
-## `sync_all(timeout: float = None)`
-
-Sync all writers. If `timeout` is provided and waiting takes longer then an exception is thrown.
-
-## `rotate(path: str = None)`
-
-Rotate log file with path `path` or all log files if `path` is `None`.
-An exception is thrown if file rotation fails.
-
-## `set_encryption(wid: int, key: EncryptionMethod)`
-
-Set authentication or AES encryption key for network client writer or server with id `wid`.
-An exception is thrown if either `wid` doesn't exist or `key` contains invalid invalid data.
-
-## `get_writer_config(wid: int) -> WriterConfigEnum | None`
-
-Get configuration for writer `wid`. Returns `None` if `wid` is invalid.
-
-## `get_server_config(wid: int) -> ServerConfig`
-
-Get server configuration with id `wid`. An exception is thrown if either `wid` is not found or instance is not a server.
-
-## `get_server_configs() -> Dict[int, ServerConfig]`
-
-Get all server configurations. Key is `wid`.
-
-## `get_server_addresses_ports() -> Dict[int, str]`
-
-Get all server addresses and ports. Key is `wid`. Value has syntax `IP:Port`.
-
-## `get_server_addresses() -> Dict[int, ServerConfig]`
-
-Get all server addresses. Key is `wid`. Value has syntax `IP`.
-
-## `get_server_ports() -> Dict[int, int]`
-
-Get all server ports. Key is `wid`. Value is port.
-
-## `get_server_auth_key() -> EncryptionMethod`
-
-Get authentication or AES encryption key of root server instance.
-
-## `get_config_string() -> str`
-
-Get complete configuration as string.
-
-## `save_config(path: str = None)`
-
-Save configuration to file. If `path` is provided then configuration is written to this new path. Otherwise the default path in the configuration is used.
-An exception is thrown is saving the configuration failed.
-
-## `get_parent_pid() -> int | None`
-
-Get process id of parent process for logging or `None` if there is no parent logger.
-
-## `get_parent_client_writer_config() -> ClientWriterConfig | None`
-
-Get configuration of client writer instance which writes logs to the parent process or `None` if there is no parent logger.
-
-## `get_parent_pid_client_writer_config() -> Tuple[int, ClientWriterConfig] | None`
-
-Get parent process id and configuration of client writer instance which writes logs to the parent process or `None` if there is no parent logger.
-
-## `trace(obj: Py<PyAny>)`
-
-Log **TRACE** message. `obj` can be any object which can be converted into a string.
-An exception is thrown if `obj` cannot be converted into a string.
-
-## `debug(obj: Py<PyAny>)`
-
-Log **DEBUG** message. `obj` can be any object which can be converted into a string.
-An exception is thrown if `obj` cannot be converted into a string.
-
-## `info(obj: Py<PyAny>)`
-
-Log **INFO** message. `obj` can be any object which can be converted into a string.
-An exception is thrown if `obj` cannot be converted into a string.
-
-## `success(obj: Py<PyAny>)`
-
-Log **SUCCESS** message. `obj` can be any object which can be converted into a string.
-An exception is thrown if `obj` cannot be converted into a string.
-
-## `warning(obj: Py<PyAny>)`
-
-Log **WARNING** message. `obj` can be any object which can be converted into a string.
-An exception is thrown if `obj` cannot be converted into a string.
-
-## `error(obj: Py<PyAny>)`
-
-Log **ERROR** message. `obj` can be any object which can be converted into a string.
-An exception is thrown if `obj` cannot be converted into a string.
-
-## `critical(obj: Py<PyAny>)`
-
-Log **CRITICAL** message. `obj` can be any object which can be converted into a string.
-An exception is thrown if `obj` cannot be converted into a string.
-
-## `fatal(obj: Py<PyAny>)`
-
-Log **FATAL** message. `obj` can be any object which can be converted into a string.
-An exception is thrown if `obj` cannot be converted into a string.
-
-## `exception(obj: Py<PyAny>)`
-
-Log **EXCEPTION** message. `obj` can be any object which can be converted into a string.
-An exception is thrown if `obj` cannot be converted into a string.
-
-## `set_debug(debug: int)`
-
-Set debug level for root logger. This is only for developers.
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `level` | `uint8` | Log level filter. Use constants like `fl.DEBUG`, `fl.INFO`. |
+| `domain` | `*string` | Log domain string, or `nil`. |
+| `configs` | `[]fl.WriterConfigEnum` | Slice of writer configs. Create with `writer.XxxWriterConfigNew` and **dereference pointers** with `*` when building the slice. |
+| `extConfig` | `*fl.ExtConfig` | Extended formatting config, or `nil`. |
+| `configPath` | `*string` | Path to a config file, or `nil`. |
+
+Example:
+
+```go
+console := writer.ConsoleWriterConfigNew(fl.DEBUG, true)
+writers := []fl.WriterConfigEnum{*console}
+domain := "myapp"
+log := logging.New(fl.DEBUG, &domain, writers, nil, nil)
+```
+
+## Methods
+
+All methods are defined on `*Logging`.
+
+### Lifecycle
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `Shutdown` | `(now bool) error` | Shut down the logger. If `now` is true, blocks until all queued logs are flushed. |
+
+### Sub-loggers
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `AddLogger` | `(log logger.Logger) error` | Attach a sub-logger. Pass by value, so dereference a `*Logger` with `*`. |
+| `RemoveLogger` | `(log logger.Logger) error` | Detach a sub-logger. |
+
+### Level and domain
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `SetLevel` | `(wid uint32, level uint8) error` | Set log level for a specific writer by ID. |
+| `SetDomain` | `(domain *string) error` | Set the log domain. Pass `nil` to clear. |
+| `SetLevel2Sym` | `(level2sym uint8) error` | Set level symbol format. Use `fl.Sym.Into()`, `fl.Short.Into()`, or `fl.Str.Into()`. |
+| `SetExtConfig` | `(extConfig fl.ExtConfig) error` | Set extended formatting config. |
+| `SetDebug` | `(debug uint32) error` | Set debug level. Developers only. |
+
+### Writers
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `SetRootWriterConfig` | `(config fl.WriterConfigEnum) error` | Set the root writer config (used for server/client setups). |
+| `SetRootWriter` | `(writer fl.WriterEnum) error` | Set the root writer. |
+| `AddWriterConfig` | `(config fl.WriterConfigEnum) error` | Add a writer at runtime. |
+| `AddWriterConfigs` | `(configs []fl.WriterConfigEnum) error` | Add multiple writers at runtime. |
+| `AddWriters` | `(writers []fl.WriterEnum) error` | Add multiple existing writers. |
+| `RemoveWriter` | `(wid uint32) error` | Remove a writer by ID. |
+| `RemoveWriters` | `(wids []uint32) fl.WriterEnums` | Remove multiple writers. Returns the removed writers. |
+| `Enable` | `(wid uint32) error` | Enable a writer. |
+| `Disable` | `(wid uint32) error` | Disable a writer. |
+| `EnableType` | `(typ fl.WriterTypeEnum) error` | Enable all writers of a type. |
+| `DisableType` | `(typ fl.WriterTypeEnum) error` | Disable all writers of a type. |
+
+### Sync and rotation
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `Sync` | `(types []fl.WriterTypeEnum, timeout float64) error` | Sync specific writer types. `timeout` is in seconds. |
+| `SyncAll` | `(timeout float64) error` | Sync all writers. `timeout` is in seconds. |
+| `Rotate` | `(path string) error` | Rotate the log file. |
+
+### Encryption
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `SetEncryption` | `(typ fl.WriterTypeEnum, key fl.KeyStruct) error` | Set encryption key for a writer type. |
+
+### Server introspection
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `GetServerConfig` | `() fl.ServerConfig` | Get root server config. |
+| `GetServerConfigs` | `() fl.ServerConfigs` | Get all server configs. |
+| `GetRootServerAddressPort` | `() string` | Get root server `address:port`. |
+| `GetRootServerAddressesPorts` | `() map[uint32]string` | Get all server addresses:ports (key = writer ID). |
+| `GetRootServerAddresses` | `() map[uint32]string` | Get all server addresses (key = writer ID). |
+| `GetRootServerPorts` | `() map[uint32]uint16` | Get all server ports (key = writer ID). |
+| `GetServerAuthKey` | `() fl.KeyStruct` | Get server auth/encryption key. |
+
+### Config persistence
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `GetConfigString` | `() string` | Get the complete config as a string. |
+| `SaveConfig` | `(path string) error` | Save config to a file. |
+
+## Logging methods
+
+All return `error`.
+
+| Method | Signature |
+|--------|-----------|
+| `Trace` | `(message string) error` |
+| `Debug` | `(message string) error` |
+| `Info` | `(message string) error` |
+| `Success` | `(message string) error` |
+| `Warning` | `(message string) error` |
+| `Error` | `(message string) error` |
+| `Critical` | `(message string) error` |
+| `Fatal` | `(message string) error` |
+| `Exception` | `(message string) error` |
+
+## Helper functions
+
+The `logging` package provides convenience constructors as alternatives to the `writer` package factories. They return values (not pointers) and apply defaults.
+
+| Function | Signature | Description |
+|----------|-----------|-------------|
+| `ConsoleWriterConfigHelper` | `(level uint8, color bool) fl.WriterConfigEnum` | Console writer config. |
+| `FileWriterConfigHelper` | `(filepath string, compression uint32) fl.WriterConfigEnum` | File writer config with defaults. |
+| `ServerConfigHelper` | `(host string, port uint16, key *fl.KeyStruct) fl.WriterConfigEnum` | **Client** writer config pointing at `host:port`. Despite the name, this creates a client writer, not a server. |
+
+> **Note:** The `writer` package factories are preferred over these helpers. They return pointers, accept more parameters, and are more flexible.

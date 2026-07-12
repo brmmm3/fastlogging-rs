@@ -1,31 +1,19 @@
-
 # Configuration
 
-You can configure gofastlogging either programmatically (recommended for Go) or via configuration file.
+gofastlogging can be configured either programmatically (recommended for Go) or via configuration files.
 
-## Configuration File
+## Configuration Files
 
-Supported file types: **JSON**, **YAML**, **XML**  
-File name: `fastlogging.<EXT>` (e.g. `fastlogging.json`, `fastlogging.yaml`, `fastlogging.xml`)
+Supported types: **JSON**, **YAML**, **XML**.
 
-File location:  
-- Current working directory, or  
-- Path specified by the environment variable `FASTLOGGING_CONFIG_FILE`
-
-To use a config file, set the environment variable before running your Go program:
+- **File name:** `fastlogging.<EXT>` (e.g. `fastlogging.json`)
+- **Location:** current working directory, or a path specified by the `FASTLOGGING_CONFIG_FILE` environment variable.
 
 ```sh
 export FASTLOGGING_CONFIG_FILE=/path/to/fastlogging.json
 ```
 
-Or place the config file in the working directory.
-
-## Example Configuration Files
-
-### JSON
-
-```json
-...existing code...
+## Example JSON Config
 
 ```json
 {
@@ -46,14 +34,8 @@ Or place the config file in the working directory.
     "path": "/tmp/write_config_file.log",
     "size": 1048576,
     "backlog": 4,
-    "timeout": {
-      "secs": 3600,
-      "nanos": 0
-    },
-    "time": {
-      "secs_since_epoch": 1717081855,
-      "nanos_since_epoch": 211877680
-    },
+    "timeout": { "secs": 3600, "nanos": 0 },
+    "time": { "secs_since_epoch": 1717081855, "nanos_since_epoch": 211877680 },
     "compression": "Deflate"
   },
   "server": null,
@@ -68,112 +50,53 @@ Or place the config file in the working directory.
 }
 ```
 
+## ExtConfig (Programmatic)
 
-### YAML
-
-```yaml
-level: 0
-domain: root
-hostname: bender
-pname: write_config_file
-pid: 935659
-tname: false
-tid: false
-structured: String
-console:
-  level: 40
-  colors: true
-file:
-  level: 10
-  path: /tmp/write_config_file.log
-  size: 1048576
-  backlog: 4
-  timeout:
-    secs: 3600
-    nanos: 0
-  time:
-    secs_since_epoch: 1717081855
-    nanos_since_epoch: 211877680
-  compression: Deflate
-server: null
-connect:
-  level: 50
-  address: 127.0.0.1:12346
-  port: 12346
-  key: NONE
-syslog: null
-level2sym: Sym
-```
-
-
-### XML
-
-```xml
-<FileConfig>
-    <level>0</level>
-    <domain>root</domain>
-    <hostname>bender</hostname>
-    <pname>write_config_file</pname>
-    <pid>935659</pid>
-    <tname>false</tname>
-    <tid>false</tid>
-    <structured>String</structured>
-    <console>
-        <level>40</level>
-        <colors>true</colors>
-    </console>
-    <file>
-        <level>10</level>
-        <path>/tmp/write_config_file.log</path>
-        <size>1048576</size>
-        <backlog>4</backlog>
-        <timeout>
-            <secs>3600</secs>
-            <nanos>0</nanos>
-        </timeout>
-        <time>
-            <secs_since_epoch>1717081855</secs_since_epoch>
-            <nanos_since_epoch>211877680</nanos_since_epoch>
-        </time>
-        <compression>Deflate</compression>
-    </file>
-    <server />
-    <connect>
-        <level>50</level>
-        <address>127.0.0.1:12346</address>
-        <port>12346</port>
-        <key>NONE</key>
-    </connect>
-    <syslog />
-    <level2sym>Sym</level2sym>
-</FileConfig>
-
-## Go API Integration
-
-You can load configuration from file or build it programmatically. Example:
+Use `fl.NewExtConfig` to create extended formatting configuration:
 
 ```go
-import logging "gofastlogging/fastlogging"
-
-func main() {
-  // Load from config file (if FASTLOGGING_CONFIG_FILE is set)
-  logger := logging.Default()
-  logger.Info("Logger configured from file!")
-
-  // Or build config in Go:
-  console, err := logging.ConsoleWriterConfigNew(logging.DEBUG, true)
-  if err != nil {
-    panic(err)
-  }
-  writers := []logging.WriterConfigEnum{console}
-  logger2 := logging.New(logging.DEBUG, nil, writers, nil, nil)
-  logger2.Info("Logger configured in Go!")
-}
+func NewExtConfig(structured MessageStruct, hostname, pname, pid, tname, tid bool) ExtConfig
 ```
 
-## Best Practices
+Parameters:
 
-- Prefer Go API for dynamic or programmatic configuration.
-- Use config files for static, environment-based, or multi-language setups.
-- Always check for errors when creating writer configs in Go.
+- `structured` — `fl.String`, `fl.Json`, or `fl.Xml`
+- `hostname` — include hostname in log messages
+- `pname` — include process name
+- `pid` — include process ID
+- `tname` — include thread name
+- `tid` — include thread ID
 
+Example:
+
+```go
+extConfig := fl.NewExtConfig(fl.Xml, true, false, true, false, true)
+log := logging.New(fl.DEBUG, nil, writers, &extConfig, nil)
+// or set later:
+log.SetExtConfig(extConfig)
+```
+
+## Loading Config via `Default()`
+
+```go
+log, err := logging.Default() // reads config file if FASTLOGGING_CONFIG_FILE is set
+```
+
+## Saving Config
+
+```go
+log.SaveConfig("/path/to/fastlogging.json") // extension determines format
+configString := log.GetConfigString()       // get config as string
+```
+
+## Programmatic vs. File Config
+
+```go
+// From config file
+log, err := logging.Default()
+
+// Or build in Go
+console := writer.ConsoleWriterConfigNew(fl.DEBUG, true)
+writers := []fl.WriterConfigEnum{*console}
+log2 := logging.New(fl.DEBUG, nil, writers, nil, nil)
+```

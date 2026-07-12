@@ -1,189 +1,319 @@
 # Definitions
 
-## Log level names and their values
+This document describes every definition exported by the top-level `gofastlogging/fastlogging` package (conventionally imported as `fl`). These are the constants, enums, type wrappers, and helper functions shared across the `logging`, `logger`, and `writer` packages.
 
-`NOLOG` (100) &ensp;&ensp;&ensp;&ensp;&ensp; No logging.  
-`EXCEPTION` (60) &nbsp; Log exception messages. In addition to the message text the exception info (output of traceback.format_exc) is logged (SLOW!).  
-`CRITICAL` (50) &nbsp;&ensp; Log fatal/critical messages. Default color is bright red.  
-`FATAL` (50) &ensp;&ensp;&ensp;&ensp;&ensp; Same as CRITICAL.  
-`ERROR` (40) &ensp;&ensp;&ensp;&ensp;&ensp; Log also error messages. Default color is red.  
-`WARNING` (30) &ensp;&ensp;&ensp; Log also warning messages. Default color is bright yellow.  
-`SUCCESS` (25) &ensp;&ensp;&ensp; Success messages.  
-`INFO` (20) &ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&nbsp; Log also info messages. Default color is bright green.  
-`DEBUG` (10) &ensp;&ensp;&ensp;&ensp;&ensp;  Log also debug messages. Default color is white.  
-`TRACE` (5) &ensp;&ensp;&ensp;&ensp;&ensp;  Trace messages.  
-`NOTSET` (0) &ensp;&ensp;&ensp;&ensp; All messages are logged.
+---
 
-## Enum `LevelSyms`
+## Log level constants
 
-The enum has following values:
+All log level constants are untyped `int` values sourced from C macros. They are ordered so that a lower numeric value means a more verbose level: a logger at level `L` emits messages whose level is `<= L`.
+
+| Constant | Value | Meaning |
+| --- | --- | --- |
+| `NOLOG` | 100 | No logging. |
+| `EXCEPTION` | 60 | Log exception messages. (Also logs exception info / traceback — slow.) |
+| `CRITICAL` | 50 | Log critical messages. Default color is bright red. |
+| `FATAL` | 50 | Same as `CRITICAL`. |
+| `ERROR` | 40 | Log error messages. Default color is red. |
+| `WARNING` | 30 | Log warning messages. Default color is bright yellow. |
+| `WARN` | 30 | Same as `WARNING`. |
+| `SUCCESS` | 25 | Success messages. |
+| `INFO` | 20 | Log info messages. Default color is bright green. |
+| `DEBUG` | 10 | Log debug messages. Default color is white. |
+| `TRACE` | 5 | Trace messages. |
+| `NOTSET` | 0 | All messages are logged. |
+
+See [LEVELS.md](LEVELS.md) for filtering semantics and per-writer levels.
+
+---
+
+## Enum `LevelSymbol`
+
+Controls how a log level is rendered in output.
 
 ```go
-type LevelSyms int
+type LevelSymbol int
 
 const (
-    /// Use 1 character symbol (!, F, E, W, ...)
-    Sym LevelSyms = iota
-    /// Use 3 character text (EXC, FTL, ERR, WRN, ...)
-    Short
-    /// Use long text (EXCEPTION, FATAL, ERROR, WARNING, ...). This is the default.
-    Str
+    Sym   LevelSymbol = iota // 1-char symbol (!, F, E, W, ...)
+    Short                    // 3-char text (EXC, FTL, ERR, WRN, ...)
+    Str                      // long text (EXCEPTION, FATAL, ERROR, WARNING, ...). Default.
 )
 ```
 
-## Enum `MessageStructEnum`
+func (s LevelSymbol) Into() uint8`
 
-The enum has following values:
+Converts to the underlying C enum value. This returns a plain `uint8` rather than a cgo-generated type so it can be used from the `logging`, `logger`, and `writer` packages (cgo creates a distinct, non-interchangeable Go type per package for every C type). Intended for internal use.
 
-```go
-pub enum MessageStructEnum {
-    /// Log messages without structure information (default).
-    String,
-    /// Log messages as Json structure.
-    Json,
-    /// Log messages as Xml structure.
-    Xml,
-}
-```
+---
 
-## Struct `ExtConfig`
+## Enum `FileType`
 
-This class is for configuring extended formatting setting. It has following members:
+Identifies the kind of operation queued to a writer thread.
 
 ```go
-type ExtConfig struct {
-    Config *C.ExtConfig
-}
-```
-
-## Struct `RootConfig`
-
-```go
-pub struct RootConfig {
-    /// Log level for filtering log messages.
-    pub level: u8,
-    /// Log domain to add to log messages.
-    pub domain: String,
-    /// Optional hostname to add to log messages.
-    pub hostname: Option<String>,
-    /// Process name. Logged is not empty.
-    pub pname: String,
-    /// Process id. Logged if greater than 0.
-    pub pid: u32,
-    /// Log thread name if `true``.
-    pub tname: bool,
-    /// Log thread id if `true`.
-    pub tid: bool,
-    /// Log messages with structure information.
-    pub structured: MessageStructEnum,
-    /// Select log level names.
-    pub level2sym: LevelSyms,
-}
-```
-
-## Enum `ConsoleTargetEnum`
-
-```go
-pub enum ConsoleTargetEnum {
-    /// Write log messages to stdout
-    StdOut,
-    /// Write log messages to stderr
-    StdErr,
-    /// Write log messages to stdout and stderr
-    Both,
-}
-```
-
-## Class `ConsoleWriterConfig`
-
-```go
-pub struct ConsoleWriterConfig {
-    /// Only write log messages if enabled is true
-    pub enabled: bool,
-    /// Log level for filtering log messages
-    pub level: u8,
-    /// Optional filter log messages by domain
-    pub domain_filter: Option<String>,
-    /// Optional filter log messages by their contents
-    pub message_filter: Option<String>,
-    /// Colored output if true
-    pub colors: bool,
-    /// Select log message destination (stdout, stderr)
-    pub target: ConsoleTargetEnum,
-    /// Debug level. Only for developers.
-    pub debug: u8,
-}
-```
-
-## Enum `CompressionMethodEnum`
-
-```go
-type CompressionMethodEnum int
+type FileType int
 
 const (
-    /// Do not compress the log files
-    Store CompressionMethodEnum = iota
-    /// Compress the log files by the Deflate algorithm
-    Deflate
-    /// Compress the log files by the Zstandard algorithm
-    Zstd
-    /// Compress the log files by the Lzma algorithm
-    Lzma
+    MessageOp FileType = iota // a log message
+    SyncOp                     // sync/flush request
+    RotateOp                   // log file rotation request
+    StopOp                     // stop the writer
 )
 ```
 
-## Struct `ServerConfig`
+### `func (s FileType) Into() uint8`
+
+Converts to the underlying C enum value. Internal use.
+
+---
+
+## Enum `MessageStruct`
+
+Selects whether and how log messages carry structure information.
 
 ```go
-type ServerConfig struct {
-    Config *C.CServerConfig
-}
+type MessageStruct int
+
+const (
+    String MessageStruct = iota // No structure info (default)
+    Json                        // Log as JSON
+    Xml                         // Log as XML
+)
 ```
 
-## Struct `ServerConfigs`
+### `func (s MessageStruct) Into() uint8`
+
+Converts to the underlying C enum value. Internal use.
+
+---
+
+## Enum `EncryptionMethod`
+
+Selects the encryption / authentication scheme for network writers and servers.
 
 ```go
-type ServerConfigs struct {
-    Config *C.CServerConfigs
-}
+type EncryptionMethod int
+
+const (
+    NONE    EncryptionMethod = iota // No encryption
+    AuthKey                          // Authentication key
+    AES                              // AES encryption
+)
 ```
 
-## Struct `WriterConfigEnum`
+### `func (s EncryptionMethod) Into() uint8`
+
+Converts to the underlying C enum value. Internal use.
+
+---
+
+## Enum `CompressionMethod`
+
+Selects the compression algorithm used by file writers.
+
+```go
+type CompressionMethod int
+
+const (
+    Store   CompressionMethod = iota // No compression
+    Deflate                           // Deflate compression
+    Zstd                              // Zstandard compression
+    Lzma                              // LZMA compression
+)
+```
+
+### `func (s CompressionMethod) Into() uint8`
+
+Converts to the underlying C enum value. Internal use.
+
+---
+
+## Type wrappers
+
+All wrapper structs hold an `unsafe.Pointer` to the underlying C handle. This is deliberate: cgo generates a distinct, non-interchangeable Go type per package for every C type, even when two `import "C"` blocks include the same header. Using `unsafe.Pointer` lets these values cross between the `fastlogging`, `logging`, `logger`, and `writer` packages.
+
+### `WriterConfigEnum`
 
 ```go
 type WriterConfigEnum struct {
-    Config *C.WriterConfigEnum
+    Config unsafe.Pointer // wraps a C WriterConfigEnum handle (a void* in C)
 }
 ```
 
-## Struct `WriterConfigEnums`
+A single writer configuration. Returned **by pointer** (`*fl.WriterConfigEnum`) from the `writer` factory functions; dereference with `*` when building a `[]WriterConfigEnum` slice.
+
+### `WriterConfigs`
 
 ```go
-type WriterConfigEnums struct {
-    Config *C.WriterConfigEnums
+type WriterConfigs struct {
+    Configs unsafe.Pointer // wraps multiple writer configs
 }
 ```
 
-## Struct `WriterTypeEnum`
+### `WriterConfigEnums`
 
 ```go
-type WriterTypeEnum struct {
-    Config *C.CWriterTypeEnum
-}
+type WriterConfigEnums = WriterConfigs // type alias
 ```
 
-## Struct `WriterEnum`
+### `WriterType`
 
 ```go
-type WriterEnum struct {
-    Config *C.CWriterEnum
+type WriterType struct {
+    Typ uint8 // writer type enum value
 }
 ```
 
-## Struct `WriterEnums`
+### `WriterTypeEnum`
 
 ```go
-type WriterEnums struct {
-    Config *C.CWriterEnums
+type WriterTypeEnum = WriterType // type alias
+```
+
+### `Writer`
+
+```go
+type Writer struct {
+    Writer unsafe.Pointer // wraps a C CWriterEnum handle (a void* in C)
 }
 ```
+
+### `WriterEnum`
+
+```go
+type WriterEnum = Writer // type alias
+```
+
+### `Writers`
+
+```go
+type Writers struct {
+    Writers unsafe.Pointer // wraps multiple writers
+}
+```
+
+### `WriterEnums`
+
+```go
+type WriterEnums = Writers // type alias
+```
+
+### `ServerConfig`
+
+```go
+type ServerConfig struct {
+    Config unsafe.Pointer // wraps the C server config pointer
+}
+```
+
+### `ServerConfigs`
+
+```go
+type ServerConfigs struct {
+    Config unsafe.Pointer // wraps the C server configs pointer
+}
+```
+
+### `Key`
+
+```go
+type Key struct {
+    Key unsafe.Pointer // wraps a C key struct
+}
+```
+
+### `KeyStruct`
+
+```go
+type KeyStruct = Key // type alias
+```
+
+### `ExtConfig`
+
+```go
+type ExtConfig struct {
+    Config unsafe.Pointer // wraps the C extended config pointer
+}
+```
+
+Holds extended formatting settings (see `NewExtConfig`).
+
+---
+
+## Functions
+
+### `func NewWriters(writers unsafe.Pointer) Writers`
+
+Constructs a `Writers` wrapper from a raw C pointer. Internal/low-level use.
+
+### `func WriterEnumsNew(writers unsafe.Pointer) WriterEnums`
+
+Alias for `NewWriters`. Returns a `WriterEnums` (which is a type alias for `Writers`).
+
+### `func NewExtConfig(structured MessageStruct, hostname, pname, pid, tname, tid bool) ExtConfig`
+
+Creates an extended formatting configuration. The bool flags control whether each field is included in log messages:
+
+| Parameter | Type | When `true` |
+| --- | --- | --- |
+| `structured` | `MessageStruct` | `String` (default), `Json`, or `Xml` — selects message structure format |
+| `hostname` | `bool` | Include the hostname |
+| `pname` | `bool` | Include the process name |
+| `pid` | `bool` | Include the process id |
+| `tname` | `bool` | Include the thread name |
+| `tid` | `bool` | Include the thread id |
+
+Pass the result to `logging.New` (as `*fl.ExtConfig`) or to `Logging.SetExtConfig`.
+
+```go
+ext := fl.NewExtConfig(fl.String, true, true, true, false, false)
+logger := logging.New(fl.DEBUG, nil, writers, &ext, nil)
+```
+
+### `func CreateKey(typ EncryptionMethod, key []byte) KeyStruct`
+
+Creates an encryption key of the given type from raw key bytes. If `key` is empty, a random key is generated (equivalent to `CreateRandomKey`). The returned `KeyStruct` can be passed to network writer/server factory functions or to `SetEncryption`.
+
+```go
+key := fl.CreateKey(fl.AES, []byte{0x01, 0x02, 0x03, /* ... */})
+client := writer.ClientWriterConfigNew(fl.DEBUG, "127.0.0.1:12345", &key)
+```
+
+### `func CreateRandomKey(typ EncryptionMethod) KeyStruct`
+
+Creates a random encryption key of the given type. Convenience wrapper around `CreateKey` with an empty key slice.
+
+```go
+key := fl.CreateRandomKey(fl.AES)
+```
+
+---
+
+## Helper types
+
+These mirror C vector structs returned by queries that map `uint32` keys to values. They are used by `Logging` / root methods such as `GetRootServerAddressesPorts` and `GetRootServerPorts`.
+
+### `Cu32StringVec`
+
+```go
+type Cu32StringVec struct {
+    Cnt    uint32
+    Keys   []uint32
+    Values []string
+}
+```
+
+A vector of `uint32` keys paired with `string` values.
+
+### `Cu32u16Vec`
+
+```go
+type Cu32u16Vec struct {
+    Cnt    uint32
+    Keys   []uint32
+    Values []uint16
+}
+```
+
+A vector of `uint32` keys paired with `uint16` values (e.g. server ports keyed by writer id).

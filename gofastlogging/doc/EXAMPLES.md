@@ -1,260 +1,196 @@
----
-# gofastlogging: Idiomatic Go Usage & Examples
+# Writers
 
-## Quick Start
+Writers are the sinks for log messages. A writer configuration must be created first using the factory functions in the `writer` package (`gofastlogging/fastlogging/writer`), then passed to `logging.New` or `Logging.AddWriterConfig`. All factory functions return `*fl.WriterConfigEnum` (a pointer) and may return `nil` on failure — no error is returned, so check for `nil` if you want to fail loudly. When assembling a `[]fl.WriterConfigEnum` slice for `logging.New`, dereference each pointer with `*`.
 
-Install dependencies and build the C library as described in the README. Then:
+## Console Writer
+
+```go
+func ConsoleWriterConfigNew(level uint8, colors bool) *fl.WriterConfigEnum
+```
+
+- `level` — log level filter (e.g. `fl.DEBUG`)
+- `colors` — enables colored output
+
+### Example
 
 ```go
 package main
 
 import (
-    "log"
-    logging "gofastlogging/fastlogging"
+    fl "gofastlogging/fastlogging"
+    "gofastlogging/fastlogging/logging"
+    "gofastlogging/fastlogging/writer"
 )
 
 func main() {
-    console, err := logging.ConsoleWriterConfigNew(logging.DEBUG, true)
-    if err != nil {
-        log.Fatal(err)
+    console := writer.ConsoleWriterConfigNew(fl.DEBUG, true)
+    if console == nil {
+        panic("failed to create console writer config")
     }
-    writers := []logging.WriterConfigEnum{console}
-    logger := logging.New(logging.DEBUG, nil, writers, nil, nil)
-    logger.Info("Hello, world!")
-    logger.Shutdown(false)
+
+    writers := []fl.WriterConfigEnum{
+        *console,
+    }
+
+    logger := logging.New(writers, fl.DEBUG)
+    defer logger.SyncAll(1.0)
+
+    logger.Debugf("Example", "hello from console writer")
 }
 ```
 
-## Logging to Console with root logger
+## File Writer
 
 ```go
-package main
-
-import (
-    "log"
-    "gofastlogging/fastlogging/root"
-)
-
-func main() {
-    err := root.Init()
-    if err != nil {
-        log.Fatal(err)
-    }
-    root.Info("Root logger example")
-    root.Shutdown(false)
-}
+func FileWriterConfigNew(
+    level uint8,
+    path string,
+    size uint32,
+    backlog uint32,
+    timeout int32,
+    time int64,
+    compression fl.CompressionMethod,
+) *fl.WriterConfigEnum
 ```
 
-## Logging to File
+| Parameter     | Type                      | Description                                                              |
+|---------------|---------------------------|--------------------------------------------------------------------------|
+| `level`       | `uint8`                   | Log level filter                                                         |
+| `path`        | `string`                  | Path to the log file                                                     |
+| `size`        | `uint32`                  | Max file size in bytes before rotation (0 = no size limit)               |
+| `backlog`     | `uint32`                  | Max number of backup files                                               |
+| `timeout`     | `int32`                   | Timeout in seconds after last log message before rotation (-1 = none)    |
+| `time`        | `int64`                   | Time of day for rotation as Unix timestamp seconds (-1 = no time rotation) |
+| `compression` | `fl.CompressionMethod`    | `fl.Store`, `fl.Deflate`, `fl.Zstd`, or `fl.Lzma`                        |
+
+### Example
 
 ```go
 package main
 
 import (
-    "log"
-    logging "gofastlogging/fastlogging"
+    fl "gofastlogging/fastlogging"
+    "gofastlogging/fastlogging/logging"
+    "gofastlogging/fastlogging/writer"
 )
 
 func main() {
-    file, err := logging.FileWriterConfigNew(logging.DEBUG,
-        "/tmp/gofastlogging.log",
-        1024,
-        3,
+    file := writer.FileWriterConfigNew(
+        fl.DEBUG,
+        "/tmp/myapp.log",
+        1024*1024,
+        5,
         -1,
         -1,
-        logging.Store)
-    if err != nil {
-        log.Fatal(err)
+        fl.Store,
+    )
+    if file == nil {
+        panic("failed to create file writer config")
     }
-    writers := []logging.WriterConfigEnum{file}
-    logger := logging.New(logging.DEBUG, nil, writers, nil, nil)
-    logger.Trace("Trace message")
-    logger.Debug("Debug message")
-    logger.Info("Info Message")
-    logger.Warning("Warning Message")
-    logger.Error("Error Message")
-    logger.Fatal("Fatal Message")
-    logger.Shutdown(false)
-}
 
+    writers := []fl.WriterConfigEnum{
+        *file,
+    }
+
+    logger := logging.New(writers, fl.DEBUG)
+    defer logger.SyncAll(1.0)
+
+    logger.Infof("Example", "hello from file writer")
+}
 ```
 
-## Using the Callback Writer
+## Syslog Writer
+
+```go
+func SyslogWriterConfigNew(level uint8, hostname, pname string, pid uint32) *fl.WriterConfigEnum
+```
+
+- `level` — log level filter
+- `hostname` — hostname added to log messages
+- `pname` — process name added to log messages
+- `pid` — process ID (0 to skip)
+
+### Example
 
 ```go
 package main
 
 import (
-    "fmt"
-    "os"
-    logging "gofastlogging/fastlogging"
+    fl "gofastlogging/fastlogging"
+    "gofastlogging/fastlogging/logging"
+    "gofastlogging/fastlogging/writer"
 )
 
 func main() {
-    callback := func(level uint8, domain, message string) {
-        fmt.Fprintf(os.Stdout, "[CALLBACK] Level: %d, Domain: %s, Message: %s\n", level, domain, message)
+    syslog := writer.SyslogWriterConfigNew(fl.DEBUG, "myhost", "myapp", 0)
+    if syslog == nil {
+        panic("failed to create syslog writer config")
     }
-    writer, handle, err := logging.CallbackWriterConfigNew(logging.DEBUG, callback)
-    if err != nil {
-        panic(err)
+
+    writers := []fl.WriterConfigEnum{
+        *syslog,
     }
-    defer handle.UnregisterCallback()
-    logger := logging.New(logging.DEBUG, nil, []logging.WriterConfigEnum{writer}, nil, nil)
-    logger.Info("Hello from callback writer!")
-    logger.Error("This is an error message.")
-    logger.Shutdown(false)
+
+    logger := logging.New(writers, fl.DEBUG)
+    defer logger.SyncAll(1.0)
+
+    logger.Infof("Example", "hello from syslog writer")
 }
 ```
 
-## Best Practices
+## Callback Writer
 
-- Always check errors when creating writer configs.
-- Use `defer handle.UnregisterCallback()` for callback writers to avoid memory leaks.
-- Prefer context.Context for advanced use cases (see API docs).
-- Use the provided constructors for all writer types for memory safety and idiomatic Go.
+> **NOT YET IMPLEMENTED.** The callback writer currently returns an error and is not functional. The signature and types below document the intended API only.
 
----
-
-## Logging via network sockets
-
-```python
-import tempfile
-
-from pyfastlogging import (
-    TRACE,
-    DEBUG,
-    Logging,
-    ConsoleWriterConfig,
-    FileWriterConfig,
-    ServerConfig,
-    ClientWriterConfig,
-)
-
-def SomeThread(logger):
-    logger.trace("Trace Message")
-    logger.debug("Debug Message")
-    logger.info("Info Message")
-
-if __name__ == "__main__":
-    tmpDir = tempfile.mkdtemp(prefix="fastlogging")
-    logging_server = Logging(
-        TRACE,
-        "LOGSRV",
-        [
-            ConsoleWriterConfig(TRACE, True),
-            FileWriterConfig(TRACE, f"{tmpDir}/fastlogging.log"),
-            ServerConfig(TRACE, "127.0.0.1"),
-        ],
-    )
-    logging_server.sync_all(5.0)
-    address = logging_server.get_server_address()
-    print(address)
-    key = logging_server.get_server_auth_key()
-    print(key)
-    logging_client = Logging(
-        TRACE, "LOGCLIENT", [ClientWriterConfig(DEBUG, address, key)]
-    )
-    logging_client.trace("Trace Message")
-    logging_client.debug("Debug Message")
-    logging_client.info("Info Message")
-
-    logging_server.trace("Trace Message")
-    logging_server.debug("Debug Message")
-    logging_server.info("Info Message")
-
-    logging_client.sync_all(1.0)
-    logging_server.sync_all(1.0)
-
-    logging_client.shutdown()
-    logging_server.shutdown()
+```go
+func CallbackWriterConfigNew(
+    level uint8,
+    callback func(level uint8, domain, message string),
+) (fl.WriterConfigEnum, CallbackHandle, error)
 ```
 
-## Logging using callback
+### Intended behavior
 
-```python
-from pyfastlogging import (
-    TRACE,
-    DEBUG,
-    Logging,
-    ConsoleWriterConfig,
-    CallbackWriterConfig,
-)
+The callback writer routes log messages into a user-supplied Go callback, allowing the application to react to log lines in-process (for example, to forward them to a UI, an in-memory ring buffer, or another downstream system).
 
-def writer_callback(level: int, domain: str, message: str):
-    print(f"--> {level} {domain} {message}")
+### Intended parameters
 
-if __name__ == "__main__":
-    logger = Logging(
-        TRACE,
-        "main",
-        [
-            ConsoleWriterConfig(TRACE, True),
-            CallbackWriterConfig(DEBUG, writer_callback),
-        ],
-    )
-    logger.trace("Trace Message")
-    logger.debug("Debug Message")
-    logger.info("Info Message")
-    logger.shutdown()
+- `level` — log level filter
+- `callback` — a Go function with the signature `func(level uint8, domain, message string)`, invoked once per log message that passes the level filter:
+  - `level` — the level of the message
+  - `domain` — the domain string of the message
+  - `message` — the formatted message text
+
+### `CallbackHandle`
+
+The function returns a `CallbackHandle` alongside the writer config. The handle exposes:
+
+```go
+func (h CallbackHandle) UnregisterCallback()
 ```
 
-## Logging to syslog
+Calling `UnregisterCallback()` removes the callback from the writer, after which messages will no longer be delivered to it.
 
-```python
-from pyfastlogging import (
-    TRACE,
-    Logging,
-)
+### Current behavior
 
-if __name__ == "__main__":
-    logger = Logging(
-        TRACE,
-        "main",
-        syslog=TRACE,
-    )
-    logger.trace("Trace Message")
-    logger.debug("Debug Message")
-    logger.info("Info Message")
-    logger.shutdown()
+Calling `CallbackWriterConfigNew` currently returns a non-nil error:
+
+```text
+callback writer not yet implemented
 ```
 
-## Logging and threads
+Do not rely on this writer until it is implemented. Track the upstream issue or release notes for updates.
 
-```python
-import tempfile
-from threading import Thread
+## Adding and removing writers at runtime
 
-from pyfastlogging import (
-    TRACE,
-    DEBUG,
-    MessageStructEnum,
-    Logging,
-    Logger,
-    ExtConfig,
-    ConsoleWriterConfig,
-    FileWriterConfig,
-)
+In addition to passing writers to `logging.New`, you can add or remove writers after a `Logging` instance has been created:
 
-def SomeThread(logger):
-    logger.trace("Trace Message")
-    logger.debug("Debug Message")
-    logger.info("Info Message")
-
-if __name__ == "__main__":
-    tmpDir = tempfile.mkdtemp(prefix="fastlogging")
-    logger = Logging(TRACE)
-    logger.set_ext_config(
-        ExtConfig(MessageStructEnum.String, True, True, True, True, True)
-    )
-    logger.add_writer(ConsoleWriterConfig(TRACE, True))
-    logger.add_writer(FileWriterConfig(TRACE, f"{tmpDir}/fastlogging.log"))
-    logger2 = Logger(DEBUG, "LoggerThread", None, True, True)
-    logger.add_logger(logger2)
-    thr = Thread(target=SomeThread, args=(logger2,), daemon=True)
-    thr.start()
-    logger.trace("Trace Message")
-    logger.debug("Debug Message")
-    logger.info("Info Message")
-    thr.join()
-    logger.shutdown()
+```go
+func (l *Logging) AddWriterConfig(config fl.WriterConfigEnum) error
+func (l *Logging) RemoveWriter(wid uint32) error
 ```
+
+- `AddWriterConfig` adds a writer configuration to an existing logger. Pass a `fl.WriterConfigEnum` value (not the pointer returned by the factory functions — dereference with `*` first).
+- `RemoveWriter` removes a previously added writer by its writer ID. The writer ID is assigned by the library when the writer is added.
+
+See `LOGGING.md` for the full `Logging` API.

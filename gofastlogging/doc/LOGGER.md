@@ -1,69 +1,90 @@
-# API of the LOGGER
+# Logger
 
-## `Logger(level: int, domain: str, indent: Tuple[int, int, int] = None, tname: bool = False, tid: bool = False)`
+The `Logger` struct is defined in the `gofastlogging/fastlogging/logger` package. It represents a per-thread or per-domain logging handle that is attached to a `Logging` instance via `AddLogger`.
 
-Create `Logger` instance. `level` and `domain` are clear and need no further explanation.
-With `indent`, if provided, log messages are indented with the following parameters:  
-`indent = (offset, increment, maximum)`  
-`offset` = Initial indent level  
-`increment` = Increment of indent by call level  
-`maximum` = Maximum increment  
-With `tname` is `True` the thread name is added to the log messages.  
-With `tid` is `True` the thread id is added to the log messages.
+```go
+type Logger struct { Logger C.Logger }
+```
 
-## `set_level(level: u8)`
+```go
+import (
+    fl "gofastlogging/fastlogging"
+    "gofastlogging/fastlogging/logger"
+    "gofastlogging/fastlogging/logging"
+    "gofastlogging/fastlogging/writer"
+)
+```
 
-Set log level to `level`.
+## Constructors
 
-## `level() -> u8`
+### New
 
-Get current log level.
+```go
+func New(level uint8, domain *string) *Logger
+```
 
-## `set_domain(domain: str)`
+Creates a new `Logger`. Returns `*Logger` (nil on failure; no error returned).
 
-Set log domain.
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `level` | `uint8` | Log level filter. Use constants like `fl.DEBUG`, `fl.INFO`. |
+| `domain` | `*string` | Log domain. Pass `nil` for none. |
 
-## `trace(obj: Py<PyAny>)`
+### NewExt
 
-Log **TRACE** message. `obj` can be any object which can be converted into a string.
-An exception is thrown if `obj` cannot be converted into a string.
+```go
+func NewExt(level uint8, domain *string, tname int8, tid int8) *Logger
+```
 
-## `debug(obj: Py<PyAny>)`
+Creates a new `Logger` with extended thread-logging options. Returns `*Logger` (nil on failure).
 
-Log **DEBUG** message. `obj` can be any object which can be converted into a string.
-An exception is thrown if `obj` cannot be converted into a string.
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `level` | `uint8` | Log level filter. |
+| `domain` | `*string` | Log domain. Pass `nil` for none. |
+| `tname` | `int8` | `0` = don't log thread name, `1` = log thread name. |
+| `tid` | `int8` | `0` = don't log thread id, `1` = log thread id. |
 
-## `info(obj: Py<PyAny>)`
+## Methods
 
-Log **INFO** message. `obj` can be any object which can be converted into a string.
-An exception is thrown if `obj` cannot be converted into a string.
+All methods are defined on `*Logger`.
 
-## `success(obj: Py<PyAny>)`
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `SetLevel` | `(level uint8) error` | Set log level. |
+| `SetDomain` | `(domain *string) error` | Set log domain. Pass `nil` to clear. |
 
-Log **SUCCESS** message. `obj` can be any object which can be converted into a string.
-An exception is thrown if `obj` cannot be converted into a string.
+## Logging methods
 
-## `warning(obj: Py<PyAny>)`
+All return `error`.
 
-Log **WARNING** message. `obj` can be any object which can be converted into a string.
-An exception is thrown if `obj` cannot be converted into a string.
+| Method | Signature |
+|--------|-----------|
+| `Trace` | `(message string) error` |
+| `Debug` | `(message string) error` |
+| `Info` | `(message string) error` |
+| `Success` | `(message string) error` |
+| `Warning` | `(message string) error` |
+| `Error` | `(message string) error` |
+| `Critical` | `(message string) error` |
+| `Fatal` | `(message string) error` |
+| `Exception` | `(message string) error` |
 
-## `error(obj: Py<PyAny>)`
+## Usage example
 
-Log **ERROR** message. `obj` can be any object which can be converted into a string.
-An exception is thrown if `obj` cannot be converted into a string.
+```go
+console := writer.ConsoleWriterConfigNew(fl.DEBUG, true)
+writers := []fl.WriterConfigEnum{*console}
+log := logging.New(fl.DEBUG, nil, writers, nil, nil)
 
-## `critical(obj: Py<PyAny>)`
+name := "WorkerThread"
+threadLogger := logger.NewExt(fl.DEBUG, &name, 1, 1)
+log.AddLogger(*threadLogger)
 
-Log **CRITICAL** message. `obj` can be any object which can be converted into a string.
-An exception is thrown if `obj` cannot be converted into a string.
+// In a goroutine:
+threadLogger.Info("Message from worker thread")
 
-## `fatal(obj: Py<PyAny>)`
+log.Shutdown(false)
+```
 
-Log **FATAL** message. `obj` can be any object which can be converted into a string.
-An exception is thrown if `obj` cannot be converted into a string.
-
-## `exception(obj: Py<PyAny>)`
-
-Log **EXCEPTION** message. `obj` can be any object which can be converted into a string.
-An exception is thrown if `obj` cannot be converted into a string.
+> **Note:** `AddLogger` and `RemoveLogger` take `logger.Logger` by value (not pointer). Dereference a `*Logger` with `*` when passing it in.
