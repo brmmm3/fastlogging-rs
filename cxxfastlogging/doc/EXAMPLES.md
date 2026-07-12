@@ -19,7 +19,9 @@ int main() {
 }
 ```
 
-2. Console Logger
+---
+
+## 2. Console Logger
 
 ```cpp
 #include "cxxfastlogging/h/fastlogging.h"

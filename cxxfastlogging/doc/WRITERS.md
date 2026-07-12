@@ -13,7 +13,7 @@ configs.push_back(WriterConfig::new_file(DEBUG, "/tmp/app.log", 0, 0, -1, -1,
 auto log = Logging::create(DEBUG, "app", std::move(configs));
 ```
 
-Console Writer
+## Console Writer
 
 Writes coloured or plain-text messages to stdout.
 
