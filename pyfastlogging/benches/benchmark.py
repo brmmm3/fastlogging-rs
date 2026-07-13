@@ -258,15 +258,19 @@ def DoFastLoggingRsDefault(
     else:
         size = 0
         backlog = 0
-    fw = FileWriterConfig(
-        level, pathName, size, backlog, compression=CompressionMethodEnum.Deflate
-    )
     fl.remove_writers(None)
-    wr = fl.add_writer(fw)
+    if pathName:
+        fw = FileWriterConfig(
+            level, pathName, size, backlog, compression=CompressionMethodEnum.Deflate
+        )
+        wr = fl.add_writer(fw)
+    else:
+        wr = None
     t1 = time.time()
     dt0 = LoggingWork(fl, cnt, bWithException, message)
     fl.sync_all(10.0)
-    fl.remove_writer(wr)
+    if wr:
+        fl.remove_writer(wr)
     dt = time.time() - t1
     print(f"  total: {dt0: .3f} {dt: .3f}")
     return dt
@@ -288,7 +292,8 @@ def DoFastLoggingRs(
         size = 0
         count = 0
     logger = Logging(level, "main")
-    logger.add_writer(FileWriterConfig(level, pathName, size, count))
+    if pathName:
+        logger.add_writer(FileWriterConfig(level, pathName, size, count))
     t1 = time.time()
     dt0 = LoggingWork(logger, cnt, bWithException, message)
     logger.shutdown()
@@ -303,7 +308,7 @@ def Measure(
     cbFunc: callable,
     cnt: int,
     level: int,
-    fileName: str,
+    fileName: str | None,
     bRotate: bool,
     bWithException: bool,
     msg: str,
@@ -333,7 +338,7 @@ if __name__ == "__main__":
     htmlTemplate = open("doc/benchmarks/template.html").read()
     dtAllJson = {}
     for msg, message in (
-        # ("short", "Message"),
+        ("short", "Message"),
         (
             "long",
             "Message Message Message Message Message Message Message Message Message Message Message Message Message Message Message Message Message",
@@ -343,8 +348,8 @@ if __name__ == "__main__":
         for bWithException in (False, True):
             dtAllJsonMsgExc = dtAllJsonMsg["exc" if bWithException else "noexc"] = {}
             for title, name, fileName, bRotate in (
-                # ("No log file", "nolog", None, False),
-                # ("Log file", "file", "logging.log", False),
+                ("No log file", "nolog", None, False),
+                ("Log file", "file", "logging.log", False),
                 ("Rotating log file", "rotate", "logging.log", True),
             ):
                 dtAllJsonMsgExcName = dtAllJsonMsgExc[name] = {}
