@@ -8,7 +8,7 @@ import pyfastlogging as fl
 
 def run_parent():
     print("# Run parent.")
-    fl.set_domain(f"parent")
+    fl.set_domain("parent")
     fl.debug("Debug Message from parent")
     fl.info("Info Message from parent")
     fl.warning("Warning Message from parent")

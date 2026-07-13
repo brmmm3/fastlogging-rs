@@ -1,13 +1,13 @@
-# `fastlogging-rs`
+# fastlogging-rs
 
 `fastlogging-rs` is a very fast and versatile logging framework. It supports the following programming languages with similar APIs:
 
 - [Rust](fastlogging/README.md) (of course, as it is written in Rust ;-) )
-- [Python](pyfastlogging/README.md) >=3.7
-- [C](cfastlogging/README.md)
-- [C++](cppfastlogging/README.md) (work in progress)
+- [Python](pyfastlogging/README.md) >=3.10 (using pyo3)
+- [C](cfastlogging/README.md) (FFI)
+- [C++](cppfastlogging/README.md) (FFI and CXX)
 - [Go](gofastlogging/README.md)
-- [Java](jfastlogging/README.md)
+- [Java](jfastlogging/README.md) (JNI and FFM)
 
 ## Writers
 
@@ -61,4 +61,3 @@ fastlogging-rs 0.17s
 More benchmarks can be found in `doc/benchmarks`.
 
 ## Usage
-

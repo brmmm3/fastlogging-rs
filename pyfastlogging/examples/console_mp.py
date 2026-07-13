@@ -1,6 +1,5 @@
 import os
 
-import pyfastlogging
 from pyfastlogging import (
     TRACE,
     Logging,

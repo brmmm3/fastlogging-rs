@@ -1,4 +1,4 @@
-# `jfastlogging`
+# jfastlogging (FFM) — Documentation
 
 This is the Java layer for [fastlogging](https://github.com/brmmm3/fastlogging-rs/tree/master/fastlogging). This package is for creating a Java extension class using [jni](https://github.com/jni-rs/jni-rs).
 
