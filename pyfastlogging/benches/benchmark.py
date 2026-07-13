@@ -53,7 +53,7 @@ def LoggingWork(logger, cnt: int, bWithException: bool, message: str) -> float:
             try:
                 # noinspection PyUnusedLocal
                 x = 1 / 0
-            except:
+            except Exception:
                 logger.exception("EXCEPTION")
     return time.time() - t1
 
@@ -183,7 +183,7 @@ def DoLoguru(
     # Optimizations
     try:
         logger.remove(0)
-    except:
+    except Exception:
         pass
     loggerId = None
     if pathName:
@@ -261,10 +261,11 @@ def DoFastLoggingRsDefault(
     fw = FileWriterConfig(
         level, pathName, size, backlog, compression=CompressionMethodEnum.Deflate
     )
+    fl.remove_writers(None)
     wr = fl.add_writer(fw)
     t1 = time.time()
     dt0 = LoggingWork(fl, cnt, bWithException, message)
-    fl.sync_all()
+    fl.sync_all(10.0)
     fl.remove_writer(wr)
     dt = time.time() - t1
     print(f"  total: {dt0: .3f} {dt: .3f}")
@@ -286,10 +287,8 @@ def DoFastLoggingRs(
     else:
         size = 0
         count = 0
-    logger = Logging(
-        level,
-        file=FileWriterConfig(level, pathName, size, count),
-    )
+    logger = Logging(level, "main")
+    logger.add_writer(FileWriterConfig(level, pathName, size, count))
     t1 = time.time()
     dt0 = LoggingWork(logger, cnt, bWithException, message)
     logger.shutdown()
@@ -314,6 +313,7 @@ def Measure(
     title = GetTitle(prefix, msg, fileName, bRotate, bWithException, level)
     print(f"{num} {prefix}: {title}")
     dt = 0
+    i = 0
     for i in range(10):
         pathName = GetPathName(tmpDirName, fileName, title)
         dt += cbFunc(cnt, level, pathName, bRotate, bWithException, message, *args)
@@ -458,14 +458,11 @@ if __name__ == "__main__":
                         "FastLoggingRs",
                         "FastLoggingRsDefault",
                     ):
-                        title = GetTitle(
-                            prefix, msg, fileName, bRotate, bWithException, level
-                        )
-                        dirName = os.path.dirname(
-                            GetPathName(tmpDirName, fileName, title)
-                        )
-                        print(f"REMOVE {dirName}")
-                        shutil.rmtree(dirName)
+                        title = GetTitle(prefix, msg, fileName, bRotate, bWithException, level)
+                        if pathName := GetPathName(tmpDirName, fileName, title):
+                            dirName = os.path.dirname(pathName)
+                            print(f"REMOVE {dirName}")
+                            shutil.rmtree(dirName)
                     num += 1
                 if bWithException:
                     name += "_exc"
