@@ -4,7 +4,7 @@ use std::{
     io::{BufWriter, Read, Seek, SeekFrom, Write},
     path::{Path, PathBuf},
     sync::{
-        Arc, Mutex,
+        Arc, RwLock,
         atomic::{AtomicBool, Ordering},
     },
     thread::{self, JoinHandle},
@@ -164,12 +164,12 @@ fn rotate_do(
 }
 
 fn file_writer_thread_worker(
-    config: Arc<Mutex<FileWriterConfig>>,
+    config: Arc<RwLock<FileWriterConfig>>,
     rx: Receiver<FileTypeEnum>,
     stop: Arc<AtomicBool>,
     sync_tx: Sender<u8>,
 ) -> Result<(), LoggingError> {
-    let path = config.lock().unwrap().path.clone();
+    let path = config.read().unwrap().path.clone();
     let mut create_time = SystemTime::now();
     let mut file = BufWriter::new(OpenOptions::new().create(true).append(true).open(&path)?);
     let mut size = file.seek(SeekFrom::End(0))? as usize;
@@ -180,7 +180,7 @@ fn file_writer_thread_worker(
             break;
         }
         let (max_size, backlog, timeout, time, compression) = {
-            let c = config.lock().unwrap();
+            let c = config.read().unwrap();
             (c.size, c.backlog, c.timeout, c.time, c.compression)
         };
         let mut deadline = create_time
@@ -206,7 +206,7 @@ fn file_writer_thread_worker(
         };
         let rotate = match message {
             FileTypeEnum::Message((_level, domain, message)) => {
-                if let Ok(ref config) = config.lock() {
+                if let Ok(ref config) = config.read() {
                     if !config.enabled {
                         continue;
                     }
@@ -254,14 +254,14 @@ fn file_writer_thread_worker(
 }
 
 fn file_writer_thread(
-    config: Arc<Mutex<FileWriterConfig>>,
+    config: Arc<RwLock<FileWriterConfig>>,
     rx: Receiver<FileTypeEnum>,
     stop: Arc<AtomicBool>,
     sync_tx: Sender<u8>,
 ) -> Result<(), LoggingError> {
     if let Err(err) = file_writer_thread_worker(config.clone(), rx, stop, sync_tx) {
         eprintln!("Logging file worker crashed with error: {err:?}");
-        eprintln!("{:#?}", config.lock().unwrap());
+        eprintln!("{:#?}", config.read().unwrap());
         Err(err)
     } else {
         Ok(())
@@ -270,7 +270,7 @@ fn file_writer_thread(
 
 #[derive(Debug)]
 pub struct FileWriter {
-    pub(crate) config: Arc<Mutex<FileWriterConfig>>,
+    pub(crate) config: Arc<RwLock<FileWriterConfig>>,
     tx: Sender<FileTypeEnum>,
     sync_rx: Receiver<u8>,
     thr: Option<JoinHandle<()>>,
@@ -279,7 +279,7 @@ pub struct FileWriter {
 
 impl FileWriter {
     pub fn new(config: FileWriterConfig, stop: Arc<AtomicBool>) -> Result<Self, LoggingError> {
-        let config = Arc::new(Mutex::new(config));
+        let config = Arc::new(RwLock::new(config));
         let (tx, rx) = bounded(QUEUE_CAPACITY);
         let (sync_tx, sync_rx) = bounded(1);
         Ok(Self {
@@ -336,22 +336,22 @@ impl FileWriter {
     }
 
     pub fn enable(&self) {
-        self.config.lock().unwrap().enabled = true;
+        self.config.write().unwrap().enabled = true;
     }
 
     pub fn disable(&self) {
-        self.config.lock().unwrap().enabled = false;
+        self.config.write().unwrap().enabled = false;
     }
 
     pub fn set_level(&self, level: u8) {
-        self.config.lock().unwrap().level = level;
+        self.config.write().unwrap().level = level;
     }
 
     pub fn set_domain_filter(&self, domain_filter: Option<String>) -> Result<(), regex::Error> {
         if let Some(ref message) = domain_filter {
             Regex::new(message)?;
         }
-        self.config.lock().unwrap().domain_filter = domain_filter;
+        self.config.write().unwrap().domain_filter = domain_filter;
         Ok(())
     }
 
@@ -359,7 +359,7 @@ impl FileWriter {
         if let Some(ref message) = message_filter {
             Regex::new(message)?;
         }
-        self.config.lock().unwrap().message_filter = message_filter;
+        self.config.write().unwrap().message_filter = message_filter;
         Ok(())
     }
 
@@ -371,7 +371,7 @@ impl FileWriter {
         time: Option<SystemTime>,
         compression: Option<CompressionMethodEnum>,
     ) -> Result<(), LoggingError> {
-        let mut config = self.config.lock().unwrap();
+        let mut config = self.config.write().unwrap();
         config.size = size;
         config.backlog = backlog;
         config.timeout = timeout;
@@ -384,7 +384,7 @@ impl FileWriter {
         self.tx.send(FileTypeEnum::Rotate).map_err(|e| {
             LoggingError::SendError(format!(
                 "Failed to rotate {:?}: {e:?}",
-                self.config.lock().unwrap().path
+                self.config.read().unwrap().path
             ))
         })
     }

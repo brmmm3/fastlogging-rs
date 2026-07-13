@@ -1,7 +1,7 @@
 use std::{
     fmt,
     sync::{
-        Arc, Mutex,
+        Arc, RwLock,
         atomic::{AtomicBool, Ordering},
     },
     thread::{self, JoinHandle},
@@ -40,7 +40,7 @@ pub struct CallbackWriterConfig {
     pub(crate) domain_filter: Option<String>,
     pub(crate) message_filter: Option<String>,
     #[serde(skip_serializing, skip_deserializing)]
-    pub(crate) callback: Option<Arc<Mutex<CallbackFn>>>,
+    pub(crate) callback: Option<Arc<RwLock<CallbackFn>>>,
     pub(crate) debug: u8,
 }
 
@@ -57,7 +57,7 @@ impl CallbackWriterConfig {
             level,
             domain_filter: None,
             message_filter: None,
-            callback: callback.map(|f| Arc::new(Mutex::new(f))),
+            callback: callback.map(|f| Arc::new(RwLock::new(f))),
             debug: 0,
         }
     }
@@ -83,7 +83,7 @@ impl fmt::Display for CallbackWriterConfig {
 }
 
 fn callback_writer_thread(
-    config: Arc<Mutex<CallbackWriterConfig>>,
+    config: Arc<RwLock<CallbackWriterConfig>>,
     rx: Receiver<CallbackTypeEnum>,
     sync_tx: Sender<u8>,
     stop: Arc<AtomicBool>,
@@ -94,9 +94,9 @@ fn callback_writer_thread(
         }
         match rx.recv()? {
             CallbackTypeEnum::Message((level, domain, message)) => {
-                if let Ok(ref config) = config.lock() {
+                if let Ok(ref config) = config.read() {
                     if let Some(ref callback) = config.callback
-                        && let Err(err) = (callback.lock().unwrap())(level, domain, message)
+                        && let Err(err) = (callback.read().unwrap())(level, domain, message)
                     {
                         eprintln!("CallbackWriter: Error: {err:?}");
                     }
@@ -117,7 +117,7 @@ fn callback_writer_thread(
 
 #[derive(Debug)]
 pub struct CallbackWriter {
-    pub(crate) config: Arc<Mutex<CallbackWriterConfig>>,
+    pub(crate) config: Arc<RwLock<CallbackWriterConfig>>,
     tx: Sender<CallbackTypeEnum>,
     sync_rx: Receiver<u8>,
     thr: Option<JoinHandle<()>>,
@@ -126,7 +126,7 @@ pub struct CallbackWriter {
 
 impl CallbackWriter {
     pub fn new(config: CallbackWriterConfig, stop: Arc<AtomicBool>) -> Result<Self, LoggingError> {
-        let config = Arc::new(Mutex::new(config));
+        let config = Arc::new(RwLock::new(config));
         let (tx, rx) = bounded(1000);
         let (sync_tx, sync_rx) = bounded(1);
         Ok(Self {
@@ -188,26 +188,26 @@ impl CallbackWriter {
     }
 
     pub fn enable(&self) {
-        self.config.lock().unwrap().enabled = true;
+        self.config.write().unwrap().enabled = true;
     }
 
     pub fn disable(&self) {
-        self.config.lock().unwrap().enabled = false;
+        self.config.write().unwrap().enabled = false;
     }
 
     pub fn set_enabled(&self, enabled: bool) {
-        self.config.lock().unwrap().enabled = enabled;
+        self.config.write().unwrap().enabled = enabled;
     }
 
     pub fn set_level(&self, level: u8) {
-        self.config.lock().unwrap().level = level;
+        self.config.write().unwrap().level = level;
     }
 
     pub fn set_domain_filter(&self, domain_filter: Option<String>) -> Result<(), regex::Error> {
         if let Some(ref message) = domain_filter {
             Regex::new(message)?;
         }
-        self.config.lock().unwrap().domain_filter = domain_filter;
+        self.config.write().unwrap().domain_filter = domain_filter;
         Ok(())
     }
 
@@ -215,12 +215,12 @@ impl CallbackWriter {
         if let Some(ref message) = message_filter {
             Regex::new(message)?;
         }
-        self.config.lock().unwrap().message_filter = message_filter;
+        self.config.write().unwrap().message_filter = message_filter;
         Ok(())
     }
 
     pub fn set_callback(&self, callback: Option<CallbackFn>) {
-        self.config.lock().unwrap().callback = callback.map(|f| Arc::new(Mutex::new(f)));
+        self.config.write().unwrap().callback = callback.map(|f| Arc::new(RwLock::new(f)));
     }
 
     #[inline]

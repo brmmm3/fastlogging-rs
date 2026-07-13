@@ -57,8 +57,11 @@ fn init(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(root::set_ext_config, m)?)?;
     m.add_function(wrap_pyfunction!(root::add_logger, m)?)?;
     m.add_function(wrap_pyfunction!(root::remove_logger, m)?)?;
+    m.add_function(wrap_pyfunction!(root::set_root_writer, m)?)?;
     m.add_function(wrap_pyfunction!(root::add_writer, m)?)?;
     m.add_function(wrap_pyfunction!(root::remove_writer, m)?)?;
+    m.add_function(wrap_pyfunction!(root::add_writers, m)?)?;
+    m.add_function(wrap_pyfunction!(root::remove_writers, m)?)?;
     m.add_function(wrap_pyfunction!(root::enable, m)?)?;
     m.add_function(wrap_pyfunction!(root::disable, m)?)?;
     m.add_function(wrap_pyfunction!(root::enable_type, m)?)?;

@@ -166,7 +166,27 @@ impl Logging {
         Ok(self.instance.set_root_writer_config(&config.into())?)
     }
 
-    pub fn add_writer(&mut self, config: WriterConfigEnum) -> Result<usize, LoggingError> {
+    pub fn add_writer(&mut self, config: Py<PyAny>, py: Python) -> Result<usize, LoggingError> {
+        let config = if let Ok(config) = config.extract::<RootConfig>(py) {
+            fastlogging::WriterConfigEnum::Root(config.0)
+        } else if let Ok(config) = config.extract::<ConsoleWriterConfig>(py) {
+            fastlogging::WriterConfigEnum::Console(config.0)
+        } else if let Ok(config) = config.extract::<FileWriterConfig>(py) {
+            fastlogging::WriterConfigEnum::File(config.0)
+        } else if let Ok(config) = config.extract::<ClientWriterConfig>(py) {
+            fastlogging::WriterConfigEnum::Client(config.0)
+        } else if let Ok(config) = config.extract::<ServerConfig>(py) {
+            fastlogging::WriterConfigEnum::Server(config.0)
+        } else if let Ok(config) = config.extract::<SyslogWriterConfig>(py) {
+            fastlogging::WriterConfigEnum::Syslog(config.0)
+        } else if let Ok(config) = config.extract::<CallbackWriterConfig>(py) {
+            fastlogging::WriterConfigEnum::Callback(config.0)
+        } else {
+            return Err(fastlogging::LoggingError::InvalidValue(
+                "writer has invalid argument type".to_string(),
+            )
+            .into());
+        };
         Ok(self.instance.add_writer_config(&config.into())?)
     }
 
@@ -176,11 +196,13 @@ impl Logging {
 
     pub fn add_writers(
         &mut self,
-        configs: Vec<WriterConfigEnum>,
+        configs: Vec<Py<PyAny>>,
+        py: Python,
     ) -> Result<Vec<usize>, LoggingError> {
-        Ok(self
-            .instance
-            .add_writer_configs(configs.into_iter().map(|c| c.into()).collect::<Vec<_>>())?)
+        configs
+            .into_iter()
+            .map(|config| self.add_writer(config, py))
+            .collect::<Result<Vec<_>, LoggingError>>()
     }
 
     #[pyo3(signature=(wids=None,))]
@@ -408,7 +430,7 @@ impl Logging {
         let config = self
             .instance
             .instance
-            .lock()
+            .read()
             .unwrap()
             .get_logging_config()
             .to_json_vec()?;
@@ -423,7 +445,7 @@ impl Logging {
         let config = self
             .instance
             .instance
-            .lock()
+            .read()
             .unwrap()
             .get_logging_config()
             .to_json_vec()?;

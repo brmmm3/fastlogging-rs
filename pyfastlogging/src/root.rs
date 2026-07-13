@@ -1,6 +1,6 @@
 use std::{collections::HashMap, path::PathBuf};
 
-use pyo3::{exceptions::PyException, prelude::*};
+use pyo3::prelude::*;
 
 use crate::{
     ClientWriterConfig, ConsoleWriterConfig, EncryptionMethod, FileWriterConfig, LevelSyms,
@@ -10,6 +10,32 @@ use crate::{
 };
 
 /// Python layer for fastlogging.
+
+fn extract_writer_config_enum(
+    config: Py<PyAny>,
+    py: Python,
+) -> Result<fastlogging::WriterConfigEnum, LoggingError> {
+    Ok(if let Ok(config) = config.extract::<RootConfig>(py) {
+        fastlogging::WriterConfigEnum::Root(config.0)
+    } else if let Ok(config) = config.extract::<ConsoleWriterConfig>(py) {
+        fastlogging::WriterConfigEnum::Console(config.0)
+    } else if let Ok(config) = config.extract::<FileWriterConfig>(py) {
+        fastlogging::WriterConfigEnum::File(config.0)
+    } else if let Ok(config) = config.extract::<ClientWriterConfig>(py) {
+        fastlogging::WriterConfigEnum::Client(config.0)
+    } else if let Ok(config) = config.extract::<ServerConfig>(py) {
+        fastlogging::WriterConfigEnum::Server(config.0)
+    } else if let Ok(config) = config.extract::<SyslogWriterConfig>(py) {
+        fastlogging::WriterConfigEnum::Syslog(config.0)
+    } else if let Ok(config) = config.extract::<CallbackWriterConfig>(py) {
+        fastlogging::WriterConfigEnum::Callback(config.0)
+    } else {
+        return Err(fastlogging::LoggingError::InvalidValue(
+            "writer has invalid argument type".to_string(),
+        )
+        .into());
+    })
+}
 
 /// Initialize root logger.
 #[pyfunction]
@@ -59,32 +85,36 @@ pub fn remove_logger(logger: Py<Logger>, py: Python) {
 }
 
 #[pyfunction]
-pub fn add_writer(config: Py<PyAny>, py: Python) -> PyResult<usize> {
-    let config = if let Ok(config) = config.extract::<RootConfig>(py) {
-        fastlogging::WriterConfigEnum::Root(config.0)
-    } else if let Ok(config) = config.extract::<ConsoleWriterConfig>(py) {
-        fastlogging::WriterConfigEnum::Console(config.0)
-    } else if let Ok(config) = config.extract::<FileWriterConfig>(py) {
-        fastlogging::WriterConfigEnum::File(config.0)
-    } else if let Ok(config) = config.extract::<ClientWriterConfig>(py) {
-        fastlogging::WriterConfigEnum::Client(config.0)
-    } else if let Ok(config) = config.extract::<ServerConfig>(py) {
-        fastlogging::WriterConfigEnum::Server(config.0)
-    } else if let Ok(config) = config.extract::<SyslogWriterConfig>(py) {
-        fastlogging::WriterConfigEnum::Syslog(config.0)
-    } else if let Ok(config) = config.extract::<CallbackWriterConfig>(py) {
-        fastlogging::WriterConfigEnum::Callback(config.0)
-    } else {
-        return Err(PyException::new_err(
-            "writer has invalid argument type".to_string(),
-        ));
-    };
-    fastlogging::root::add_writer_config(&config).map_err(|e| PyException::new_err(e.to_string()))
+pub fn set_root_writer(config: Py<PyAny>, py: Python) -> Result<(), LoggingError> {
+    fastlogging::root::set_root_writer_config(&extract_writer_config_enum(config, py)?)
+        .map_err(|e| e.into())
+}
+
+#[pyfunction]
+pub fn add_writer(config: Py<PyAny>, py: Python) -> Result<usize, LoggingError> {
+    fastlogging::root::add_writer_config(&extract_writer_config_enum(config, py)?)
+        .map_err(|e| e.into())
 }
 
 #[pyfunction]
 pub fn remove_writer(wid: usize) -> Option<WriterConfigEnum> {
     fastlogging::root::remove_writer(wid).map(|w| w.config().into())
+}
+
+#[pyfunction]
+pub fn add_writers(configs: Vec<Py<PyAny>>, py: Python) -> Result<Vec<usize>, LoggingError> {
+    configs
+        .into_iter()
+        .map(|config| add_writer(config, py))
+        .collect::<Result<Vec<_>, LoggingError>>()
+}
+
+#[pyfunction]
+pub fn remove_writers(wids: Option<Vec<usize>>) -> Vec<WriterConfigEnum> {
+    fastlogging::root::remove_writers(wids)
+        .into_iter()
+        .map(|w| w.config().into())
+        .collect()
 }
 
 #[pyfunction]

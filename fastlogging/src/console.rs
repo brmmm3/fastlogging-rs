@@ -2,7 +2,7 @@ use std::{
     fmt,
     io::Write,
     sync::{
-        Arc, Mutex,
+        Arc, RwLock,
         atomic::{AtomicBool, Ordering},
     },
     thread::{self, JoinHandle},
@@ -88,7 +88,7 @@ impl fmt::Display for ConsoleWriterConfig {
 }
 
 fn console_writer_thread(
-    config: Arc<Mutex<ConsoleWriterConfig>>,
+    config: Arc<RwLock<ConsoleWriterConfig>>,
     rx: Receiver<ConsoleTypeEnum>,
     sync_tx: Sender<u8>,
     stop: Arc<AtomicBool>,
@@ -103,7 +103,7 @@ fn console_writer_thread(
         }
         match rx.recv()? {
             ConsoleTypeEnum::Message((level, domain, message)) => {
-                if let Ok(ref config) = config.lock() {
+                if let Ok(ref config) = config.read() {
                     if !config.enabled {
                         continue;
                     }
@@ -170,7 +170,7 @@ fn console_writer_thread(
 
 #[derive(Debug)]
 pub struct ConsoleWriter {
-    pub(crate) config: Arc<Mutex<ConsoleWriterConfig>>,
+    pub(crate) config: Arc<RwLock<ConsoleWriterConfig>>,
     tx: Sender<ConsoleTypeEnum>,
     sync_rx: Receiver<u8>,
     thr: Option<JoinHandle<()>>,
@@ -179,7 +179,7 @@ pub struct ConsoleWriter {
 
 impl ConsoleWriter {
     pub fn new(config: ConsoleWriterConfig, stop: Arc<AtomicBool>) -> Result<Self, LoggingError> {
-        let config = Arc::new(Mutex::new(config));
+        let config = Arc::new(RwLock::new(config));
         let (tx, rx) = bounded(1000);
         let (sync_tx, sync_rx) = bounded(1);
         Ok(Self {
@@ -240,26 +240,26 @@ impl ConsoleWriter {
     }
 
     pub fn enable(&self) {
-        self.config.lock().unwrap().enabled = true;
+        self.config.write().unwrap().enabled = true;
     }
 
     pub fn disable(&self) {
-        self.config.lock().unwrap().enabled = false;
+        self.config.write().unwrap().enabled = false;
     }
 
     pub fn set_enabled(&self, enabled: bool) {
-        self.config.lock().unwrap().enabled = enabled;
+        self.config.write().unwrap().enabled = enabled;
     }
 
     pub fn set_level(&self, level: u8) {
-        self.config.lock().unwrap().level = level;
+        self.config.write().unwrap().level = level;
     }
 
     pub fn set_domain_filter(&self, domain_filter: Option<String>) -> Result<(), regex::Error> {
         if let Some(ref message) = domain_filter {
             Regex::new(message)?;
         }
-        self.config.lock().unwrap().domain_filter = domain_filter;
+        self.config.write().unwrap().domain_filter = domain_filter;
         Ok(())
     }
 
@@ -267,16 +267,16 @@ impl ConsoleWriter {
         if let Some(ref message) = message_filter {
             Regex::new(message)?;
         }
-        self.config.lock().unwrap().message_filter = message_filter;
+        self.config.write().unwrap().message_filter = message_filter;
         Ok(())
     }
 
     pub fn set_colors(&self, colors: bool) {
-        self.config.lock().unwrap().colors = colors;
+        self.config.write().unwrap().colors = colors;
     }
 
     pub fn set_target(&self, target: ConsoleTargetEnum) {
-        self.config.lock().unwrap().target = target;
+        self.config.write().unwrap().target = target;
     }
 
     #[inline]

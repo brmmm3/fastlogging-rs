@@ -1,7 +1,7 @@
 use fastlogging::{LoggingError, ROOT_LOGGER};
 
 fn main() -> Result<(), LoggingError> {
-    let logger = ROOT_LOGGER.lock().unwrap();
+    let logger = ROOT_LOGGER.read().unwrap();
     logger.trace("Trace Message")?;
     logger.debug("Debug Message")?;
     logger.info("Info Message")?;

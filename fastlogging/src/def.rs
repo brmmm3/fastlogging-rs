@@ -178,27 +178,27 @@ impl WriterConfigEnum {
                 level2sym: instance.level2sym.clone(),
             }),
             WriterEnum::Console(console_writer) => {
-                WriterConfigEnum::Console(console_writer.config.lock().unwrap().clone())
+                WriterConfigEnum::Console(console_writer.config.read().unwrap().clone())
             }
 
             WriterEnum::File(file_writer) => {
-                WriterConfigEnum::File(file_writer.config.lock().unwrap().clone())
+                WriterConfigEnum::File(file_writer.config.read().unwrap().clone())
             }
 
             WriterEnum::Client(client_writer) => {
-                WriterConfigEnum::Client(client_writer.config.lock().unwrap().get_client_config())
+                WriterConfigEnum::Client(client_writer.config.read().unwrap().get_client_config())
             }
 
             WriterEnum::Server(logging_server) => {
-                WriterConfigEnum::Server(logging_server.config.lock().unwrap().get_server_config())
+                WriterConfigEnum::Server(logging_server.config.read().unwrap().get_server_config())
             }
 
             WriterEnum::Callback(callback_writer) => {
-                WriterConfigEnum::Callback(callback_writer.config.lock().unwrap().clone())
+                WriterConfigEnum::Callback(callback_writer.config.read().unwrap().clone())
             }
 
             WriterEnum::Syslog(syslog_writer) => {
-                WriterConfigEnum::Syslog(syslog_writer.config.lock().unwrap().clone())
+                WriterConfigEnum::Syslog(syslog_writer.config.read().unwrap().clone())
             }
         }
     }
@@ -308,22 +308,22 @@ impl WriterEnum {
         match self {
             WriterEnum::Root => WriterConfigEnum::Root(RootConfig::default()),
             WriterEnum::Console(console_writer) => {
-                WriterConfigEnum::Console(console_writer.config.lock().unwrap().clone())
+                WriterConfigEnum::Console(console_writer.config.read().unwrap().clone())
             }
             WriterEnum::File(file_writer) => {
-                WriterConfigEnum::File(file_writer.config.lock().unwrap().clone())
+                WriterConfigEnum::File(file_writer.config.read().unwrap().clone())
             }
             WriterEnum::Client(client_writer) => {
-                WriterConfigEnum::Client(client_writer.config.lock().unwrap().get_client_config())
+                WriterConfigEnum::Client(client_writer.config.read().unwrap().get_client_config())
             }
             WriterEnum::Server(logging_server) => {
-                WriterConfigEnum::Server(logging_server.config.lock().unwrap().get_server_config())
+                WriterConfigEnum::Server(logging_server.config.read().unwrap().get_server_config())
             }
             WriterEnum::Callback(callback_writer) => {
-                WriterConfigEnum::Callback(callback_writer.config.lock().unwrap().clone())
+                WriterConfigEnum::Callback(callback_writer.config.read().unwrap().clone())
             }
             WriterEnum::Syslog(syslog_writer) => {
-                WriterConfigEnum::Syslog(syslog_writer.config.lock().unwrap().clone())
+                WriterConfigEnum::Syslog(syslog_writer.config.read().unwrap().clone())
             }
         }
     }
@@ -335,7 +335,7 @@ impl WriterEnum {
             WriterEnum::File(file_writer) => WriterTypeEnum::File(
                 file_writer
                     .config
-                    .lock()
+                    .read()
                     .unwrap()
                     .path
                     .to_str()
@@ -343,10 +343,10 @@ impl WriterEnum {
                     .to_string(),
             ),
             WriterEnum::Client(client_writer) => {
-                WriterTypeEnum::Client(client_writer.config.lock().unwrap().get_address())
+                WriterTypeEnum::Client(client_writer.config.read().unwrap().get_address())
             }
             WriterEnum::Server(logging_server) => {
-                WriterTypeEnum::Server(logging_server.config.lock().unwrap().get_address())
+                WriterTypeEnum::Server(logging_server.config.read().unwrap().get_address())
             }
             WriterEnum::Callback(_callback_writer) => WriterTypeEnum::Callback,
             WriterEnum::Syslog(_syslog_writer) => WriterTypeEnum::Syslog,

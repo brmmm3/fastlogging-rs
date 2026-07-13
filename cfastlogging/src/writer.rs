@@ -3,7 +3,7 @@ use std::ffi::{CString, c_char, c_int, c_longlong, c_uchar, c_uint, c_ulong};
 use std::ops::Add;
 use std::path::PathBuf;
 use std::ptr;
-use std::sync::Mutex;
+use std::sync::RwLock;
 use std::time::{Duration, SystemTime};
 
 use once_cell::sync::Lazy;
@@ -167,15 +167,15 @@ pub unsafe extern "C" fn syslog_writer_config_new(
 
 #[unsafe(no_mangle)]
 pub static CALLBACK_C_FUNC: Lazy<
-    Mutex<Option<extern "C" fn(c_uchar, *const c_char, *const c_char)>>,
-> = Lazy::new(|| Mutex::new(None));
+    RwLock<Option<extern "C" fn(c_uchar, *const c_char, *const c_char)>>,
+> = Lazy::new(|| RwLock::new(None));
 
 pub fn callback_func(
     level: u8,
     domain: String,
     message: String,
 ) -> Result<(), fastlogging::LoggingError> {
-    if let Some(callback) = *CALLBACK_C_FUNC.lock().unwrap() {
+    if let Some(callback) = *CALLBACK_C_FUNC.read().unwrap() {
         let c_domain = CString::new(domain).unwrap();
         let c_message = CString::new(message).unwrap();
         callback(level, c_domain.as_ptr(), c_message.as_ptr());
@@ -194,9 +194,9 @@ pub unsafe extern "C" fn callback_writer_config_new(
     callback: extern "C" fn(c_uchar, *const c_char, *const c_char),
 ) -> *mut fastlogging::WriterConfigEnum {
     if callback as *mut c_ulong != ptr::null_mut() {
-        *CALLBACK_C_FUNC.lock().unwrap() = Some(callback);
+        *CALLBACK_C_FUNC.write().unwrap() = Some(callback);
     } else {
-        *CALLBACK_C_FUNC.lock().unwrap() = None;
+        *CALLBACK_C_FUNC.write().unwrap() = None;
     }
     Box::into_raw(Box::new(fastlogging::WriterConfigEnum::Callback(
         fastlogging::CallbackWriterConfig::new(level, Some(Box::new(callback_func))),

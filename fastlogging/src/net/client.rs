@@ -4,7 +4,7 @@ use std::{
     net::TcpStream,
     process,
     sync::{
-        Arc, Mutex,
+        Arc, RwLock,
         atomic::{AtomicBool, Ordering},
     },
     thread::{self, JoinHandle},
@@ -88,13 +88,13 @@ impl fmt::Display for ClientWriterConfig {
 }
 
 fn client_writer_thread(
-    config: Arc<Mutex<NetConfig>>,
+    config: Arc<RwLock<NetConfig>>,
     rx: Receiver<ClientTypeEnum>,
     sync_tx: Sender<u8>,
     stop: Arc<AtomicBool>,
 ) -> Result<(), LoggingError> {
     let (address, debug) = {
-        let config = config.lock().unwrap();
+        let config = config.read().unwrap();
         (config.address.clone(), config.debug)
     };
     if debug > 0 {
@@ -112,7 +112,7 @@ fn client_writer_thread(
     }
     let mut buffer = [0u8; 4];
     {
-        let config = config.lock().unwrap();
+        let config = config.read().unwrap();
         if !config.key.is_encrypted() {
             if debug > 1 {
                 println!("{} client_writer_thread SEND KEY", process::id());
@@ -141,7 +141,7 @@ fn client_writer_thread(
                         process::id()
                     );
                 }
-                if let Ok(ref mut config) = config.lock() {
+                if let Ok(ref mut config) = config.write() {
                     let size;
                     let seal = config.seal.clone();
                     let seal = aead::Aad::from(&seal);
@@ -197,7 +197,7 @@ fn client_writer_thread(
 
 #[derive(Debug)]
 pub struct ClientWriter {
-    pub config: Arc<Mutex<NetConfig>>,
+    pub config: Arc<RwLock<NetConfig>>,
     tx: Sender<ClientTypeEnum>,
     sync_rx: Receiver<u8>,
     thr: Option<JoinHandle<()>>,
@@ -209,7 +209,7 @@ impl ClientWriter {
         writer_config: ClientWriterConfig,
         stop: Arc<AtomicBool>,
     ) -> Result<Self, LoggingError> {
-        let config = Arc::new(Mutex::new(NetConfig::new(
+        let config = Arc::new(RwLock::new(NetConfig::new(
             writer_config.level,
             writer_config.address,
             writer_config.port,
@@ -285,26 +285,26 @@ impl ClientWriter {
     }
 
     pub fn enable(&self) {
-        self.config.lock().unwrap().enabled = true;
+        self.config.write().unwrap().enabled = true;
     }
 
     pub fn disable(&self) {
-        self.config.lock().unwrap().enabled = false;
+        self.config.write().unwrap().enabled = false;
     }
 
     pub fn set_enabled(&self, enabled: bool) {
-        self.config.lock().unwrap().enabled = enabled;
+        self.config.write().unwrap().enabled = enabled;
     }
 
     pub fn set_level(&mut self, level: u8) {
-        self.config.lock().unwrap().level = level;
+        self.config.write().unwrap().level = level;
     }
 
     pub fn set_domain_filter(&self, domain_filter: Option<String>) -> Result<(), regex::Error> {
         if let Some(ref message) = domain_filter {
             Regex::new(message)?;
         }
-        self.config.lock().unwrap().domain_filter = domain_filter;
+        self.config.write().unwrap().domain_filter = domain_filter;
         Ok(())
     }
 
@@ -312,13 +312,13 @@ impl ClientWriter {
         if let Some(ref message) = message_filter {
             Regex::new(message)?;
         }
-        self.config.lock().unwrap().message_filter = message_filter;
+        self.config.write().unwrap().message_filter = message_filter;
         Ok(())
     }
 
     pub fn set_encryption(&mut self, method: EncryptionMethod) -> Result<(), LoggingError> {
         self.config
-            .lock()
+            .write()
             .unwrap()
             .set_encryption(method.clone())
             .map_err(|e| {
