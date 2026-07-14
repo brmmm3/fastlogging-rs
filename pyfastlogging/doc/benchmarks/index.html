@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>fastlogging Benchmark Results</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg-primary: #0a0e1a;
+      --bg-secondary: #121829;
+      --bg-card: rgba(22, 30, 52, 0.72);
+      --bg-card-hover: rgba(30, 40, 68, 0.85);
+      --border: rgba(99, 130, 208, 0.18);
+      --border-hover: rgba(99, 130, 208, 0.4);
+      --text-primary: #e8ecf4;
+      --text-secondary: #8893b0;
+      --text-muted: #5a6585;
+      --accent: #4f8cff;
+      --accent-glow: rgba(79, 140, 255, 0.4);
+      --accent-2: #a855f7;
+      --accent-3: #22d3ee;
+      --success: #34d399;
+      --warning: #fbbf24;
+      --danger: #f87171;
+      --radius: 16px;
+      --radius-sm: 10px;
+      --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Animated background */
+    .bg-decoration {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .bg-blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(100px);
+      opacity: 0.12;
+      animation: float 20s infinite ease-in-out;
+    }
+
+    .bg-blob:nth-child(1) {
+      width: 600px;
+      height: 600px;
+      background: var(--accent);
+      top: -200px;
+      left: -150px;
+    }
+
+    .bg-blob:nth-child(2) {
+      width: 500px;
+      height: 500px;
+      background: var(--accent-2);
+      bottom: -150px;
+      right: -100px;
+      animation-delay: -7s;
+    }
+
+    .bg-blob:nth-child(3) {
+      width: 400px;
+      height: 400px;
+      background: var(--accent-3);
+      top: 40%;
+      left: 50%;
+      animation-delay: -14s;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(40px, -50px) scale(1.05); }
+      66% { transform: translate(-30px, 40px) scale(0.95); }
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Header */
+    header {
+      padding: 48px 0 32px;
+      text-align: center;
+    }
+
+    header .badge {
+      display: inline-block;
+      padding: 6px 16px;
+      background: rgba(79, 140, 255, 0.12);
+      border: 1px solid rgba(79, 140, 255, 0.3);
+      border-radius: 100px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--accent);
+      margin-bottom: 20px;
+      letter-spacing: 0.5px;
+    }
+
+    header h1 {
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font</title>-weight: 800;
+      letter-spacing: -1px;
+      background: linear-gradient(135deg, #4f8cff 0%, #a855f7 50%, #22d3ee 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 12px;
+    }
+
+    header p {
+      font-size: 1.1rem;
+      color: var(--text-secondary);
+      max-width: 640px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    /* Summary cards */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 36px;
+    }
+
+    .summary-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px 24px;
+      transition: var(--transition);
+    }
+
+    .summary-card:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-2px);
+    }
+
+    .summary-card .label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .summary-card .value {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .summary-card .detail {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    .summary-card .value.green { color: var(--success); }
+    .summary-card .value.blue { color: var(--accent); }
+    .summary-card .value.purple { color: var(--accent-2); }
+    .summary-card .value.cyan { color: var(--accent-3); }
+
+    /* Controls */
+    .controls {
+      background: var(--bg-card);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 28px;
+    }
+
+    .controls-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      align-items: flex-end;
+    }
+
+    .control-group {
+      flex: 1;
+      min-width: 180px;
+    }
+
+    .control-group label {
+      display: block;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .tab-group {
+      display: flex;
+      gap: 4px;
+      background: rgba(10, 14, 26, 0.6);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 4px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 8px 14px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: var(--transition);
+      white-space: nowrap;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-primary);
+      background: rgba(79, 140, 255, 0.08);
+    }
+
+    .tab-btn.active {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #fff;
+      box-shadow: 0 2px 12px var(--accent-glow);
+    }
+
+    /* Chart card */
+    .chart-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      margin-bottom: 28px;
+    }
+
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .chart-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .chart-subtitle {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    .chart-wrapper {
+      position: relative;
+      height: 420px;
+    }
+
+    /* Data table */
+    .table-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      margin-bottom: 28px;
+      overflow-x: auto;
+    }
+
+    .table-card h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: var(--text-primary);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    thead th {
+      text-align: right;
+      padding: 10px 14px;
+      color: var(--text-muted);
+      font-weight: 500;
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.8px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    thead th:first-child {
+      text-align: left;
+    }
+
+    tbody td {
+      padding: 10px 14px;
+      text-align: right;
+      border-bottom: 1px solid rgba(99, 130, 208, 0.06);
+      font-variant-numeric: tabular-nums;
+    }
+
+    tbody td:first-child {
+      text-align: left;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    tbody tr:hover {
+      background: rgba(79, 140, 255, 0.05);
+    }
+
+    .fastest {
+      color: var(--success);
+      font-weight: 700;
+    }
+
+    .speedup {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      background: rgba(52, 211, 153, 0.12);
+      color: var(--success);
+      margin-left: 6px;
+    }
+
+    /* Library legend */
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .legend-color {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 40px 0;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .controls-row {
+        flex-direction: column;
+      }
+      .control-group {
+        width: 100%;
+      }
+      .chart-wrapper {
+        height: 360px;
+      }
+    }
+
+    /* Fade-in animation */
+    .fade-in {
+      animation: fadeIn 0.5s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="bg-decoration">
+    <div class="bg-blob"></div>
+    <div class="bg-blob"></div>
+    <div class="bg-blob"></div>
+  </div>
+
+  <div class="container">
+    <header>
+      <span class="badge">⚡ Python Logging Benchmarks · Linux</span>
+      <h1>fastlogging Benchmark Results</h1>
+      <p>Performance comparison of Python logging libraries across different scenarios.
+        All times in seconds (lower is better). fastlogging-rs consistently outperforms
+        all alternatives.</p>
+    </header>
+
+    <!-- Summary cards -->
+    <div class="summary-grid" id="summaryGrid"></div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <div class="controls-row">
+        <div class="control-group">
+          <label>Scenario</label>
+          <div class="tab-group" id="scenarioTabs">
+            <button class="tab-btn active" data-scenario="nolog">No Log File</button>
+            <button class="tab-btn" data-scenario="log">Log File</button>
+            <button class="tab-btn" data-scenario="file">File Writer</button>
+            <button class="tab-btn" data-scenario="</h1></p></label>rotate">Rotating</button>
+          </div>
+        </div>
+        <div class="control-group">
+          <label>Message Length</label>
+          <div class="tab-group" id="lengthTabs">
+            <button class="tab-btn active" data-length="short">Short</button>
+            <button class="tab-btn" data-length="long">Long</button>
+          </div>
+        </div>
+        <div class="control-group">
+          <label>Exception Formatting</label>
+          <div class="tab-group" id="excTabs">
+            </label></label><button class="tab-btn active" data-exc="noexc">No Exception</button>
+            <button class="tab-btn" data-exc="exc">With Exception</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="chart-card fade-in" id="chartCard">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title" id="chartTitle">No log file — Short message</div>
+          <div class="chart-subtitle" id="chartSubtitle">Without exception formatting · lower is better (seconds)</div>
+        </div>
+      </div>
+      <div class="chart-wrapper">
+        <canvas id="benchChart"></canvas>
+      </div>
+      <div class="legend" id="legend"></div>
+    </div>
+
+    <!-- Data table -->
+    <div class="table-card fade-in">
+      <h3>Detailed Results (seconds)</h3>
+      <table id="dataTable"></table>
+    </div>
+
+    <footer>
+      Benchmark data from <a href="https://github.com/brmmm3/fastlogging-rs">fastlogging-rs</a> ·
+      Python on Linux · Generated from Criterion HTML reports
+    </footer>
+  </div>
+
+  <script>
+    // ============================================================
+    // Benchmark data extracted from the source HTML files
+    // ============================================================
+
+    const COLORS = {
+      'logging':             '#f87171',
+      'logging Optimized':   '#fb923c',
+      'loguru':              '#fbbf24',
+      'fastlogging DIRECT':  '#4f8cff',
+      'fastlogging THREADS': '#a855f7',
+      'fastlogging-rs Logging': '#22d3ee',
+      'fastlogging-rs logging': '#34d399',
+    };
+
+    const LEVELS = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'];
+
+    // Standard 5-column libraries (most benchmarks)
+    const LIBS_5 = ['logging', 'fastlogging DIRECT', 'fastlogging THREADS', 'fastlogging-rs Logging', 'fastlogging-rs logging'];
+
+    // 7-column libraries (rotate long benchmarks have extra columns)
+    const LIBS_7 = ['logging', 'logging Optimized', 'loguru', 'fastlogging DIRECT', 'fastlogging THREADS', 'fastlogging-rs Logging', 'fastlogging-rs logging'];
+
+    const BENCH = {
+      nolog: {
+        title: 'No log file',
+        short: {
+          noexc: {
+            libs: LIBS_5,
+            DEBUG:   [1.1898, 0.3897, 0.2838, 0.1372, 0.1282],
+            INFO:    [0.9641, 0.2743, 0.2368, 0.1023, 0.1292],
+            WARNING: [0.7494, 0.2179, 0.1870, 0.0765, 0.1331],
+            ERROR:   [0.5337, 0.1606, 0.1374, 0.0472, 0.1328],
+            CRITICAL:[0.3093, 0.0994, 0.0833, 0.0445, 0.1384],
+          },
+          exc: {
+            libs: LIBS_5,
+            DEBUG:   [20.4336, 1.2076, 1.1326, 0.8739, 0.8916],
+            INFO:    [18.4645, 1.1927, 1.0879, 0.8927, 0.8583],
+            WARNING: [15.5236, 1.0248, 0.9398, 0.8562, 0.8439],
+            ERROR:   [11.8189, 0.9333, 0.9023, 0.8159, 0.8383],
+            CRITICAL:[5.3235,  0.9004, 0.8821, 0.8048, 0.8426],
+          },
+        },
+        long: {
+          noexc: {
+            libs: LIBS_5,
+            DEBUG:   [31.5429, 0.3231, 0.3059, 0.1452, 0.1624],
+            INFO:    [29.2173, 0.2650, 0.2437, 0.1129, 0.1651],
+            WARNING: [25.0758, 0.2226, 0.1993, 0.0949, 0.1701],
+            ERROR:   [21.2780, 0.1752, 0.1491, 0.0564, 0.1801],
+            CRITICAL:[11.6057, 0.1023, 0.0936, 0.0465, 0.1726],
+          },
+          exc: {
+            libs: LIBS_5,
+            DEBUG:   [47.8893, 1.0613, 1.0269, 0.7663, 0.7691],
+            INFO:    [50.5682, 1.0882, 1.0986, 0.8911, 0.9904],
+            WARNING: [44.7398, 1.0485, 1.0061, 0.8588, 0.9243],
+            ERROR:   [33.1928, 1.0275, 1.0681, 0.8757, 0.8377],
+            CRITICAL:[16.2339, 0.9656, 0.9265, 0.8423, 0.8739],
+          },
+        },
+      },
+      log: {
+        title: 'Log file',
+        short: {
+          noexc: {
+            libs: LIBS_5,
+            DEBUG:   [2.0249, 0.4010, 0.5240, 0.1264, 0.1309],
+            INFO:    [2.3151, 0.3308, 0.4307, 0.1088, 0.1519],
+            WARNING: [2.2278, 0.2581, 0.3328, 0.1030, 0.1365],
+            ERROR:   [1.8266, 0.2204, 0.2143, 0.0608, 0.1302],
+            CRITICAL:[1.1057, 0.1125, 0.1473, 0.0364, 0.1053],
+          },
+          exc: {
+            libs: LIBS_5,
+            DEBUG:   [14.5952, 1.1727, 1.2344, 0.6991, 0.6881],
+            INFO:    [14.0181, 1.0428, 1.1175, 0.6948, 0.7231],
+            WARNING: [12.1296, 0.9666, 1.0140, 0.7441, 0.7161],
+            ERROR:   [9.6791,  0.8786, 0.9155, 0.7449, 0.7124],
+            CRITICAL:[4.3089,  0.8161, 0.8295, 0.7112, 0.7076],
+          },
+        },
+        long: {
+          noexc: {
+            libs: LIBS_5,
+            DEBUG:   [21.9549, 0.4140, 0.5618, 0.1358, 0.1728],
+            INFO:    [20.6216, 0.3361, 0.4423, 0.1053, 0.1633],
+            WARNING: [17.8545, 0.2635, 0.3485, 0.0980, 0.1763],
+            ERROR:   [13.5410, 0.2244, 0.2556, 0.0659, 0.1631],
+            CRITICAL:[7.6093,  0.1073, 0.1227, 0.0457, 0.1522],
+          },
+          exc: {
+            libs: LIBS_5,
+            DEBUG:   [36.8043, 1.4194, 1.2737, 0.7439, 0.7509],
+            INFO:    [36.5829, 1.1102, 1.2689, 0.7968, 0.7182],
+            WARNING: [33.3090, 0.9863, 1.1040, 0.7227, 0.8380],
+            ERROR:   [26.0370, 0.9373, 0.9632, 0.7021, 0.7199],
+            CRITICAL:[11.3553, 0.8086, 0.8382, 0.6902, 0.6910],
+          },
+        },
+      },
+      file: {
+        title: 'File Writer',
+        short: {
+          noexc: {
+            libs: LIBS_5,
+            DEBUG:   [3.0469, 0.5678, 0.7273, 0.1991, 0.1955],
+            INFO:    [3.5217, 0.4626, 0.6019, 0.1533, 0.1894],
+            WARNING: [3.2565, 0.3571, 0.4619, 0.1139, 0.1782],
+            ERROR:   [2.6026, 0.2532, 0.3367, 0.0799, 0.1654],
+            CRITICAL:[1.7216, 0.1491, 0.1969, 0.0460, 0.1558],
+          },
+          exc: {
+            libs: LIBS_5,
+            DEBUG:   [20.2718, 1.4826, 1.5903, 0.8646, 0.8653],
+            INFO:    [19.6580, 1.3543, 1.3885, 0.8394, 0.8866],
+            WARNING: [17.6819, 1.2780, 1.3546, 0.8551, 0.8641],
+            ERROR:   [14.1941, 1.1042, 1.1388, 0.8375, 0.8923],
+            CRITICAL:[6.4115,  1.0004, 1.0242, 0.8396, 0.8638],
+          },
+        },
+        long: {
+          noexc: {
+            libs: LIBS_5,
+            DEBUG:   [36.6516, 0.6253, 0.8074, 0.2035, 0.2430],
+            INFO:    [35.0780, 0.4921, 0.6542, 0.1710, 0.2396],
+            WARNING: [31.2531, 0.4031, 0.5018, 0.1209, 0.2255],
+            ERROR:   [23.3530, 0.2722, 0.3541, 0.0826, 0.2074],
+            CRITICAL:[13.5872, 0.1734, 0.2124, 0.0483, 0.2015],
+          },
+          exc: {
+            libs: LIBS_5,
+            DEBUG:   [54.0594, 1.4923, 1.6913, 0.8464, 0.8646],
+            INFO:    [52.8591, 1.3304, 1.4413, 0.8662, 0.8989],
+            WARNING: [47.4855, 1.2480, 1.3709, 0.8820, 1.0339],
+            ERROR:   [36.5140, 1.1526, 1.1952, 0.8331, 0.8727],
+            CRITICAL:[17.6830, 0.9845, 1.0412, 0.8813, 0.9323],
+          },
+        },
+      },
+      rotate: {
+        title: 'Rotating log file',
+        short: {
+          noexc: {
+            libs: LIBS_5,
+            DEBUG:   [9.7633, 0.4688, 0.8874, 0.1846, 0.1788],
+            INFO:    [10.9183, 0.3677, 0.7151, 0.1510, 0.1716],
+            WARNING: [10.3578, 0.2827, 0.5731, 0.1041, 0.1659],
+            ERROR:   [8.8384, 0.2137, 0.3552, 0.0706, 0.1645],
+            CRITICAL:[5.6616, 0.1284, 0.1797, 0.0445, 0.1663],
+          },
+          exc: {
+            libs: LIBS_5,
+            DEBUG:   [26.6965, 1.2657, 1.7579, 0.8944, 0.8504],
+            INFO:    [27.3070, 1.2515, 1.5759, 0.8448, 0.8581],
+            WARNING: [25.7642, 1.1837, 1.4023, 0.8807, 0.8499],
+            ERROR:   [21.4157, 1.0600, 1.2190, 0.8309, 0.8810],
+            CRITICAL:[10.1288, 0.9674, 1.0563, 0.8145, 0.8883],
+          },
+        },
+        long: {
+          noexc: {
+            libs: LIBS_7,
+            DEBUG:   [4.7525, 3.9875, 5.7525, 0.6621, 1.3367, 0.1666, 0.1498],
+            INFO:    [3.2516, 3.2440, 4.4346, 0.5219, 1.0533, 0.1309, 0.1515],
+            WARNING: [2.4500, 2.4598, 3.3476, 0.3977, 0.8843, 0.0946, 0.1444],
+            ERROR:   [1.6463, 1.6452, 2.2563, 0.2802, 0.6950, 0.0603, 0.1364],
+            CRITICAL:[0.8429, 0.8454, 1.1526, 0.1659, 0.4020, 0.0463, 0.1295],
+          },
+          exc: {
+            libs: LIBS_7,
+            DEBUG:   [5.1419, 5.1364, 7.8376, 1.4579, 2.0098, 0.8095, 0.7958],
+            INFO:    [4.3457, 4.3373, 6.7717, 1.3372, 1.7626, 0.7748, 0.8075],
+            WARNING: [3.5380, 3.5276, 5.6640, 1.2074, 1.5355, 0.7887, 0.7730],
+            ERROR:   [2.7251, 2.7195, 4.6114, 1.0830, 1.2690, 0.7786, 0.7975],
+            CRITICAL:[0.8715, 0.8707, 1.1640, 0.9571, 1.0868, 0.7625, 0.7779],
+          },
+        },
+      },
+    };
+
+    // ============================================================
+    // State
+    // ============================================================
+    let state = { scenario: 'nolog', length: 'short', exc: 'noexc' };
+    let chart = null;
+
+    // ============================================================
+    // Helpers
+    // ============================================================
+    function getCurrentData() {
+      return BENCH[state.scenario][state.length][state.exc];
+    }
+
+    function formatNum(n) {
+      return n.toFixed(4);
+    }
+
+    function getFastestLibIndex(data, level) {
+      const vals = data[level];
+      let minIdx = 0;
+      for (let i = 1; i < vals.length; i++) {
+        if (vals[i] < vals[minIdx]) minIdx = i;
+      }
+      return minIdx;
+    }
+
+    function calcSpeedup(data) {
+      // Speedup of fastest fastlogging-rs vs stdlib logging
+      const loggingVals = LEVELS.map(l => data[l][0]); // 'logging' is always col 0
+      const rsIdx = data.libs.indexOf('fastlogging-rs Logging');
+      const rsVals = LEVELS.map(l => data[l][rsIdx]);
+      const avgLogging = loggingVals.reduce((a, b) => a + b, 0) / loggingVals.length;
+      const avgRs = rsVals.reduce((a, b) => a + b, 0) / rsVals.length;
+      return avgLogging / avgRs;
+    }
+
+    function getFastestScenario() {
+      let best = { speedup: 0, scenario: '', desc: '' };
+      for (const [key, scenario] of Object.entries(BENCH)) {
+        for (const [len, lenData] of Object.entries(scenario)) {
+          if (len === 'title') continue;
+          for (const [exc, excData] of Object.entries(lenData)) {
+            const su = calcSpeedup(excData);
+            if (su > best.speedup) {
+              best = {
+                speedup: su,
+                scenario: scenario.title,
+                desc: `${scenario.title} / ${len} / ${exc === 'exc' ? 'with exception' : 'no exception'}`,
+              };
+            }
+          }
+        }
+      }
+      return best;
+    }
+
+    // ============================================================
+    // Summary cards
+    // ============================================================
+    function renderSummary() {
+      const data = getCurrentData();
+      const rsIdx = data.libs.indexOf('fastlogging-rs Logging');
+      const loggingIdx = 0;
+
+      // Fastest in DEBUG
+      const fastestIdx = getFastestLibIndex(data, 'DEBUG');
+      const fastestLib = data.libs[fastestIdx];
+      const fastestTime = data['DEBUG'][fastestIdx];
+
+      // Average speedup
+      const speedup = calcSpeedup(data);
+
+      // Best overall
+      const bestOverall = getFastestScenario();
+
+      // Logging DEBUG time
+      const loggingDebug = data['DEBUG'][loggingIdx];
+      const rsDebug = data['DEBUG'][rsIdx];
+
+      const cards = [
+        { label: 'Fastest Library (DEBUG)', value: fastestLib.replace('fastlogging-rs ', 'rs '), detail: `${formatNum(fastestTime)}s`, color: 'green' },
+        { label: 'Avg Speedup vs stdlib', value: `${speedup.toFixed(1)}×`, detail: 'fastlogging-rs vs logging', color: 'blue' },
+        { label: 'stdlib logging (DEBUG)', value: `${formatNum(loggingDebug)}s`, detail: 'Python stdlib baseline', color: 'purple' },
+        { label: 'Best Overall Speedup', value: `${bestOverall.speedup.toFixed(1)}×`, detail: bestOverall.desc, color: 'cyan' },
+      ];
+
+      document.getElementById('summaryGrid').innerHTML = cards.map(c => `
+        <div class="summary-card">
+          <div class="label">${c.label}</div>
+          <div class="value ${c.color}">${c.value}</div>
+          <div class="detail">${c.detail}</div>
+        </div>
+      `).join('');
+    }
+
+    // ============================================================
+    // Chart
+    // ============================================================
+    function renderChart() {
+      const data = getCurrentData();
+      const libs = data.libs;
+      const scenarioTitle = BENCH[state.scenario].title;
+      const lengthLabel = state.length === 'short' ? 'Short' : 'Long';
+      const excLabel = state.exc === 'exc' ? 'With exception formatting' : 'Without exception formatting';
+
+      document.getElementById('chartTitle').textContent = `${scenarioTitle} — ${lengthLabel} message`;
+      document.getElementById('chartSubtitle').textContent = `${excLabel} · lower is better (seconds)`;
+
+      const datasets = libs.map((lib, i) => ({
+        label: lib,
+        data: LEVELS.map(level => data[level][i]),
+        backgroundColor: COLORS[lib] || '#888',
+        borderRadius: 6,
+        barPercentage: 0.85,
+        categoryPercentage: 0.8,
+      }));
+
+      const ctx = document.getElementById('benchChart').getContext('2d');
+
+      if (chart) chart.destroy();
+
+      chart = new Chart(ctx, {
+        type: 'bar',
+        data: { labels: LEVELS, datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          indexAxis: 'y',
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: 'rgba(10, 14, 26, 0.95)',
+              borderColor: 'rgba(99, 130, 208, 0.3)',
+              borderWidth: 1,
+              titleColor: '#e8ecf4',
+              bodyColor: '#e8ecf4',
+              titleFont: { size: 14, weight: 'bold' },
+              bodyFont: { size: 13 },
+              padding: 12,
+              cornerRadius: 8,
+              callbacks: {
+                label: function(ctx) {
+                  return ` ${ctx.dataset.label}: ${ctx.raw.toFixed(4)}s`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              stacked: false,
+              grid: { color: 'rgba(99, 130, 208, 0.08)' },
+              ticks: { color: '#8893b0', font: { size: 12 } },
+              title: { display: true, text: 'Seconds (lower is better)', color: '#5a6585', font: { size: 12 } }
+            },
+            y: {
+              stacked: false,
+              grid: { display: false },
+              ticks: { color: '#e8ecf4', font: { size: 13, weight: '600' } },
+            }
+          },
+          animation: { duration: 600, easing: 'easeOutQuart' },
+        }
+      });
+
+      // Render legend
+      document.getElementById('legend').innerHTML = libs.map(lib => `
+        <div class="legend-item">
+          <div class="legend-color" style="background: ${COLORS[lib] || '#888'}"></div>
+          ${lib}
+        </div>
+      `).join('');
+    }
+
+    // ============================================================
+    // Data table
+    // ============================================================
+    function renderTable() {
+      const data = getCurrentData();
+      const libs = data.libs;
+      const rsIdx = libs.indexOf('fastlogging-rs Logging');
+
+      let html = '<thead><tr><th>Log Level</th>';
+      for (const lib of libs) {
+        html += `<th>${lib}</th>`;
+      }
+      html += '</tr></thead><tbody>';
+
+      for (const level of LEVELS) {
+        html += '<tr>';
+        html += `<td>${level}</td>`;
+        const fastestIdx = getFastestLibIndex(data, level);
+        for (let i = 0; i < libs.length; i++) {
+          const val = data[level][i];
+          const isFastest = i === fastestIdx;
+          const cls = isFastest ? ' class="fastest"' : '';
+          const badge = isFastest ? '<span class="speedup">fastest</span>' : '';
+          html += `<td${cls}>${formatNum(val)}${badge}</td>`;
+        }
+        html += '</tr>';
+      }
+
+      // Average row
+      html += '<tr><td>Average</td>';
+      for (let i = 0; i < libs.length; i++) {
+        const avg = LEVELS.reduce((sum, level) => sum + data[level][i], 0) / LEVELS.length;
+        const fastestAvg = LEVELS.reduce((sum, level) => sum + data[level][getFastestLibIndex(data, level)], 0) / LEVELS.length;
+        const isFastest = avg <= fastestAvg + 0.0001;
+        const cls = isFastest ? ' class="fastest"' : '';
+        html += `<td${cls}>${formatNum(avg)}</td>`;
+      }
+      html += '</tr>';
+
+      html += '</tbody>';
+      document.getElementById('dataTable').innerHTML = html;
+    }
+
+    // ============================================================
+    // Render all
+    // ============================================================
+    function renderAll() {
+      renderSummary();
+      renderChart();
+      renderTable();
+      // Re-trigger fade-in
+      const card = document.getElementById('chartCard');
+      card.classList.remove('fade-in');
+      void card.offsetWidth;
+      card.classList.add('fade-in');
+    }
+
+    // ============================================================
+    // Event handlers
+    // ============================================================
+    function setupTabs(elementId, stateKey) {
+      const tabs = document.getElementById(elementId);
+      tabs.addEventListener('click', e => {
+        if (e.target.classList.contains('tab-btn')) {
+          tabs.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+          e.target.classList.add('active');
+          state[stateKey] = e.target.dataset[stateKey];
+          renderAll();
+        }
+      });
+    }
+
+    setupTabs('scenarioTabs', 'scenario');
+    setupTabs('lengthTabs', 'length');
+    setupTabs('excTabs', 'exc');
+
+    // Initial render
+    renderAll();
+  </script>
+</body>
+
+</html>
