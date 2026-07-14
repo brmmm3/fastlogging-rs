@@ -10,17 +10,17 @@
 
     function drawChart() {
       var data = google.visualization.arrayToDataTable([
-        ['Log level', 'logging', 'fastlogging DIRECT', 'fastlogging THREADS', 'fastlogging-rs Logging', 'fastlogging-rs logging'],
-        ['DEBUG',  26.6965,  1.2657,  1.7579,  0.8944,  0.8504],
-        ['INFO',  27.3070,  1.2515,  1.5759,  0.8448,  0.8581],
-        ['WARNING',  25.7642,  1.1837,  1.4023,  0.8807,  0.8499],
-        ['ERROR',  21.4157,  1.0600,  1.2190,  0.8309,  0.8810],
-        ['CRITICAL',  10.1288,  0.9674,  1.0563,  0.8145,  0.8883]
+        ['Log level', 'logging', 'logging Optimized', 'loguru', 'fastlogging DIRECT', 'fastlogging THREADS', 'fastlogging-rs Logging', 'fastlogging-rs root'],
+        ['DEBUG',  3.8256,  3.7784,  8.2428,  2.3396,  2.3393,  1.3045,  0.2151],
+        ['INFO',  3.3528,  3.3133,  7.1683,  2.0894,  2.2176,  1.2918,  0.1677],
+        ['WARNING',  2.8829,  2.8769,  6.1847,  1.9401,  2.0277,  1.2916,  0.1200],
+        ['ERROR',  2.4572,  2.4682,  5.1166,  1.7465,  1.8349,  1.3020,  0.0822],
+        ['CRITICAL',  0.4898,  0.4916,  1.1759,  1.5565,  1.5977,  1.2709,  0.0579]
       ]);
 
       var options = {
         chart: {
-          title: 'Rotating log file',
+          title: 'Log file',
         },
         bars: 'horizontal' // Required for Material Bar Charts.
       };

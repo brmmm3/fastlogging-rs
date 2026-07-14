@@ -453,22 +453,21 @@
           <label>Scenario</label>
           <div class="tab-group" id="scenarioTabs">
             <button class="tab-btn active" data-scenario="nolog">No Log File</button>
-            <button class="tab-btn" data-scenario="log">Log File</button>
-            <button class="tab-btn" data-scenario="file">File Writer</button>
-            <button class="tab-btn" data-scenario="</h1></p></label>rotate">Rotating</button>
+            <button class="tab-btn" data-scenario="file">Log File</button>
+            <button class="tab-btn" data-scenario="rotate">Rotating</button>
           </div>
         </div>
         <div class="control-group">
           <label>Message Length</label>
           <div class="tab-group" id="lengthTabs">
-            <button class="tab-btn active" data-length="short">Short</button>
-            <button class="tab-btn" data-length="long">Long</button>
+            <button class="tab-btn" data-length="short">Short</button>
+            <button class="tab-btn active" data-length="long">Long</button>
           </div>
         </div>
         <div class="control-group">
           <label>Exception Formatting</label>
           <div class="tab-group" id="excTabs">
-            </label></label><button class="tab-btn active" data-exc="noexc">No Exception</button>
+            <button class="tab-btn active" data-exc="noexc">No Exception</button>
             <button class="tab-btn" data-exc="exc">With Exception</button>
           </div>
         </div>
@@ -507,138 +506,89 @@
     // ============================================================
 
     const COLORS = {
-      'logging':             '#f87171',
-      'logging Optimized':   '#fb923c',
-      'loguru':              '#fbbf24',
-      'fastlogging DIRECT':  '#4f8cff',
-      'fastlogging THREADS': '#a855f7',
-      'fastlogging-rs Logging': '#22d3ee',
-      'fastlogging-rs logging': '#34d399',
+      'logging':               '#f87171',
+      'logging Optimized':     '#fb923c',
+      'loguru':                '#fbbf24',
+      'fastlogging DIRECT':    '#4f8cff',
+      'fastlogging THREADS':   '#a855f7',
+      'fastlogging-rs Logging':'#22d3ee',
+      'fastlogging-rs root':   '#34d399',
     };
 
     const LEVELS = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'];
 
-    // Standard 5-column libraries (most benchmarks)
-    const LIBS_5 = ['logging', 'fastlogging DIRECT', 'fastlogging THREADS', 'fastlogging-rs Logging', 'fastlogging-rs logging'];
-
-    // 7-column libraries (rotate long benchmarks have extra columns)
-    const LIBS_7 = ['logging', 'logging Optimized', 'loguru', 'fastlogging DIRECT', 'fastlogging THREADS', 'fastlogging-rs Logging', 'fastlogging-rs logging'];
+    // All benchmarks now use the same 7-column layout
+    const LIBS = ['logging', 'logging Optimized', 'loguru', 'fastlogging DIRECT', 'fastlogging THREADS', 'fastlogging-rs Logging', 'fastlogging-rs root'];
 
     const BENCH = {
       nolog: {
         title: 'No log file',
+        // Note: nolog/short/noexc was not benchmarked — only exc variant exists for short.
         short: {
-          noexc: {
-            libs: LIBS_5,
-            DEBUG:   [1.1898, 0.3897, 0.2838, 0.1372, 0.1282],
-            INFO:    [0.9641, 0.2743, 0.2368, 0.1023, 0.1292],
-            WARNING: [0.7494, 0.2179, 0.1870, 0.0765, 0.1331],
-            ERROR:   [0.5337, 0.1606, 0.1374, 0.0472, 0.1328],
-            CRITICAL:[0.3093, 0.0994, 0.0833, 0.0445, 0.1384],
-          },
           exc: {
-            libs: LIBS_5,
-            DEBUG:   [20.4336, 1.2076, 1.1326, 0.8739, 0.8916],
-            INFO:    [18.4645, 1.1927, 1.0879, 0.8927, 0.8583],
-            WARNING: [15.5236, 1.0248, 0.9398, 0.8562, 0.8439],
-            ERROR:   [11.8189, 0.9333, 0.9023, 0.8159, 0.8383],
-            CRITICAL:[5.3235,  0.9004, 0.8821, 0.8048, 0.8426],
+            libs: LIBS,
+            DEBUG:   [0.6116, 0.6149, 0.0562, 1.7446, 1.5282, 1.2610, 0.1079],
+            INFO:    [0.5226, 0.5153, 0.0561, 1.6205, 1.5022, 1.2296, 0.0840],
+            WARNING: [0.4065, 0.4008, 0.0560, 1.5714, 1.4216, 1.2551, 0.0633],
+            ERROR:   [0.3052, 0.3081, 0.0558, 1.4425, 1.3719, 1.2497, 0.0577],
+            CRITICAL:[0.1720, 0.1704, 0.0596, 1.3726, 1.3130, 1.2404, 0.0573],
           },
         },
         long: {
           noexc: {
-            libs: LIBS_5,
-            DEBUG:   [31.5429, 0.3231, 0.3059, 0.1452, 0.1624],
-            INFO:    [29.2173, 0.2650, 0.2437, 0.1129, 0.1651],
-            WARNING: [25.0758, 0.2226, 0.1993, 0.0949, 0.1701],
-            ERROR:   [21.2780, 0.1752, 0.1491, 0.0564, 0.1801],
-            CRITICAL:[11.6057, 0.1023, 0.0936, 0.0465, 0.1726],
+            libs: LIBS,
+            DEBUG:   [0.5808, 0.5736, 0.0509, 0.4370, 0.3425, 0.1203, 0.1159],
+            INFO:    [0.4605, 0.4676, 0.0487, 0.3518, 0.2912, 0.0946, 0.0951],
+            WARNING: [0.3673, 0.3597, 0.0484, 0.2862, 0.2172, 0.0624, 0.0618],
+            ERROR:   [0.2554, 0.2707, 0.0552, 0.2072, 0.1604, 0.0559, 0.0545],
+            CRITICAL:[0.1562, 0.1570, 0.0487, 0.1258, 0.1031, 0.0536, 0.0533],
           },
           exc: {
-            libs: LIBS_5,
-            DEBUG:   [47.8893, 1.0613, 1.0269, 0.7663, 0.7691],
-            INFO:    [50.5682, 1.0882, 1.0986, 0.8911, 0.9904],
-            WARNING: [44.7398, 1.0485, 1.0061, 0.8588, 0.9243],
-            ERROR:   [33.1928, 1.0275, 1.0681, 0.8757, 0.8377],
-            CRITICAL:[16.2339, 0.9656, 0.9265, 0.8423, 0.8739],
-          },
-        },
-      },
-      log: {
-        title: 'Log file',
-        short: {
-          noexc: {
-            libs: LIBS_5,
-            DEBUG:   [2.0249, 0.4010, 0.5240, 0.1264, 0.1309],
-            INFO:    [2.3151, 0.3308, 0.4307, 0.1088, 0.1519],
-            WARNING: [2.2278, 0.2581, 0.3328, 0.1030, 0.1365],
-            ERROR:   [1.8266, 0.2204, 0.2143, 0.0608, 0.1302],
-            CRITICAL:[1.1057, 0.1125, 0.1473, 0.0364, 0.1053],
-          },
-          exc: {
-            libs: LIBS_5,
-            DEBUG:   [14.5952, 1.1727, 1.2344, 0.6991, 0.6881],
-            INFO:    [14.0181, 1.0428, 1.1175, 0.6948, 0.7231],
-            WARNING: [12.1296, 0.9666, 1.0140, 0.7441, 0.7161],
-            ERROR:   [9.6791,  0.8786, 0.9155, 0.7449, 0.7124],
-            CRITICAL:[4.3089,  0.8161, 0.8295, 0.7112, 0.7076],
-          },
-        },
-        long: {
-          noexc: {
-            libs: LIBS_5,
-            DEBUG:   [21.9549, 0.4140, 0.5618, 0.1358, 0.1728],
-            INFO:    [20.6216, 0.3361, 0.4423, 0.1053, 0.1633],
-            WARNING: [17.8545, 0.2635, 0.3485, 0.0980, 0.1763],
-            ERROR:   [13.5410, 0.2244, 0.2556, 0.0659, 0.1631],
-            CRITICAL:[7.6093,  0.1073, 0.1227, 0.0457, 0.1522],
-          },
-          exc: {
-            libs: LIBS_5,
-            DEBUG:   [36.8043, 1.4194, 1.2737, 0.7439, 0.7509],
-            INFO:    [36.5829, 1.1102, 1.2689, 0.7968, 0.7182],
-            WARNING: [33.3090, 0.9863, 1.1040, 0.7227, 0.8380],
-            ERROR:   [26.0370, 0.9373, 0.9632, 0.7021, 0.7199],
-            CRITICAL:[11.3553, 0.8086, 0.8382, 0.6902, 0.6910],
+            libs: LIBS,
+            DEBUG:   [0.6182, 0.6129, 0.0574, 1.8211, 1.6334, 1.2988, 0.1237],
+            INFO:    [0.5360, 0.5046, 0.0578, 1.7220, 1.5621, 1.3117, 0.0938],
+            WARNING: [0.4103, 0.4019, 0.0584, 1.6711, 1.4763, 1.2830, 0.0660],
+            ERROR:   [0.3138, 0.3053, 0.0580, 1.4798, 1.3833, 1.2556, 0.0614],
+            CRITICAL:[0.1765, 0.1707, 0.0554, 1.4187, 1.3030, 1.2260, 0.0572],
           },
         },
       },
       file: {
-        title: 'File Writer',
+        title: 'Log file',
         short: {
           noexc: {
-            libs: LIBS_5,
-            DEBUG:   [3.0469, 0.5678, 0.7273, 0.1991, 0.1955],
-            INFO:    [3.5217, 0.4626, 0.6019, 0.1533, 0.1894],
-            WARNING: [3.2565, 0.3571, 0.4619, 0.1139, 0.1782],
-            ERROR:   [2.6026, 0.2532, 0.3367, 0.0799, 0.1654],
-            CRITICAL:[1.7216, 0.1491, 0.1969, 0.0460, 0.1558],
+            libs: LIBS,
+            DEBUG:   [2.0890, 2.1072, 5.2135, 0.6979, 0.8668, 0.1953, 0.1940],
+            INFO:    [1.6849, 1.7076, 4.3047, 0.5643, 0.6956, 0.1535, 0.1553],
+            WARNING: [1.2624, 1.2781, 3.2219, 0.4336, 0.5401, 0.1076, 0.1138],
+            ERROR:   [0.8541, 0.8695, 2.1394, 0.3003, 0.4027, 0.0708, 0.0680],
+            CRITICAL:[0.4693, 0.4554, 1.1093, 0.1789, 0.2432, 0.0499, 0.0494],
           },
           exc: {
-            libs: LIBS_5,
-            DEBUG:   [20.2718, 1.4826, 1.5903, 0.8646, 0.8653],
-            INFO:    [19.6580, 1.3543, 1.3885, 0.8394, 0.8866],
-            WARNING: [17.6819, 1.2780, 1.3546, 0.8551, 0.8641],
-            ERROR:   [14.1941, 1.1042, 1.1388, 0.8375, 0.8923],
-            CRITICAL:[6.4115,  1.0004, 1.0242, 0.8396, 0.8638],
+            libs: LIBS,
+            DEBUG:   [3.6991, 3.7994, 8.2471, 2.0504, 2.1873, 1.3014, 0.2099],
+            INFO:    [3.3928, 3.3762, 7.1893, 1.9050, 2.0090, 1.3207, 0.1624],
+            WARNING: [2.9296, 2.9528, 6.3299, 1.7710, 1.9084, 1.3247, 0.1199],
+            ERROR:   [2.4910, 2.5395, 4.9972, 1.6916, 1.7570, 1.2682, 0.0822],
+            CRITICAL:[0.4898, 0.5136, 1.1226, 1.4754, 1.5463, 1.2360, 0.0551],
           },
         },
         long: {
           noexc: {
-            libs: LIBS_5,
-            DEBUG:   [36.6516, 0.6253, 0.8074, 0.2035, 0.2430],
-            INFO:    [35.0780, 0.4921, 0.6542, 0.1710, 0.2396],
-            WARNING: [31.2531, 0.4031, 0.5018, 0.1209, 0.2255],
-            ERROR:   [23.3530, 0.2722, 0.3541, 0.0826, 0.2074],
-            CRITICAL:[13.5872, 0.1734, 0.2124, 0.0483, 0.2015],
+            libs: LIBS,
+            DEBUG:   [2.2513, 2.1437, 5.3015, 0.7072, 0.8522, 0.2100, 0.2085],
+            INFO:    [1.7634, 1.7131, 4.3295, 0.6653, 0.8386, 0.1678, 0.1610],
+            WARNING: [1.2673, 1.3186, 3.3205, 0.5909, 0.6523, 0.1219, 0.1183],
+            ERROR:   [0.8765, 0.8872, 2.1940, 0.3823, 0.4450, 0.0739, 0.0754],
+            CRITICAL:[0.4684, 0.4750, 1.1429, 0.2263, 0.2786, 0.0498, 0.0462],
           },
           exc: {
-            libs: LIBS_5,
-            DEBUG:   [54.0594, 1.4923, 1.6913, 0.8464, 0.8646],
-            INFO:    [52.8591, 1.3304, 1.4413, 0.8662, 0.8989],
-            WARNING: [47.4855, 1.2480, 1.3709, 0.8820, 1.0339],
-            ERROR:   [36.5140, 1.1526, 1.1952, 0.8331, 0.8727],
-            CRITICAL:[17.6830, 0.9845, 1.0412, 0.8813, 0.9323],
+            libs: LIBS,
+            DEBUG:   [3.8256, 3.7784, 8.2428, 2.3396, 2.3393, 1.3045, 0.2151],
+            INFO:    [3.3528, 3.3133, 7.1683, 2.0894, 2.2176, 1.2918, 0.1677],
+            WARNING: [2.8829, 2.8769, 6.1847, 1.9401, 2.0277, 1.2916, 0.1200],
+            ERROR:   [2.4572, 2.4682, 5.1166, 1.7465, 1.8349, 1.3020, 0.0822],
+            CRITICAL:[0.4898, 0.4916, 1.1759, 1.5565, 1.5977, 1.2709, 0.0579],
           },
         },
       },
@@ -646,38 +596,38 @@
         title: 'Rotating log file',
         short: {
           noexc: {
-            libs: LIBS_5,
-            DEBUG:   [9.7633, 0.4688, 0.8874, 0.1846, 0.1788],
-            INFO:    [10.9183, 0.3677, 0.7151, 0.1510, 0.1716],
-            WARNING: [10.3578, 0.2827, 0.5731, 0.1041, 0.1659],
-            ERROR:   [8.8384, 0.2137, 0.3552, 0.0706, 0.1645],
-            CRITICAL:[5.6616, 0.1284, 0.1797, 0.0445, 0.1663],
+            libs: LIBS,
+            DEBUG:   [2.8976, 2.9641, 6.0422, 0.5883, 1.0082, 0.1912, 0.1820],
+            INFO:    [2.3949, 2.3780, 5.0465, 0.4808, 0.8253, 0.1487, 0.1444],
+            WARNING: [1.8132, 1.8055, 3.6489, 0.3713, 0.5970, 0.1089, 0.1083],
+            ERROR:   [1.2715, 1.2230, 2.4989, 0.2634, 0.4484, 0.0641, 0.0615],
+            CRITICAL:[0.6269, 0.6266, 1.2586, 0.1573, 0.2518, 0.0515, 0.0483],
           },
           exc: {
-            libs: LIBS_5,
-            DEBUG:   [26.6965, 1.2657, 1.7579, 0.8944, 0.8504],
-            INFO:    [27.3070, 1.2515, 1.5759, 0.8448, 0.8581],
-            WARNING: [25.7642, 1.1837, 1.4023, 0.8807, 0.8499],
-            ERROR:   [21.4157, 1.0600, 1.2190, 0.8309, 0.8810],
-            CRITICAL:[10.1288, 0.9674, 1.0563, 0.8145, 0.8883],
+            libs: LIBS,
+            DEBUG:   [4.7953, 4.8853, 9.1390, 1.9488, 2.3840, 1.2913, 0.1972],
+            INFO:    [4.1961, 4.2207, 7.9067, 1.7873, 2.1347, 1.3137, 0.1588],
+            WARNING: [3.5195, 3.4685, 6.7313, 1.7018, 1.9347, 1.3101, 0.1088],
+            ERROR:   [2.8970, 2.8825, 5.4047, 1.5711, 1.7501, 1.2975, 0.0796],
+            CRITICAL:[0.6641, 0.6566, 1.3002, 1.4220, 1.4895, 1.2438, 0.0565],
           },
         },
         long: {
           noexc: {
-            libs: LIBS_7,
-            DEBUG:   [4.7525, 3.9875, 5.7525, 0.6621, 1.3367, 0.1666, 0.1498],
-            INFO:    [3.2516, 3.2440, 4.4346, 0.5219, 1.0533, 0.1309, 0.1515],
-            WARNING: [2.4500, 2.4598, 3.3476, 0.3977, 0.8843, 0.0946, 0.1444],
-            ERROR:   [1.6463, 1.6452, 2.2563, 0.2802, 0.6950, 0.0603, 0.1364],
-            CRITICAL:[0.8429, 0.8454, 1.1526, 0.1659, 0.4020, 0.0463, 0.1295],
+            libs: LIBS,
+            DEBUG:   [2.9995, 2.9704, 6.1746, 0.7413, 1.3095, 0.1967, 0.1837],
+            INFO:    [2.4879, 2.4525, 5.0262, 0.6049, 1.0260, 0.1546, 0.1440],
+            WARNING: [1.8527, 1.8400, 3.7842, 0.4640, 0.7859, 0.1131, 0.1058],
+            ERROR:   [1.2870, 1.2597, 2.5872, 0.3367, 0.5376, 0.0740, 0.0646],
+            CRITICAL:[0.6516, 0.6504, 1.2942, 0.1960, 0.3099, 0.0516, 0.0509],
           },
           exc: {
-            libs: LIBS_7,
-            DEBUG:   [5.1419, 5.1364, 7.8376, 1.4579, 2.0098, 0.8095, 0.7958],
-            INFO:    [4.3457, 4.3373, 6.7717, 1.3372, 1.7626, 0.7748, 0.8075],
-            WARNING: [3.5380, 3.5276, 5.6640, 1.2074, 1.5355, 0.7887, 0.7730],
-            ERROR:   [2.7251, 2.7195, 4.6114, 1.0830, 1.2690, 0.7786, 0.7975],
-            CRITICAL:[0.8715, 0.8707, 1.1640, 0.9571, 1.0868, 0.7625, 0.7779],
+            libs: LIBS,
+            DEBUG:   [4.8656, 4.9045, 9.2815, 2.0585, 2.5379, 1.2984, 0.1980],
+            INFO:    [4.1845, 4.2681, 8.1209, 1.9548, 2.2578, 1.3183, 0.1569],
+            WARNING: [3.5623, 3.5918, 6.8020, 1.7946, 2.1100, 1.2914, 0.1176],
+            ERROR:   [2.9091, 2.9214, 5.4910, 1.6369, 1.8242, 1.2606, 0.0695],
+            CRITICAL:[0.6846, 0.6735, 1.3321, 1.5140, 1.6597, 1.2435, 0.0561],
           },
         },
       },
@@ -686,14 +636,24 @@
     // ============================================================
     // State
     // ============================================================
-    let state = { scenario: 'nolog', length: 'short', exc: 'noexc' };
+    let state = { scenario: 'nolog', length: 'long', exc: 'noexc' };
     let chart = null;
 
     // ============================================================
     // Helpers
     // ============================================================
     function getCurrentData() {
-      return BENCH[state.scenario][state.length][state.exc];
+      const lenData = BENCH[state.scenario][state.length];
+      // Fall back to the other exc variant if the requested one is missing
+      // (e.g. nolog/short was only benchmarked with exceptions).
+      if (!lenData[state.exc]) {
+        state.exc = lenData.exc ? 'exc' : 'noexc';
+        // Reflect the fallback in the active tab button
+        document.querySelectorAll('#excTabs .tab-btn').forEach(b => {
+          b.classList.toggle('active', b.dataset.exc === state.exc);
+        });
+      }
+      return lenData[state.exc];
     }
 
     function formatNum(n) {

@@ -10,12 +10,12 @@
 
     function drawChart() {
       var data = google.visualization.arrayToDataTable([
-        ['Log level', 'logging', 'logging Optimized', 'fastlogging DIRECT', 'fastlogging THREADS', 'fastlogging-rs Logging', 'fastlogging-rs logging'],
-        ['DEBUG',  5.1419,  5.1364,  7.8376,  1.4579,  2.0098,  0.8095,  0.7958],
-        ['INFO',  4.3457,  4.3373,  6.7717,  1.3372,  1.7626,  0.7748,  0.8075],
-        ['WARNING',  3.5380,  3.5276,  5.6640,  1.2074,  1.5355,  0.7887,  0.7730],
-        ['ERROR',  2.7251,  2.7195,  4.6114,  1.0830,  1.2690,  0.7786,  0.7975],
-        ['CRITICAL',  0.8715,  0.8707,  1.1640,  0.9571,  1.0868,  0.7625,  0.7779]
+        ['Log level', 'logging', 'logging Optimized', 'loguru', 'fastlogging DIRECT', 'fastlogging THREADS', 'fastlogging-rs Logging', 'fastlogging-rs root'],
+        ['DEBUG',  2.8976,  2.9641,  6.0422,  0.5883,  1.0082,  0.1912,  0.1820],
+        ['INFO',  2.3949,  2.3780,  5.0465,  0.4808,  0.8253,  0.1487,  0.1444],
+        ['WARNING',  1.8132,  1.8055,  3.6489,  0.3713,  0.5970,  0.1089,  0.1083],
+        ['ERROR',  1.2715,  1.2230,  2.4989,  0.2634,  0.4484,  0.0641,  0.0615],
+        ['CRITICAL',  0.6269,  0.6266,  1.2586,  0.1573,  0.2518,  0.0515,  0.0483]
       ]);
 
       var options = {
