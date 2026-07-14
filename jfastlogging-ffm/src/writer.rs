@@ -1,13 +1,14 @@
 use std::ops::Add;
 use std::path::PathBuf;
-use std::sync::Mutex;
 use std::time::{Duration, SystemTime};
+
+use once_cell::sync::Lazy;
+use parking_lot::RwLock;
 
 use fastlogging::{
     CallbackWriterConfig, ClientWriterConfig, CompressionMethodEnum, ConsoleWriterConfig,
     EncryptionMethod, FileWriterConfig, ServerConfig, SyslogWriterConfig, WriterConfigEnum,
 };
-use once_cell::sync::Lazy;
 
 use crate::get_option_str;
 
@@ -185,15 +186,15 @@ pub unsafe extern "C" fn syslogWriterConfigNew(
 }
 
 pub static CALLBACK_JAVA_FUNC: Lazy<
-    Mutex<Option<extern "C" fn(i32, *const u8, usize, *const u8, usize)>>,
-> = Lazy::new(|| Mutex::new(None));
+    RwLock<Option<extern "C" fn(i32, *const u8, usize, *const u8, usize)>>,
+> = Lazy::new(|| RwLock::new(None));
 
 fn rust_cb_func(
     level: u8,
     domain: String,
     message: String,
 ) -> Result<(), fastlogging::LoggingError> {
-    if let Some(cb) = *CALLBACK_JAVA_FUNC.lock().unwrap() {
+    if let Some(cb) = *CALLBACK_JAVA_FUNC.read() {
         cb(
             level as i32,
             domain.as_ptr(),
@@ -215,7 +216,7 @@ pub unsafe extern "C" fn callbackWriterConfigNew(
     java_cb_func: extern "C" fn(i32, *const u8, usize, *const u8, usize),
     level: u8,
 ) -> *mut WriterConfigEnum {
-    CALLBACK_JAVA_FUNC.lock().unwrap().replace(java_cb_func);
+    CALLBACK_JAVA_FUNC.write().replace(java_cb_func);
     Box::into_raw(Box::new(WriterConfigEnum::Callback(
         CallbackWriterConfig::new(level, Some(Box::new(rust_cb_func))),
     )))

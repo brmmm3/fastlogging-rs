@@ -269,7 +269,7 @@ def DoFastLoggingRsRoot(
         size = 0
         backlog = 0
     fl.set_root_level(level)
-    fl.remove_writers(None)
+    fl.remove_writers()
     if pathName:
         fw = FileWriterConfig(
             level, pathName, size, backlog, compression=CompressionMethodEnum.Deflate
