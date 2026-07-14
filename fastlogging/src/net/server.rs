@@ -113,7 +113,6 @@ fn handle_client(
     let mut domain_buffer = [0u8; 256];
     let mut buffer = [0u8; 4352];
     let mut authenticated = false;
-    let mut config_level = config.read().level;
     let mut debug = config.read().debug;
     if debug > 0 {
         println!("{} handle_client BEGIN", process::id());
@@ -122,9 +121,7 @@ fn handle_client(
         if stop.load(Ordering::Relaxed) || stop_server.load(Ordering::Relaxed) {
             break;
         }
-        let config_read = config.read();
-        config_level = config_read.level;
-        debug = config_read.debug;
+        debug = config.read().debug;
         if debug > 1 {
             println!(
                 "{} handle_client: WAIT {:?}",
@@ -184,7 +181,7 @@ fn handle_client(
         stream.read_exact(domain_data)?;
         let message_data = &mut buffer[..message_size];
         stream.read_exact(message_data)?;
-        if msg_level >= config_level {
+        if msg_level >= config.read().level {
             let domain = std::str::from_utf8(domain_data).unwrap().to_string();
             let message = format!(
                 "{perr_addr}: {}",
