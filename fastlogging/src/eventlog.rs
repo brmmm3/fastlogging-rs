@@ -69,7 +69,7 @@ fn syslog_writer_thread(
     sync_tx: Sender<u8>,
     stop: Arc<AtomicBool>,
 ) -> Result<(), LoggingError> {
-    eventlog::init("fastlogging", level2evt_level(config.read().unwrap().level))
+    eventlog::init("fastlogging", level2evt_level(config.read().level))
         .map_err(|e| LoggingError::InvalidValue(e.to_string()))?;
     loop {
         if stop.load(Ordering::Relaxed) {
@@ -162,26 +162,26 @@ impl SyslogWriter {
     }
 
     pub fn enable(&self) {
-        self.config.write().unwrap().enabled = true;
+        self.config.write().enabled = true;
     }
 
     pub fn disable(&self) {
-        self.config.write().unwrap().enabled = false;
+        self.config.write().enabled = false;
     }
 
     pub fn set_enabled(&self, enabled: bool) {
-        self.config.write().unwrap().enabled = enabled;
+        self.config.write().enabled = enabled;
     }
 
     pub fn set_level(&self, level: u8) {
-        self.config.write().unwrap().level = level;
+        self.config.write().level = level;
     }
 
     pub fn set_domain_filter(&self, domain_filter: Option<String>) -> Result<(), regex::Error> {
         if let Some(ref message) = domain_filter {
             Regex::new(message)?;
         }
-        self.config.write().unwrap().domain_filter = domain_filter;
+        self.config.write().domain_filter = domain_filter;
         Ok(())
     }
 
@@ -189,7 +189,7 @@ impl SyslogWriter {
         if let Some(ref message) = message_filter {
             Regex::new(message)?;
         }
-        self.config.write().unwrap().message_filter = message_filter;
+        self.config.write().message_filter = message_filter;
         Ok(())
     }
 
