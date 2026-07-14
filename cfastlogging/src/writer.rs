@@ -3,10 +3,10 @@ use std::ffi::{CString, c_char, c_int, c_longlong, c_uchar, c_uint, c_ulong};
 use std::ops::Add;
 use std::path::PathBuf;
 use std::ptr;
-use std::sync::RwLock;
 use std::time::{Duration, SystemTime};
 
 use once_cell::sync::Lazy;
+use parking_lot::RwLock;
 
 use crate::util::{char2string, option_char2string};
 
@@ -175,7 +175,7 @@ pub fn callback_func(
     domain: String,
     message: String,
 ) -> Result<(), fastlogging::LoggingError> {
-    if let Some(callback) = *CALLBACK_C_FUNC.read().unwrap() {
+    if let Some(callback) = *CALLBACK_C_FUNC.read() {
         let c_domain = CString::new(domain).unwrap();
         let c_message = CString::new(message).unwrap();
         callback(level, c_domain.as_ptr(), c_message.as_ptr());
@@ -194,9 +194,9 @@ pub unsafe extern "C" fn callback_writer_config_new(
     callback: extern "C" fn(c_uchar, *const c_char, *const c_char),
 ) -> *mut fastlogging::WriterConfigEnum {
     if callback as *mut c_ulong != ptr::null_mut() {
-        *CALLBACK_C_FUNC.write().unwrap() = Some(callback);
+        *CALLBACK_C_FUNC.write() = Some(callback);
     } else {
-        *CALLBACK_C_FUNC.write().unwrap() = None;
+        *CALLBACK_C_FUNC.write() = None;
     }
     Box::into_raw(Box::new(fastlogging::WriterConfigEnum::Callback(
         fastlogging::CallbackWriterConfig::new(level, Some(Box::new(callback_func))),

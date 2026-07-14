@@ -1,19 +1,19 @@
 use std::ops::Add;
 use std::path::PathBuf;
-use std::sync::Mutex;
 use std::time::{Duration, SystemTime};
 
 use jni::objects::{JClass, JObject, JString};
 use jni::refs::Global;
 use jni::sys::{jboolean, jint, jlong};
+use jni::vm::JavaVM;
 use jni::{JValue, jni_mangle, jni_sig, jni_str};
+use once_cell::sync::OnceCell;
+use parking_lot::RwLock;
 
 use fastlogging::{
     CallbackWriterConfig, ClientWriterConfig, CompressionMethodEnum, ConsoleWriterConfig,
     EncryptionMethod, FileWriterConfig, ServerConfig, SyslogWriterConfig,
 };
-use jni::vm::JavaVM;
-use once_cell::sync::OnceCell;
 
 use crate::enter_jni;
 
@@ -165,14 +165,14 @@ pub fn syslogWriterConfigNew(
     ))) as jlong
 }
 
-pub static CALLBACK_JAVA_FUNC: Mutex<Option<Global<JObject<'static>>>> = Mutex::new(None);
+pub static CALLBACK_JAVA_FUNC: RwLock<Option<Global<JObject<'static>>>> = RwLock::new(None);
 
 pub fn callback_func(
     level: u8,
     domain: String,
     message: String,
 ) -> Result<(), fastlogging::LoggingError> {
-    if let Some(ref callback_ref) = *CALLBACK_JAVA_FUNC.lock().unwrap() {
+    if let Some(ref callback_ref) = *CALLBACK_JAVA_FUNC.read() {
         let jvm = GLOBAL_JVM
             .get()
             .expect("JVM not initialized. JNI_OnLoad not called?");
@@ -213,7 +213,7 @@ pub fn callbackWriterConfigNew(
         let callback_ref = env
             .new_global_ref(callback)
             .expect("Failed to create global reference for callback_instance");
-        *CALLBACK_JAVA_FUNC.lock().unwrap() = Some(callback_ref);
+        *CALLBACK_JAVA_FUNC.write() = Some(callback_ref);
         Ok(Box::into_raw(Box::new(CallbackWriterConfig::new(
             level as u8,
             Some(Box::new(callback_func)),

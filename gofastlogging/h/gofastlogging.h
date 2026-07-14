@@ -125,7 +125,7 @@ extern "C"
 
   extern const intptr_t EINVAL;
 
-  extern const Lazy<Mutex<void (*)(unsigned char, const char *, const char *)>> CALLBACK_C_FUNC;
+  extern const Lazy<RwLock<void (*)(unsigned char, const char *, const char *)>> CALLBACK_C_FUNC;
 
   /// # Safety
   ///

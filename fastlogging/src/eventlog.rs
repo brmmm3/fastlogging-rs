@@ -1,7 +1,7 @@
 use std::{
     fmt,
     sync::{
-        Arc, Mutex,
+        Arc,
         atomic::{AtomicBool, Ordering},
     },
     thread::{self, JoinHandle},
@@ -9,6 +9,7 @@ use std::{
 };
 
 use flume::{Receiver, SendError, Sender, bounded};
+use parking_lot::RwLock;
 use regex::Regex;
 
 use crate::LoggingError;
@@ -63,12 +64,12 @@ impl fmt::Display for SyslogWriterConfig {
 }
 
 fn syslog_writer_thread(
-    config: Arc<Mutex<SyslogWriterConfig>>,
+    config: Arc<RwLock<SyslogWriterConfig>>,
     rx: Receiver<SyslogTypeEnum>,
     sync_tx: Sender<u8>,
     stop: Arc<AtomicBool>,
 ) -> Result<(), LoggingError> {
-    eventlog::init("fastlogging", level2evt_level(config.lock().unwrap().level))
+    eventlog::init("fastlogging", level2evt_level(config.read().unwrap().level))
         .map_err(|e| LoggingError::InvalidValue(e.to_string()))?;
     loop {
         if stop.load(Ordering::Relaxed) {
@@ -91,7 +92,7 @@ fn syslog_writer_thread(
 
 #[derive(Debug)]
 pub struct SyslogWriter {
-    pub(crate) config: Arc<Mutex<SyslogWriterConfig>>,
+    pub(crate) config: Arc<RwLock<SyslogWriterConfig>>,
     tx: Sender<SyslogTypeEnum>,
     sync_rx: Receiver<u8>,
     thr: Option<JoinHandle<()>>,
@@ -100,7 +101,7 @@ pub struct SyslogWriter {
 
 impl SyslogWriter {
     pub fn new(config: SyslogWriterConfig, stop: Arc<AtomicBool>) -> Result<Self, LoggingError> {
-        let config = Arc::new(Mutex::new(config));
+        let config = Arc::new(RwLock::new(config));
         let (tx, rx) = bounded(1000);
         let (sync_tx, sync_rx) = bounded(1);
         Ok(Self {
@@ -161,26 +162,26 @@ impl SyslogWriter {
     }
 
     pub fn enable(&self) {
-        self.config.lock().unwrap().enabled = true;
+        self.config.write().unwrap().enabled = true;
     }
 
     pub fn disable(&self) {
-        self.config.lock().unwrap().enabled = false;
+        self.config.write().unwrap().enabled = false;
     }
 
     pub fn set_enabled(&self, enabled: bool) {
-        self.config.lock().unwrap().enabled = enabled;
+        self.config.write().unwrap().enabled = enabled;
     }
 
     pub fn set_level(&self, level: u8) {
-        self.config.lock().unwrap().level = level;
+        self.config.write().unwrap().level = level;
     }
 
     pub fn set_domain_filter(&self, domain_filter: Option<String>) -> Result<(), regex::Error> {
         if let Some(ref message) = domain_filter {
             Regex::new(message)?;
         }
-        self.config.lock().unwrap().domain_filter = domain_filter;
+        self.config.write().unwrap().domain_filter = domain_filter;
         Ok(())
     }
 
@@ -188,7 +189,7 @@ impl SyslogWriter {
         if let Some(ref message) = message_filter {
             Regex::new(message)?;
         }
-        self.config.lock().unwrap().message_filter = message_filter;
+        self.config.write().unwrap().message_filter = message_filter;
         Ok(())
     }
 

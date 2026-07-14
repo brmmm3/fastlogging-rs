@@ -1,7 +1,7 @@
 use std::cmp;
 
 use fastlogging::{CRITICAL, DEBUG, ERROR, EXCEPTION, FATAL, INFO, SUCCESS, TRACE, WARNING};
-use pyo3::{exceptions::PyException, prelude::*};
+use pyo3::{exceptions::PyException, prelude::*, types::PyString};
 
 #[pyclass]
 #[derive(Debug)]
@@ -13,9 +13,13 @@ pub struct Logger {
 }
 
 impl Logger {
-    fn do_indent(&self, obj: Py<PyAny>) -> PyResult<String> {
-        Python::attach(|py| {
-            let mut message: String = obj.extract(py)?;
+    fn do_indent(&self, obj: Bound<'_, PyAny>) -> PyResult<String> {
+        Python::attach(|py| -> PyResult<String> {
+            let mut message: String = if let Ok(py_str) = obj.cast::<PyString>() {
+                py_str.to_string()
+            } else {
+                obj.str()?.to_string()
+            };
             if let Some((offset, inc, max, s)) = &self.indent
                 && let Ok(mut frame) = self.getframe.call1(py, (*offset,))
             {
@@ -96,7 +100,8 @@ impl Logger {
 
     // Logging calls
 
-    pub fn trace(&self, obj: Py<PyAny>) -> PyResult<()> {
+    #[pyo3(signature = (obj, /))]
+    pub fn trace(&self, obj: Bound<'_, PyAny>) -> PyResult<()> {
         if self.instance.level() <= TRACE {
             self.instance
                 .trace(self.do_indent(obj)?)
@@ -106,7 +111,8 @@ impl Logger {
         }
     }
 
-    pub fn debug(&self, obj: Py<PyAny>) -> PyResult<()> {
+    #[pyo3(signature = (obj, /))]
+    pub fn debug(&self, obj: Bound<'_, PyAny>) -> PyResult<()> {
         if self.instance.level() <= DEBUG {
             self.instance
                 .debug(self.do_indent(obj)?)
@@ -116,7 +122,8 @@ impl Logger {
         }
     }
 
-    pub fn info(&self, obj: Py<PyAny>) -> PyResult<()> {
+    #[pyo3(signature = (obj, /))]
+    pub fn info(&self, obj: Bound<'_, PyAny>) -> PyResult<()> {
         if self.instance.level() <= INFO {
             self.instance
                 .info(self.do_indent(obj)?)
@@ -126,7 +133,8 @@ impl Logger {
         }
     }
 
-    pub fn success(&self, obj: Py<PyAny>) -> PyResult<()> {
+    #[pyo3(signature = (obj, /))]
+    pub fn success(&self, obj: Bound<'_, PyAny>) -> PyResult<()> {
         if self.instance.level() <= SUCCESS {
             self.instance
                 .success(self.do_indent(obj)?)
@@ -136,7 +144,8 @@ impl Logger {
         }
     }
 
-    pub fn warning(&self, obj: Py<PyAny>) -> PyResult<()> {
+    #[pyo3(signature = (obj, /))]
+    pub fn warning(&self, obj: Bound<'_, PyAny>) -> PyResult<()> {
         if self.instance.level() <= WARNING {
             self.instance
                 .warning(self.do_indent(obj)?)
@@ -146,7 +155,8 @@ impl Logger {
         }
     }
 
-    pub fn error(&self, obj: Py<PyAny>) -> PyResult<()> {
+    #[pyo3(signature = (obj, /))]
+    pub fn error(&self, obj: Bound<'_, PyAny>) -> PyResult<()> {
         if self.instance.level() <= ERROR {
             self.instance
                 .error(self.do_indent(obj)?)
@@ -156,7 +166,8 @@ impl Logger {
         }
     }
 
-    pub fn critical(&self, obj: Py<PyAny>) -> PyResult<()> {
+    #[pyo3(signature = (obj, /))]
+    pub fn critical(&self, obj: Bound<'_, PyAny>) -> PyResult<()> {
         if self.instance.level() <= CRITICAL {
             self.instance
                 .critical(self.do_indent(obj)?)
@@ -166,7 +177,8 @@ impl Logger {
         }
     }
 
-    pub fn fatal(&self, obj: Py<PyAny>) -> PyResult<()> {
+    #[pyo3(signature = (obj, /))]
+    pub fn fatal(&self, obj: Bound<'_, PyAny>) -> PyResult<()> {
         if self.instance.level() <= FATAL {
             self.instance
                 .fatal(self.do_indent(obj)?)
@@ -176,10 +188,15 @@ impl Logger {
         }
     }
 
-    pub fn exception(&self, obj: Py<PyAny>) -> PyResult<()> {
+    #[pyo3(signature = (obj, /))]
+    pub fn exception(&self, obj: Bound<'_, PyAny>) -> PyResult<()> {
         if self.instance.level() <= EXCEPTION {
             Python::attach(|py| {
-                let message: String = obj.extract(py)?;
+                let message: String = if let Ok(py_str) = obj.cast::<PyString>() {
+                    py_str.to_string()
+                } else {
+                    obj.str()?.to_string()
+                };
                 let tb: String = self.format_exc.call0(py)?.extract(py)?;
                 self.instance
                     .exception(format!("{message}\n{tb}"))

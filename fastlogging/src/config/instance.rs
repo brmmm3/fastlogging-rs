@@ -208,7 +208,7 @@ impl LoggingInstance {
             }
         };
         match writer {
-            WriterEnum::Server(server) => Ok(server.config.read().unwrap().get_server_config()),
+            WriterEnum::Server(server) => Ok(server.config.read().get_server_config()),
             _ => Err(LoggingError::InvalidValue(format!(
                 "Writer wid={wid} has invalid type {writer:?}"
             ))),
@@ -219,7 +219,7 @@ impl LoggingInstance {
         self.writers
             .iter()
             .filter_map(|(k, w)| match w {
-                WriterEnum::Server(c) => Some((*k, c.config.read().unwrap().get_server_config())),
+                WriterEnum::Server(c) => Some((*k, c.config.read().get_server_config())),
                 _ => None,
             })
             .collect()

@@ -82,9 +82,9 @@ int main() {
 
 ## Concurrent Access
 
-The root logger is protected by a Rust `Mutex` internally.  Calls from
+The root logger is protected by a Rust `RwLock` internally. Calls from
 multiple C++ threads are safe; each `root_*` call locks the mutex for its
-duration.  For high-frequency multi-threaded logging, prefer creating a
+duration. For high-frequency multi-threaded logging, prefer creating a
 dedicated `Logging` instance with a `ClientWriter` pointing at the root
 server to avoid mutex contention:
 

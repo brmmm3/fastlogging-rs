@@ -4,7 +4,7 @@ use std::{
     net::TcpStream,
     process,
     sync::{
-        Arc, RwLock,
+        Arc,
         atomic::{AtomicBool, Ordering},
     },
     thread::{self, JoinHandle},
@@ -12,6 +12,7 @@ use std::{
 };
 
 use flume::{Receiver, SendError, Sender, bounded};
+use parking_lot::RwLock;
 use regex::Regex;
 use ring::aead;
 
@@ -94,7 +95,7 @@ fn client_writer_thread(
     stop: Arc<AtomicBool>,
 ) -> Result<(), LoggingError> {
     let (address, debug) = {
-        let config = config.read().unwrap();
+        let config = config.read();
         (config.address.clone(), config.debug)
     };
     if debug > 0 {
@@ -112,7 +113,7 @@ fn client_writer_thread(
     }
     let mut buffer = [0u8; 4];
     {
-        let config = config.read().unwrap();
+        let config = config.read();
         if !config.key.is_encrypted() {
             if debug > 1 {
                 println!("{} client_writer_thread SEND KEY", process::id());
@@ -141,40 +142,39 @@ fn client_writer_thread(
                         process::id()
                     );
                 }
-                if let Ok(ref mut config) = config.write() {
-                    let size;
-                    let seal = config.seal.clone();
-                    let seal = aead::Aad::from(&seal);
-                    if let Some(ref mut sk) = config.sk {
-                        let mut domain = domain.as_bytes().to_vec();
-                        sk.seal_in_place_append_tag(seal, &mut domain)
-                            .map_err(|e| Error::other(e.to_string()))?;
-                        let mut message = message.as_bytes().to_vec();
-                        sk.seal_in_place_append_tag(seal, &mut message)
-                            .map_err(|e| Error::other(e.to_string()))?;
-                        size = message.len();
-                        buffer[0] = size as u8;
-                        buffer[1] = (size >> 8) as u8;
-                        buffer[2] = level;
-                        buffer[3] = domain.len() as u8;
-                        let _ = stream.write_all(&buffer);
-                        let _ = stream.write_all(&domain);
-                        let _ = stream.write_all(&message);
-                    } else {
-                        size = message.len();
-                        buffer[0] = size as u8;
-                        buffer[1] = (size >> 8) as u8;
-                        buffer[2] = level;
-                        buffer[3] = domain.len() as u8;
-                        //println!("SEND {buffer:?}");
-                        let _ = stream.write_all(&buffer);
-                        let _ = stream.write_all(domain.as_bytes());
-                        //println!("SEND1 {:?}", domain.as_bytes());
-                        let _ = stream.write_all(message.as_bytes());
-                        //println!("SEND2 {:?}", message.as_bytes());
-                    }
-                    stream.flush()?;
+                let mut config_write = config.write();
+                let size;
+                let seal = config_write.seal.clone();
+                let seal = aead::Aad::from(&seal);
+                if let Some(ref mut sk) = config_write.sk {
+                    let mut domain = domain.as_bytes().to_vec();
+                    sk.seal_in_place_append_tag(seal, &mut domain)
+                        .map_err(|e| Error::other(e.to_string()))?;
+                    let mut message = message.as_bytes().to_vec();
+                    sk.seal_in_place_append_tag(seal, &mut message)
+                        .map_err(|e| Error::other(e.to_string()))?;
+                    size = message.len();
+                    buffer[0] = size as u8;
+                    buffer[1] = (size >> 8) as u8;
+                    buffer[2] = level;
+                    buffer[3] = domain.len() as u8;
+                    let _ = stream.write_all(&buffer);
+                    let _ = stream.write_all(&domain);
+                    let _ = stream.write_all(&message);
+                } else {
+                    size = message.len();
+                    buffer[0] = size as u8;
+                    buffer[1] = (size >> 8) as u8;
+                    buffer[2] = level;
+                    buffer[3] = domain.len() as u8;
+                    //println!("SEND {buffer:?}");
+                    let _ = stream.write_all(&buffer);
+                    let _ = stream.write_all(domain.as_bytes());
+                    //println!("SEND1 {:?}", domain.as_bytes());
+                    let _ = stream.write_all(message.as_bytes());
+                    //println!("SEND2 {:?}", message.as_bytes());
                 }
+                stream.flush()?;
             }
             ClientTypeEnum::Sync => {
                 if debug > 0 {
@@ -285,26 +285,26 @@ impl ClientWriter {
     }
 
     pub fn enable(&self) {
-        self.config.write().unwrap().enabled = true;
+        self.config.write().enabled = true;
     }
 
     pub fn disable(&self) {
-        self.config.write().unwrap().enabled = false;
+        self.config.write().enabled = false;
     }
 
     pub fn set_enabled(&self, enabled: bool) {
-        self.config.write().unwrap().enabled = enabled;
+        self.config.write().enabled = enabled;
     }
 
     pub fn set_level(&mut self, level: u8) {
-        self.config.write().unwrap().level = level;
+        self.config.write().level = level;
     }
 
     pub fn set_domain_filter(&self, domain_filter: Option<String>) -> Result<(), regex::Error> {
         if let Some(ref message) = domain_filter {
             Regex::new(message)?;
         }
-        self.config.write().unwrap().domain_filter = domain_filter;
+        self.config.write().domain_filter = domain_filter;
         Ok(())
     }
 
@@ -312,14 +312,13 @@ impl ClientWriter {
         if let Some(ref message) = message_filter {
             Regex::new(message)?;
         }
-        self.config.write().unwrap().message_filter = message_filter;
+        self.config.write().message_filter = message_filter;
         Ok(())
     }
 
     pub fn set_encryption(&mut self, method: EncryptionMethod) -> Result<(), LoggingError> {
         self.config
             .write()
-            .unwrap()
             .set_encryption(method.clone())
             .map_err(|e| {
                 LoggingError::InvalidEncryption("ClientWriter".to_string(), method, e.to_string())

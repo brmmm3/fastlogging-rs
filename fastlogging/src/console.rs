@@ -2,7 +2,7 @@ use std::{
     fmt,
     io::Write,
     sync::{
-        Arc, RwLock,
+        Arc,
         atomic::{AtomicBool, Ordering},
     },
     thread::{self, JoinHandle},
@@ -10,6 +10,7 @@ use std::{
 };
 
 use flume::{Receiver, SendError, Sender, bounded};
+use parking_lot::RwLock;
 use regex::Regex;
 use termcolor::{BufferWriter, Color, ColorChoice, ColorSpec, WriteColor};
 
@@ -103,58 +104,55 @@ fn console_writer_thread(
         }
         match rx.recv()? {
             ConsoleTypeEnum::Message((level, domain, message)) => {
-                if let Ok(ref config) = config.read() {
-                    if !config.enabled {
+                let config_read = config.read();
+                if !config_read.enabled {
+                    continue;
+                }
+                if let Some(ref domain_filter) = config_read.domain_filter {
+                    let re = Regex::new(domain_filter).unwrap();
+                    if !re.is_match(&domain) {
                         continue;
                     }
-                    if let Some(ref domain_filter) = config.domain_filter {
-                        let re = Regex::new(domain_filter).unwrap();
-                        if !re.is_match(&domain) {
-                            continue;
-                        }
+                }
+                if let Some(ref message_filter) = config_read.message_filter {
+                    let re = Regex::new(message_filter).unwrap();
+                    if !re.is_match(&domain) {
+                        continue;
                     }
-                    if let Some(ref message_filter) = config.message_filter {
-                        let re = Regex::new(message_filter).unwrap();
-                        if !re.is_match(&domain) {
-                            continue;
-                        }
-                    }
-                    if config.colors {
-                        let (bufwtr, buffer) = if config.target == ConsoleTargetEnum::StdOut {
-                            (&stdout_bufwtr, &mut stdout_buffer)
-                        } else if config.target == ConsoleTargetEnum::StdErr {
-                            (&stderr_bufwtr, &mut stderr_buffer)
-                        } else if level < ERROR {
-                            (&stdout_bufwtr, &mut stdout_buffer)
-                        } else {
-                            (&stderr_bufwtr, &mut stderr_buffer)
-                        };
-                        buffer.clear();
-                        buffer.set_color(ColorSpec::new().set_fg(Some(match level {
-                            TRACE => Color::White,
-                            DEBUG => Color::Blue,
-                            INFO => Color::Green,
-                            SUCCESS => Color::Cyan,
-                            WARNING => Color::Yellow,
-                            ERROR => Color::Magenta,
-                            CRITICAL => Color::Red,
-                            EXCEPTION => Color::Red,
-                            _ => Color::White,
-                        })))?;
-                        writeln!(buffer, "{message}")?;
-                        buffer.reset()?;
-                        bufwtr.print(buffer)?;
-                    } else if config.target == ConsoleTargetEnum::StdOut {
-                        println!("{message}");
-                    } else if config.target == ConsoleTargetEnum::StdErr {
-                        eprintln!("{message}");
+                }
+                if config_read.colors {
+                    let (bufwtr, buffer) = if config_read.target == ConsoleTargetEnum::StdOut {
+                        (&stdout_bufwtr, &mut stdout_buffer)
+                    } else if config_read.target == ConsoleTargetEnum::StdErr {
+                        (&stderr_bufwtr, &mut stderr_buffer)
                     } else if level < ERROR {
-                        println!("{message}");
+                        (&stdout_bufwtr, &mut stdout_buffer)
                     } else {
-                        eprintln!("{message}");
-                    }
+                        (&stderr_bufwtr, &mut stderr_buffer)
+                    };
+                    buffer.clear();
+                    buffer.set_color(ColorSpec::new().set_fg(Some(match level {
+                        TRACE => Color::White,
+                        DEBUG => Color::Blue,
+                        INFO => Color::Green,
+                        SUCCESS => Color::Cyan,
+                        WARNING => Color::Yellow,
+                        ERROR => Color::Magenta,
+                        CRITICAL => Color::Red,
+                        EXCEPTION => Color::Red,
+                        _ => Color::White,
+                    })))?;
+                    writeln!(buffer, "{message}")?;
+                    buffer.reset()?;
+                    bufwtr.print(buffer)?;
+                } else if config_read.target == ConsoleTargetEnum::StdOut {
+                    println!("{message}");
+                } else if config_read.target == ConsoleTargetEnum::StdErr {
+                    eprintln!("{message}");
+                } else if level < ERROR {
+                    println!("{message}");
                 } else {
-                    break;
+                    eprintln!("{message}");
                 }
             }
             ConsoleTypeEnum::Sync => {
@@ -240,26 +238,26 @@ impl ConsoleWriter {
     }
 
     pub fn enable(&self) {
-        self.config.write().unwrap().enabled = true;
+        self.config.write().enabled = true;
     }
 
     pub fn disable(&self) {
-        self.config.write().unwrap().enabled = false;
+        self.config.write().enabled = false;
     }
 
     pub fn set_enabled(&self, enabled: bool) {
-        self.config.write().unwrap().enabled = enabled;
+        self.config.write().enabled = enabled;
     }
 
     pub fn set_level(&self, level: u8) {
-        self.config.write().unwrap().level = level;
+        self.config.write().level = level;
     }
 
     pub fn set_domain_filter(&self, domain_filter: Option<String>) -> Result<(), regex::Error> {
         if let Some(ref message) = domain_filter {
             Regex::new(message)?;
         }
-        self.config.write().unwrap().domain_filter = domain_filter;
+        self.config.write().domain_filter = domain_filter;
         Ok(())
     }
 
@@ -267,16 +265,16 @@ impl ConsoleWriter {
         if let Some(ref message) = message_filter {
             Regex::new(message)?;
         }
-        self.config.write().unwrap().message_filter = message_filter;
+        self.config.write().message_filter = message_filter;
         Ok(())
     }
 
     pub fn set_colors(&self, colors: bool) {
-        self.config.write().unwrap().colors = colors;
+        self.config.write().colors = colors;
     }
 
     pub fn set_target(&self, target: ConsoleTargetEnum) {
-        self.config.write().unwrap().target = target;
+        self.config.write().target = target;
     }
 
     #[inline]

@@ -52,6 +52,7 @@ fn init(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(root::root_init, m)?)?;
     m.add_function(wrap_pyfunction!(root::shutdown, m)?)?;
     m.add_function(wrap_pyfunction!(root::set_level, m)?)?;
+    m.add_function(wrap_pyfunction!(root::set_root_level, m)?)?;
     m.add_function(wrap_pyfunction!(root::set_domain, m)?)?;
     m.add_function(wrap_pyfunction!(root::set_level2sym, m)?)?;
     m.add_function(wrap_pyfunction!(root::set_ext_config, m)?)?;

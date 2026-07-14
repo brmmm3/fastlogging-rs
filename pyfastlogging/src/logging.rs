@@ -8,7 +8,7 @@ use pyo3::prelude::*;
 use fastlogging::{
     CRITICAL, DEBUG, ERROR, EXCEPTION, FATAL, INFO, LoggingConfig, NOTSET, SUCCESS, TRACE, WARNING,
 };
-use pyo3::types::PyBytes;
+use pyo3::types::{PyBytes, PyString};
 
 use crate::def::{EncryptionMethod, LevelSyms, WriterConfigEnum, WriterTypeEnum};
 use crate::logger::Logger;
@@ -27,9 +27,13 @@ pub struct Logging {
 }
 
 impl Logging {
-    fn do_indent(&self, obj: Py<PyAny>) -> PyResult<String> {
+    fn do_indent(&self, obj: Bound<'_, PyAny>) -> PyResult<String> {
         Python::attach(|py| {
-            let mut message: String = obj.extract(py)?;
+            let mut message: String = if let Ok(py_str) = obj.cast::<PyString>() {
+                py_str.to_string()
+            } else {
+                obj.str()?.to_string()
+            };
             if let Some((offset, inc, max, s)) = &self.indent
                 && let Ok(mut frame) = self.getframe.call1(py, (*offset,))
             {
@@ -230,7 +234,7 @@ impl Logging {
         Ok(self.instance.disable_type(typ.into())?)
     }
 
-    #[pyo3(signature=(types=None, timeout=None))]
+    #[pyo3(signature=(types=None, timeout=None, /))]
     pub fn sync(
         &self,
         types: Option<Vec<WriterTypeEnum>>,
@@ -246,20 +250,21 @@ impl Logging {
         }
     }
 
-    #[pyo3(signature=(timeout=None))]
+    #[pyo3(signature=(timeout=None, /))]
     pub fn sync_all(&self, timeout: Option<f64>) -> Result<(), LoggingError> {
         Ok(self.instance.sync_all(timeout.unwrap_or(1.0))?)
     }
 
     // File logger
 
-    #[pyo3(signature=(path=None))]
+    #[pyo3(signature=(path=None, /))]
     pub fn rotate(&self, path: Option<PathBuf>) -> Result<(), LoggingError> {
         Ok(self.instance.rotate(path)?)
     }
 
     // Network
 
+    #[pyo3(signature=(wid, key, /))]
     pub fn set_encryption(
         &mut self,
         wid: usize,
@@ -270,10 +275,12 @@ impl Logging {
 
     // Config
 
+    #[pyo3(signature=(wid, /))]
     pub fn get_writer_config(&self, wid: usize) -> Option<WriterConfigEnum> {
         self.instance.get_writer_config(wid).map(|c| c.into())
     }
 
+    #[pyo3(signature=(wid, /))]
     pub fn get_server_config(&self, wid: usize) -> Result<ServerConfig, LoggingError> {
         Ok(self.instance.get_server_config(wid)?.into())
     }
@@ -312,14 +319,15 @@ impl Logging {
         self.instance.get_config_string()
     }
 
-    #[pyo3(signature=(path=None,))]
+    #[pyo3(signature=(path=None, /))]
     pub fn save_config(&mut self, path: Option<PathBuf>) -> Result<(), LoggingError> {
         Ok(self.instance.save_config(path.as_deref())?)
     }
 
     // Logging methods
 
-    pub fn trace(&self, obj: Py<PyAny>) -> PyResult<()> {
+    #[pyo3(signature=(obj, /))]
+    pub fn trace(&self, obj: Bound<'_, PyAny>) -> PyResult<()> {
         if self.instance.level <= TRACE {
             self.instance
                 .trace(self.do_indent(obj)?)
@@ -329,7 +337,8 @@ impl Logging {
         }
     }
 
-    pub fn debug(&self, obj: Py<PyAny>) -> PyResult<()> {
+    #[pyo3(signature=(obj, /))]
+    pub fn debug(&self, obj: Bound<'_, PyAny>) -> PyResult<()> {
         if self.instance.level <= DEBUG {
             self.instance
                 .debug(self.do_indent(obj)?)
@@ -339,7 +348,8 @@ impl Logging {
         }
     }
 
-    pub fn info(&self, obj: Py<PyAny>) -> PyResult<()> {
+    #[pyo3(signature=(obj, /))]
+    pub fn info(&self, obj: Bound<'_, PyAny>) -> PyResult<()> {
         if self.instance.level <= INFO {
             self.instance
                 .info(self.do_indent(obj)?)
@@ -349,7 +359,8 @@ impl Logging {
         }
     }
 
-    pub fn success(&self, obj: Py<PyAny>) -> PyResult<()> {
+    #[pyo3(signature=(obj, /))]
+    pub fn success(&self, obj: Bound<'_, PyAny>) -> PyResult<()> {
         if self.instance.level <= SUCCESS {
             self.instance
                 .success(self.do_indent(obj)?)
@@ -359,7 +370,8 @@ impl Logging {
         }
     }
 
-    pub fn warning(&self, obj: Py<PyAny>) -> PyResult<()> {
+    #[pyo3(signature=(obj, /))]
+    pub fn warning(&self, obj: Bound<'_, PyAny>) -> PyResult<()> {
         if self.instance.level <= WARNING {
             self.instance
                 .warning(self.do_indent(obj)?)
@@ -369,7 +381,8 @@ impl Logging {
         }
     }
 
-    pub fn error(&self, obj: Py<PyAny>) -> PyResult<()> {
+    #[pyo3(signature=(obj, /))]
+    pub fn error(&self, obj: Bound<'_, PyAny>) -> PyResult<()> {
         if self.instance.level <= ERROR {
             self.instance
                 .error(self.do_indent(obj)?)
@@ -379,7 +392,8 @@ impl Logging {
         }
     }
 
-    pub fn critical(&self, obj: Py<PyAny>) -> PyResult<()> {
+    #[pyo3(signature=(obj, /))]
+    pub fn critical(&self, obj: Bound<'_, PyAny>) -> PyResult<()> {
         if self.instance.level <= CRITICAL {
             self.instance
                 .critical(self.do_indent(obj)?)
@@ -389,7 +403,8 @@ impl Logging {
         }
     }
 
-    pub fn fatal(&self, obj: Py<PyAny>) -> PyResult<()> {
+    #[pyo3(signature=(obj, /))]
+    pub fn fatal(&self, obj: Bound<'_, PyAny>) -> PyResult<()> {
         if self.instance.level <= FATAL {
             self.instance
                 .fatal(self.do_indent(obj)?)
@@ -399,10 +414,15 @@ impl Logging {
         }
     }
 
-    pub fn exception(&self, obj: Py<PyAny>) -> PyResult<()> {
+    #[pyo3(signature=(obj, /))]
+    pub fn exception(&self, obj: Bound<'_, PyAny>) -> PyResult<()> {
         if self.instance.level <= EXCEPTION {
             Python::attach(|py| {
-                let message: String = obj.extract(py)?;
+                let message: String = if let Ok(py_str) = obj.cast::<PyString>() {
+                    py_str.to_string()
+                } else {
+                    obj.str()?.to_string()
+                };
                 let tb: String = self.format_exc.call0(py)?.extract(py)?;
                 self.instance
                     .exception(format!("{message}\n{tb}"))
@@ -431,7 +451,6 @@ impl Logging {
             .instance
             .instance
             .read()
-            .unwrap()
             .get_logging_config()
             .to_json_vec()?;
         Ok(PyBytes::new(py, &config))
@@ -446,7 +465,6 @@ impl Logging {
             .instance
             .instance
             .read()
-            .unwrap()
             .get_logging_config()
             .to_json_vec()?;
         Ok((PyBytes::new(py, &config),))

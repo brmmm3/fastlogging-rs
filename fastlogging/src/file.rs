@@ -4,7 +4,7 @@ use std::{
     io::{BufWriter, Read, Seek, SeekFrom, Write},
     path::{Path, PathBuf},
     sync::{
-        Arc, RwLock,
+        Arc,
         atomic::{AtomicBool, Ordering},
     },
     thread::{self, JoinHandle},
@@ -12,6 +12,7 @@ use std::{
 };
 
 use flume::{Receiver, RecvTimeoutError, Sender, bounded};
+use parking_lot::RwLock;
 use regex::Regex;
 use zip::{ZipWriter, write::SimpleFileOptions};
 
@@ -169,7 +170,7 @@ fn file_writer_thread_worker(
     stop: Arc<AtomicBool>,
     sync_tx: Sender<u8>,
 ) -> Result<(), LoggingError> {
-    let path = config.read().unwrap().path.clone();
+    let path = config.read().path.clone();
     let mut create_time = SystemTime::now();
     let mut file = BufWriter::new(OpenOptions::new().create(true).append(true).open(&path)?);
     let mut size = file.seek(SeekFrom::End(0))? as usize;
@@ -180,7 +181,7 @@ fn file_writer_thread_worker(
             break;
         }
         let (max_size, backlog, timeout, time, compression) = {
-            let c = config.read().unwrap();
+            let c = config.read();
             (c.size, c.backlog, c.timeout, c.time, c.compression)
         };
         let mut deadline = create_time
@@ -206,21 +207,20 @@ fn file_writer_thread_worker(
         };
         let rotate = match message {
             FileTypeEnum::Message((_level, domain, message)) => {
-                if let Ok(ref config) = config.read() {
-                    if !config.enabled {
+                let config_read = config.read();
+                if !config_read.enabled {
+                    continue;
+                }
+                if let Some(ref domain_filter) = config_read.domain_filter {
+                    let re = Regex::new(domain_filter).unwrap();
+                    if !re.is_match(&domain) {
                         continue;
                     }
-                    if let Some(ref domain_filter) = config.domain_filter {
-                        let re = Regex::new(domain_filter).unwrap();
-                        if !re.is_match(&domain) {
-                            continue;
-                        }
-                    }
-                    if let Some(ref message_filter) = config.message_filter {
-                        let re = Regex::new(message_filter).unwrap();
-                        if !re.is_match(&domain) {
-                            continue;
-                        }
+                }
+                if let Some(ref message_filter) = config_read.message_filter {
+                    let re = Regex::new(message_filter).unwrap();
+                    if !re.is_match(&domain) {
+                        continue;
                     }
                 }
                 file.write_all(message.as_bytes())?;
@@ -261,7 +261,7 @@ fn file_writer_thread(
 ) -> Result<(), LoggingError> {
     if let Err(err) = file_writer_thread_worker(config.clone(), rx, stop, sync_tx) {
         eprintln!("Logging file worker crashed with error: {err:?}");
-        eprintln!("{:#?}", config.read().unwrap());
+        eprintln!("{:#?}", config.read());
         Err(err)
     } else {
         Ok(())
@@ -336,22 +336,22 @@ impl FileWriter {
     }
 
     pub fn enable(&self) {
-        self.config.write().unwrap().enabled = true;
+        self.config.write().enabled = true;
     }
 
     pub fn disable(&self) {
-        self.config.write().unwrap().enabled = false;
+        self.config.write().enabled = false;
     }
 
     pub fn set_level(&self, level: u8) {
-        self.config.write().unwrap().level = level;
+        self.config.write().level = level;
     }
 
     pub fn set_domain_filter(&self, domain_filter: Option<String>) -> Result<(), regex::Error> {
         if let Some(ref message) = domain_filter {
             Regex::new(message)?;
         }
-        self.config.write().unwrap().domain_filter = domain_filter;
+        self.config.write().domain_filter = domain_filter;
         Ok(())
     }
 
@@ -359,7 +359,7 @@ impl FileWriter {
         if let Some(ref message) = message_filter {
             Regex::new(message)?;
         }
-        self.config.write().unwrap().message_filter = message_filter;
+        self.config.write().message_filter = message_filter;
         Ok(())
     }
 
@@ -371,12 +371,12 @@ impl FileWriter {
         time: Option<SystemTime>,
         compression: Option<CompressionMethodEnum>,
     ) -> Result<(), LoggingError> {
-        let mut config = self.config.write().unwrap();
-        config.size = size;
-        config.backlog = backlog;
-        config.timeout = timeout;
-        config.time = time;
-        config.compression = compression.unwrap_or(CompressionMethodEnum::Store);
+        let mut config_write = self.config.write();
+        config_write.size = size;
+        config_write.backlog = backlog;
+        config_write.timeout = timeout;
+        config_write.time = time;
+        config_write.compression = compression.unwrap_or(CompressionMethodEnum::Store);
         self.sync(5.0)
     }
 
@@ -384,7 +384,7 @@ impl FileWriter {
         self.tx.send(FileTypeEnum::Rotate).map_err(|e| {
             LoggingError::SendError(format!(
                 "Failed to rotate {:?}: {e:?}",
-                self.config.read().unwrap().path
+                self.config.read().path
             ))
         })
     }

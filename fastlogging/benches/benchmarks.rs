@@ -30,10 +30,18 @@ fn benchmark_logging_file(c: &mut Criterion) {
             )
             .unwrap();
             for _ in 1..10000 {
-                logging.debug("Debug message".to_string()).unwrap();
-                logging.info("Info message".to_string()).unwrap();
-                logging.warning("Warning message".to_string()).unwrap();
-                logging.error("Error message".to_string()).unwrap();
+                logging
+                    .debug("Debug loooooooooooooooooooooong message".to_string())
+                    .unwrap();
+                logging
+                    .info("Info loooooooooooooooooooooong message".to_string())
+                    .unwrap();
+                logging
+                    .warning("Warning loooooooooooooooooooooong message".to_string())
+                    .unwrap();
+                logging
+                    .error("Error loooooooooooooooooooooong message".to_string())
+                    .unwrap();
             }
             logging.shutdown(false)
         })

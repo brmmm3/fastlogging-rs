@@ -3,10 +3,10 @@ use std::io::{Read, Write};
 use std::net::{Shutdown, TcpStream};
 use std::path::{Path, PathBuf};
 use std::process;
-use std::sync::RwLock;
 use std::{env, fs};
 
 use once_cell::sync::Lazy;
+use parking_lot::RwLock;
 
 use crate::config::{ConfigFile, FileMerge, default_config_file};
 use crate::console::ConsoleWriterConfig;
@@ -81,7 +81,6 @@ pub static ROOT_LOGGER: Lazy<RwLock<Logging>> = Lazy::new(|| {
             logging
                 .instance
                 .read()
-                .unwrap()
                 .get_server_config(0)
                 .unwrap()
                 .port_file = Some(port_file.clone());
@@ -92,8 +91,8 @@ pub static ROOT_LOGGER: Lazy<RwLock<Logging>> = Lazy::new(|| {
         if let Some((server_address, encryption)) = get_parent_server_address()? {
             // Connect to parent server port
             let mut client = ClientWriterConfig::new(NOTSET, server_address, encryption);
-            client.debug = logging.instance.read().unwrap().debug;
-            *PARENT_LOGGER_ADDRESS.write().unwrap() = Some((getppid(), client.clone()));
+            client.debug = logging.instance.read().debug;
+            *PARENT_LOGGER_ADDRESS.write() = Some((getppid(), client.clone()));
             logging.add_writer_config(&WriterConfigEnum::Client(client))?;
         } else {
             // If default config file exists, then use this configuration. Else create default console logger.
@@ -105,7 +104,7 @@ pub static ROOT_LOGGER: Lazy<RwLock<Logging>> = Lazy::new(|| {
             } else {
                 let mut config_file = ConfigFile::new();
                 config_file.load(&default_file_config.0)?;
-                let mut instance = logging.instance.write().unwrap();
+                let mut instance = logging.instance.write();
                 config_file.merge(&mut instance, FileMerge::MergeReplace)?;
             }
         }
@@ -124,124 +123,133 @@ pub static ROOT_LOGGER: Lazy<RwLock<Logging>> = Lazy::new(|| {
 
 /// Initialize ROOT logger.
 pub fn root_init() {
-    drop(ROOT_LOGGER.write().unwrap());
+    drop(ROOT_LOGGER.write());
 }
 
 /// Shutdown fastlogging.
 pub fn shutdown(now: bool) -> Result<(), LoggingError> {
-    ROOT_LOGGER.write().unwrap().shutdown(now)
+    ROOT_LOGGER.write().shutdown(now)
 }
 
 /// Set log level for writer with ID `wid` to `level`.
 pub fn set_level(wid: usize, level: u8) -> Result<(), LoggingError> {
-    ROOT_LOGGER.write().unwrap().set_level(wid, level)
+    ROOT_LOGGER.write().set_level(wid, level)
+}
+
+pub fn set_root_level(level: u8) {
+    ROOT_LOGGER.write().instance.write().level = level;
+    ROOT_LOGGER.write().level = level;
+}
+
+pub fn get_root_level() -> u8 {
+    ROOT_LOGGER.read().level
 }
 
 /// Set logging domain.
 pub fn set_domain<S: Into<String>>(domain: S) {
-    ROOT_LOGGER.write().unwrap().set_domain(&domain.into())
+    ROOT_LOGGER.write().set_domain(&domain.into())
 }
 
 pub fn set_level2sym(level2sym: &LevelSyms) {
-    ROOT_LOGGER.write().unwrap().set_level2sym(level2sym)
+    ROOT_LOGGER.write().set_level2sym(level2sym)
 }
 
 /// Set extended configuration.
 pub fn set_ext_config(ext_config: &ExtConfig) {
-    ROOT_LOGGER.write().unwrap().set_ext_config(ext_config)
+    ROOT_LOGGER.write().set_ext_config(ext_config)
 }
 
 /// Add fastlogging logger.
 pub fn add_logger(logger: &mut Logger) {
-    ROOT_LOGGER.write().unwrap().add_logger(logger)
+    ROOT_LOGGER.write().add_logger(logger)
 }
 
 /// Remove fastlogging logger.
 pub fn remove_logger(logger: &mut Logger) {
-    ROOT_LOGGER.write().unwrap().remove_logger(logger)
+    ROOT_LOGGER.write().remove_logger(logger)
 }
 
 pub fn set_root_writer_config(config: &WriterConfigEnum) -> Result<(), LoggingError> {
-    ROOT_LOGGER.write().unwrap().set_root_writer_config(config)
+    ROOT_LOGGER.write().set_root_writer_config(config)
 }
 
 pub fn set_root_writer(writer: WriterEnum) -> Result<(), LoggingError> {
-    ROOT_LOGGER.write().unwrap().set_root_writer(writer)
+    ROOT_LOGGER.write().set_root_writer(writer)
 }
 
 pub fn add_writer_config(config: &WriterConfigEnum) -> Result<usize, LoggingError> {
-    ROOT_LOGGER.write().unwrap().add_writer_config(config)
+    ROOT_LOGGER.write().add_writer_config(config)
 }
 
 pub fn add_writer(writer: WriterEnum) -> usize {
-    ROOT_LOGGER.write().unwrap().add_writer(writer)
+    ROOT_LOGGER.write().add_writer(writer)
 }
 
 pub fn remove_writer(wid: usize) -> Option<WriterEnum> {
-    ROOT_LOGGER.write().unwrap().remove_writer(wid)
+    ROOT_LOGGER.write().remove_writer(wid)
 }
 
 pub fn add_writer_configs(configs: Vec<WriterConfigEnum>) -> Result<Vec<usize>, LoggingError> {
-    ROOT_LOGGER.write().unwrap().add_writer_configs(configs)
+    ROOT_LOGGER.write().add_writer_configs(configs)
 }
 
 /// Add list of writers. `writers` contains list of writers to add.
 pub fn add_writers(writers: Vec<WriterEnum>) -> Vec<usize> {
-    ROOT_LOGGER.write().unwrap().add_writers(writers)
+    ROOT_LOGGER.write().add_writers(writers)
 }
 
 /// Remove list of writer. `wids` contains list of writer IDs. The return value is a list of removed writers.
 pub fn remove_writers(wids: Option<Vec<usize>>) -> Vec<WriterEnum> {
-    ROOT_LOGGER.write().unwrap().remove_writers(wids)
+    ROOT_LOGGER.write().remove_writers(wids)
 }
 
 /// Enable writer with ID `wid`.
 pub fn enable(wid: usize) -> Result<(), LoggingError> {
-    ROOT_LOGGER.write().unwrap().enable(wid)
+    ROOT_LOGGER.write().enable(wid)
 }
 
 /// Disable writer with ID `wid`.
 pub fn disable(wid: usize) -> Result<(), LoggingError> {
-    ROOT_LOGGER.write().unwrap().disable(wid)
+    ROOT_LOGGER.write().disable(wid)
 }
 
 /// Enable all writers with type `typ`. See [WriterTypeEnum]
 pub fn enable_type(typ: WriterTypeEnum) -> Result<(), LoggingError> {
-    ROOT_LOGGER.write().unwrap().enable_type(typ)
+    ROOT_LOGGER.write().enable_type(typ)
 }
 
 /// Disable all writers with type `typ`. See [WriterTypeEnum]
 pub fn disable_type(typ: WriterTypeEnum) -> Result<(), LoggingError> {
-    ROOT_LOGGER.write().unwrap().disable_type(typ)
+    ROOT_LOGGER.write().disable_type(typ)
 }
 
 /// Syncronize all writers with types contained in `types`. Wait for maximum time `timeout` seconds.
 pub fn sync(types: Vec<WriterTypeEnum>, timeout: f64) -> Result<(), LoggingError> {
-    ROOT_LOGGER.read().unwrap().sync(types, timeout)
+    ROOT_LOGGER.read().sync(types, timeout)
 }
 
 /// Syncronize all writers. Wait for maximum time `timeout` seconds.
 pub fn sync_all(timeout: f64) -> Result<(), LoggingError> {
-    ROOT_LOGGER.read().unwrap().sync_all(timeout)
+    ROOT_LOGGER.read().sync_all(timeout)
 }
 
 /// Rotate a single log file `path` or all log files with `path` is `None`.
 pub fn rotate(path: Option<PathBuf>) -> Result<(), LoggingError> {
-    ROOT_LOGGER.read().unwrap().rotate(path)
+    ROOT_LOGGER.read().rotate(path)
 }
 
 // Network
 
 pub fn set_encryption(wid: usize, key: EncryptionMethod) -> Result<(), LoggingError> {
-    ROOT_LOGGER.write().unwrap().set_encryption(wid, key)
+    ROOT_LOGGER.write().set_encryption(wid, key)
 }
 
 // Config
 
 /// Set debug mode.
 pub fn set_debug(debug: u8) {
-    let logger = ROOT_LOGGER.read().unwrap();
-    let mut config = logger.instance.write().unwrap();
+    let logger = ROOT_LOGGER.read();
+    let mut config = logger.instance.write();
     config.debug = debug;
     for writer in config.writers.values_mut() {
         match writer {
@@ -257,119 +265,115 @@ pub fn set_debug(debug: u8) {
 }
 
 pub fn get_writer_config(wid: usize) -> Option<WriterConfigEnum> {
-    ROOT_LOGGER.read().unwrap().get_writer_config(wid)
+    ROOT_LOGGER.read().get_writer_config(wid)
 }
 
 pub fn get_writer_configs() -> HashMap<usize, WriterConfigEnum> {
-    ROOT_LOGGER.read().unwrap().get_writer_configs()
+    ROOT_LOGGER.read().get_writer_configs()
 }
 
 pub fn get_server_config(wid: usize) -> Result<ServerConfig, LoggingError> {
-    ROOT_LOGGER.read().unwrap().get_server_config(wid)
+    ROOT_LOGGER.read().get_server_config(wid)
 }
 
 pub fn get_server_configs() -> HashMap<usize, ServerConfig> {
-    ROOT_LOGGER.read().unwrap().get_server_configs()
+    ROOT_LOGGER.read().get_server_configs()
 }
 
 pub fn get_root_server_address_port() -> Option<String> {
-    ROOT_LOGGER.read().unwrap().get_root_server_address_port()
+    ROOT_LOGGER.read().get_root_server_address_port()
 }
 
 pub fn get_server_addresses_ports() -> HashMap<usize, String> {
-    ROOT_LOGGER.read().unwrap().get_server_addresses_ports()
+    ROOT_LOGGER.read().get_server_addresses_ports()
 }
 
 pub fn get_server_addresses() -> HashMap<usize, String> {
-    ROOT_LOGGER.read().unwrap().get_server_addresses()
+    ROOT_LOGGER.read().get_server_addresses()
 }
 
 pub fn get_server_ports() -> HashMap<usize, u16> {
-    ROOT_LOGGER.read().unwrap().get_server_ports()
+    ROOT_LOGGER.read().get_server_ports()
 }
 
 pub fn get_server_auth_key() -> EncryptionMethod {
-    ROOT_LOGGER.read().unwrap().get_server_auth_key()
+    ROOT_LOGGER.read().get_server_auth_key()
 }
 
 /// Get fastlogging configuration as string.
 pub fn get_config_string() -> String {
-    ROOT_LOGGER.read().unwrap().get_config_string()
+    ROOT_LOGGER.read().get_config_string()
 }
 
 /// Save fastlogging configuration to file `path`.
 pub fn save_config(path: Option<&Path>) -> Result<(), LoggingError> {
-    ROOT_LOGGER.write().unwrap().save_config(path)
+    ROOT_LOGGER.write().save_config(path)
 }
 
 /// Get process ID of parent process.
 pub fn get_parent_pid() -> Option<u32> {
     // Initialize root logger is not already done.
-    let _logger = ROOT_LOGGER.read().unwrap();
-    PARENT_LOGGER_ADDRESS.read().unwrap().as_ref().map(|v| v.0)
+    let _logger = ROOT_LOGGER.read();
+    PARENT_LOGGER_ADDRESS.read().as_ref().map(|v| v.0)
 }
 
 /// Get IP address of parent process LoggingServer.
 pub fn get_parent_client_writer_config() -> Option<ClientWriterConfig> {
     // Initialize root logger is not already done.
-    let _logger = ROOT_LOGGER.read().unwrap();
-    PARENT_LOGGER_ADDRESS
-        .read()
-        .unwrap()
-        .as_ref()
-        .map(|v| v.1.clone())
+    let _logger = ROOT_LOGGER.read();
+    PARENT_LOGGER_ADDRESS.read().as_ref().map(|v| v.1.clone())
 }
 
 /// Get process ID of parent process and IP address of parent process LoggingServer.
 pub fn get_parent_pid_client_writer_config() -> Option<(u32, ClientWriterConfig)> {
     // Initialize root logger is not already done.
-    let _logger = ROOT_LOGGER.read().unwrap();
-    PARENT_LOGGER_ADDRESS.read().unwrap().clone()
+    let _logger = ROOT_LOGGER.read();
+    PARENT_LOGGER_ADDRESS.read().clone()
 }
 
 // Logging methods
 
 /// Log TRACE level message.
 pub fn trace<S: Into<String>>(message: S) -> Result<(), LoggingError> {
-    ROOT_LOGGER.read().unwrap().trace(message)
+    ROOT_LOGGER.read().trace(message)
 }
 
 /// Log DEBUG level message.
 pub fn debug<S: Into<String>>(message: S) -> Result<(), LoggingError> {
-    ROOT_LOGGER.read().unwrap().debug(message)
+    ROOT_LOGGER.read().debug(message)
 }
 
 /// Log INFO level message.
 pub fn info<S: Into<String>>(message: S) -> Result<(), LoggingError> {
-    ROOT_LOGGER.read().unwrap().info(message)
+    ROOT_LOGGER.read().info(message)
 }
 
 /// Log SUCCESS level message.
 pub fn success<S: Into<String>>(message: S) -> Result<(), LoggingError> {
-    ROOT_LOGGER.read().unwrap().success(message)
+    ROOT_LOGGER.read().success(message)
 }
 
 /// Log WARNING level message.
 pub fn warning<S: Into<String>>(message: S) -> Result<(), LoggingError> {
-    ROOT_LOGGER.read().unwrap().warning(message)
+    ROOT_LOGGER.read().warning(message)
 }
 
 /// Log ERROR level message.
 pub fn error<S: Into<String>>(message: S) -> Result<(), LoggingError> {
-    ROOT_LOGGER.read().unwrap().error(message)
+    ROOT_LOGGER.read().error(message)
 }
 
 /// Log CRITICAL level message.
 pub fn critical<S: Into<String>>(message: S) -> Result<(), LoggingError> {
-    ROOT_LOGGER.read().unwrap().critical(message)
+    ROOT_LOGGER.read().critical(message)
 }
 
 /// Log FATAL level message.
 pub fn fatal<S: Into<String>>(message: S) -> Result<(), LoggingError> {
-    ROOT_LOGGER.read().unwrap().fatal(message)
+    ROOT_LOGGER.read().fatal(message)
 }
 
 /// Log EXCEPTION level message.
 pub fn exception<S: Into<String>>(message: S) -> Result<(), LoggingError> {
-    ROOT_LOGGER.read().unwrap().exception(message)
+    ROOT_LOGGER.read().exception(message)
 }

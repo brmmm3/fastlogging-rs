@@ -1,7 +1,7 @@
 use std::{
     fmt,
     sync::{
-        Arc, RwLock,
+        Arc,
         atomic::{AtomicBool, Ordering},
     },
     thread::{self, JoinHandle},
@@ -9,6 +9,7 @@ use std::{
 };
 
 use flume::{Receiver, SendError, Sender, bounded};
+use parking_lot::RwLock;
 use regex::Regex;
 use syslog::{Facility, Formatter3164};
 
@@ -62,7 +63,7 @@ fn syslog_writer_thread(
     sync_tx: Sender<u8>,
     stop: Arc<AtomicBool>,
 ) -> Result<(), LoggingError> {
-    let mut writer = match syslog::unix(config.read().unwrap().formatter.clone()) {
+    let mut writer = match syslog::unix(config.read().formatter.clone()) {
         Ok(w) => w,
         Err(err) => Err(LoggingError::SyslogError(format!(
             "impossible to connect to syslog: {err:?}"
@@ -74,18 +75,17 @@ fn syslog_writer_thread(
         }
         match rx.recv()? {
             SyslogTypeEnum::Message((level, domain, message)) => {
-                if let Ok(ref config) = config.read() {
-                    if let Some(ref domain_filter) = config.domain_filter {
-                        let re = Regex::new(domain_filter).unwrap();
-                        if !re.is_match(&domain) {
-                            continue;
-                        }
+                let config_read = config.read();
+                if let Some(ref domain_filter) = config_read.domain_filter {
+                    let re = Regex::new(domain_filter).unwrap();
+                    if !re.is_match(&domain) {
+                        continue;
                     }
-                    if let Some(ref message_filter) = config.message_filter {
-                        let re = Regex::new(message_filter).unwrap();
-                        if !re.is_match(&domain) {
-                            continue;
-                        }
+                }
+                if let Some(ref message_filter) = config_read.message_filter {
+                    let re = Regex::new(message_filter).unwrap();
+                    if !re.is_match(&domain) {
+                        continue;
                     }
                 }
                 match level {
@@ -182,26 +182,26 @@ impl SyslogWriter {
     }
 
     pub fn enable(&self) {
-        self.config.write().unwrap().enabled = true;
+        self.config.write().enabled = true;
     }
 
     pub fn disable(&self) {
-        self.config.write().unwrap().enabled = false;
+        self.config.write().enabled = false;
     }
 
     pub fn set_enabled(&self, enabled: bool) {
-        self.config.write().unwrap().enabled = enabled;
+        self.config.write().enabled = enabled;
     }
 
     pub fn set_level(&self, level: u8) {
-        self.config.write().unwrap().level = level;
+        self.config.write().level = level;
     }
 
     pub fn set_domain_filter(&self, domain_filter: Option<String>) -> Result<(), regex::Error> {
         if let Some(ref message) = domain_filter {
             Regex::new(message)?;
         }
-        self.config.write().unwrap().domain_filter = domain_filter;
+        self.config.write().domain_filter = domain_filter;
         Ok(())
     }
 
@@ -209,7 +209,7 @@ impl SyslogWriter {
         if let Some(ref message) = message_filter {
             Regex::new(message)?;
         }
-        self.config.write().unwrap().message_filter = message_filter;
+        self.config.write().message_filter = message_filter;
         Ok(())
     }
 

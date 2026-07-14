@@ -258,7 +258,7 @@ fn main() -> Result<(), LoggingError> {
 use fastlogging::{LoggingError, ROOT_LOGGER};
 
 fn main() -> Result<(), LoggingError> {
-    let log = ROOT_LOGGER.lock().unwrap();
+    let log = ROOT_LOGGER.read().unwrap();
     log.info("Hello from ROOT_LOGGER")?;
     log.error("Something went wrong")?;
     log.sync_all(1.0)?;

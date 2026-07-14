@@ -7,10 +7,10 @@ logger without managing a `Logging` instance manually.
 ## `ROOT_LOGGER`
 
 ```rust
-pub static ROOT_LOGGER: Lazy<Mutex<Logging>>
+pub static ROOT_LOGGER: Lazy<RwLock<Logging>>
 ```
 
-The root logger is a `Lazy<Mutex<Logging>>`.  It is initialised the first time it
+The root logger is a `Lazy<RwLock<Logging>>`. It is initialised the first time it
 is accessed and performs the following setup automatically:
 
 1. Creates a `Logging` instance with a `ServerConfig` root writer on `127.0.0.1`
@@ -28,7 +28,7 @@ is accessed and performs the following setup automatically:
 use fastlogging::{LoggingError, ROOT_LOGGER};
 
 fn main() -> Result<(), LoggingError> {
-    let log = ROOT_LOGGER.lock().unwrap();
+    let log = ROOT_LOGGER.read().unwrap();
     log.trace("Trace Message")?;
     log.debug("Debug Message")?;
     log.info("Info Message")?;
@@ -94,7 +94,7 @@ use fastlogging::{LoggingError, ROOT_LOGGER};
 
 fn main() -> Result<(), LoggingError> {
     {
-        let log = ROOT_LOGGER.lock().unwrap();
+        let log = ROOT_LOGGER.read().unwrap();
         log.info("parent starting")?;
     }
     let child = std::process::Command::new(std::env::current_exe()?)
@@ -102,7 +102,7 @@ fn main() -> Result<(), LoggingError> {
         .spawn()?;
     // Child's ROOT_LOGGER detects parent and forwards log messages.
     child.wait_with_output()?;
-    let log = ROOT_LOGGER.lock().unwrap();
+    let log = ROOT_LOGGER.read().unwrap();
     log.info("parent done")?;
     log.sync_all(1.0)?;
     Ok(())
@@ -111,19 +111,19 @@ fn main() -> Result<(), LoggingError> {
 
 ## Thread Safety
 
-`ROOT_LOGGER` is protected by a `Mutex`.  Lock it for each group of related calls
+`ROOT_LOGGER` is protected by a `RwLock`. Lock it for each group of related calls
 and drop the guard promptly to avoid contention:
 
 ```rust
 // Good — lock, log, release
 {
-    let log = ROOT_LOGGER.lock().unwrap();
+    let log = ROOT_LOGGER.read().unwrap();
     log.info("one")?;
     log.info("two")?;
 } // guard dropped here
 
 // Also fine — explicit drop
-let log = ROOT_LOGGER.lock().unwrap();
+let log = ROOT_LOGGER.read().unwrap();
 log.info("three")?;
 drop(log);
 ```

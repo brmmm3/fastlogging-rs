@@ -1,13 +1,14 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::process;
+use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, RwLock, RwLockReadGuard};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
 use chrono::Local;
 use flume::{Receiver, Sender, bounded};
+use parking_lot::{RwLock, RwLockReadGuard};
 
 use crate::callback::CallbackWriter;
 use crate::config::{ConfigFile, ExtConfig, FileMerge, LoggingInstance};
@@ -196,7 +197,7 @@ fn logging_thread_worker(
                 (level, domain, message, Some(tname), tid)
             }
             LoggingTypeEnum::Sync((types, timeout)) => {
-                let instance = instance.read().unwrap();
+                let instance = instance.read();
                 let pid = process::id();
                 let debug = instance.debug;
                 if debug > 0 {
@@ -216,7 +217,7 @@ fn logging_thread_worker(
                 continue;
             }
             LoggingTypeEnum::Stop => {
-                if instance.read().unwrap().debug > 0 {
+                if instance.read().debug > 0 {
                     println!("{} logging_thread_worker: STOP", process::id());
                 }
                 break;
@@ -224,7 +225,7 @@ fn logging_thread_worker(
         };
         // Build message
         // {date} {hostname} {pname}[{pid}]>{tname}[{tid}] {domain}: {level} {message}
-        let instance_read = instance.read().unwrap();
+        let instance_read = instance.read();
         buffer.clear();
         if remote {
             buffer.push_str(&message);
@@ -273,33 +274,33 @@ fn logging_thread_worker(
             );
         }
         drop(instance_read);
-        let mut instance_write = instance.write().unwrap();
+        let mut instance_write = instance.write();
         for writer in instance_write.writers.values_mut() {
             match writer {
                 WriterEnum::Root => {}
                 WriterEnum::Console(console_writer) => {
-                    if console_writer.config.read().unwrap().level <= level {
+                    if console_writer.config.read().level <= level {
                         console_writer.send(level, domain.clone(), buffer.clone())?;
                     }
                 }
                 WriterEnum::File(file_writer) => {
-                    if file_writer.config.read().unwrap().level <= level {
+                    if file_writer.config.read().level <= level {
                         file_writer.send(level, domain.clone(), buffer.clone())?;
                     }
                 }
                 WriterEnum::Client(client_writer) => {
-                    if client_writer.config.read().unwrap().level <= level {
+                    if client_writer.config.read().level <= level {
                         client_writer.send(level, domain.clone(), buffer.clone())?;
                     }
                 }
                 WriterEnum::Server(_logging_server) => {}
                 WriterEnum::Callback(callback_writer) => {
-                    if callback_writer.config.read().unwrap().level <= level {
+                    if callback_writer.config.read().level <= level {
                         callback_writer.send(level, domain.clone(), buffer.clone())?;
                     }
                 }
                 WriterEnum::Syslog(syslog_writer) => {
-                    if syslog_writer.config.read().unwrap().level <= level {
+                    if syslog_writer.config.read().level <= level {
                         syslog_writer.send(level, domain.clone(), buffer.clone())?;
                     }
                 }
@@ -323,47 +324,45 @@ fn logging_thread(
         );
         some_err = Some(err);
     }
-    if let Ok(mut config) = config.write() {
-        for writer in config.writers.values_mut() {
-            match writer {
-                WriterEnum::Root => {}
-                WriterEnum::Console(console_writer) => {
-                    if let Err(err) = console_writer.shutdown() {
-                        eprintln!("Failed to stop console logger: {err:?}");
-                    }
+    for writer in config.write().writers.values_mut() {
+        match writer {
+            WriterEnum::Root => {}
+            WriterEnum::Console(console_writer) => {
+                if let Err(err) = console_writer.shutdown() {
+                    eprintln!("Failed to stop console logger: {err:?}");
                 }
-                WriterEnum::File(file_writer) => {
-                    if let Err(err) = file_writer.shutdown() {
-                        eprintln!("Failed to stop file logger: {err:?}");
-                    }
+            }
+            WriterEnum::File(file_writer) => {
+                if let Err(err) = file_writer.shutdown() {
+                    eprintln!("Failed to stop file logger: {err:?}");
                 }
-                WriterEnum::Client(client_writer) => {
-                    if let Err(err) = client_writer.shutdown() {
-                        eprintln!(
-                            "{} Failed to stop client writer {}: {err:?}",
-                            process::id(),
-                            client_writer.config.read().unwrap().address
-                        );
-                    }
+            }
+            WriterEnum::Client(client_writer) => {
+                if let Err(err) = client_writer.shutdown() {
+                    eprintln!(
+                        "{} Failed to stop client writer {}: {err:?}",
+                        process::id(),
+                        client_writer.config.read().address
+                    );
                 }
-                WriterEnum::Server(logging_server) => {
-                    if let Err(err) = logging_server.shutdown() {
-                        eprintln!(
-                            "{} Failed to stop logging server {}: {err:?}",
-                            process::id(),
-                            logging_server.config.read().unwrap().address
-                        );
-                    }
+            }
+            WriterEnum::Server(logging_server) => {
+                if let Err(err) = logging_server.shutdown() {
+                    eprintln!(
+                        "{} Failed to stop logging server {}: {err:?}",
+                        process::id(),
+                        logging_server.config.read().address
+                    );
                 }
-                WriterEnum::Callback(callback_writer) => {
-                    if let Err(err) = callback_writer.shutdown() {
-                        eprintln!("Failed to stop callback logger: {err:?}");
-                    }
+            }
+            WriterEnum::Callback(callback_writer) => {
+                if let Err(err) = callback_writer.shutdown() {
+                    eprintln!("Failed to stop callback logger: {err:?}");
                 }
-                WriterEnum::Syslog(syslog_writer) => {
-                    if let Err(err) = syslog_writer.shutdown() {
-                        eprintln!("Failed to stop syslog logger: {err:?}");
-                    }
+            }
+            WriterEnum::Syslog(syslog_writer) => {
+                if let Err(err) = syslog_writer.shutdown() {
+                    eprintln!("Failed to stop syslog logger: {err:?}");
                 }
             }
         }
@@ -457,7 +456,7 @@ impl Logging {
         self.config_file = ConfigFile::new();
         self.config_file.load(path)?;
         let file_config = &self.config_file.config;
-        let mut instance = self.instance.write().unwrap();
+        let mut instance = self.instance.write();
         instance.level = file_config.level;
         instance.domain = file_config.domain.clone();
         // Console writer
@@ -532,7 +531,7 @@ impl Logging {
     }
 
     pub fn set_level(&mut self, wid: usize, level: u8) -> Result<(), LoggingError> {
-        let mut instance = self.instance.write().unwrap();
+        let mut instance = self.instance.write();
         let writer = match instance.writers.get_mut(&wid) {
             Some(w) => w,
             None => {
@@ -559,23 +558,18 @@ impl Logging {
     }
 
     pub fn set_domain(&mut self, domain: &str) {
-        if let Ok(mut config) = self.instance.write() {
-            config.domain = domain.to_string();
-        }
+        self.instance.write().domain = domain.to_string();
     }
 
     pub fn set_level2sym(&mut self, level2sym: &LevelSyms) {
-        if let Ok(mut config) = self.instance.write() {
-            config.level2sym = level2sym.to_owned();
-        }
+        self.instance.write().level2sym = level2sym.to_owned();
     }
 
     pub fn set_ext_config(&mut self, ext_config: &ExtConfig) {
-        if let Ok(mut config) = self.instance.write() {
-            config.set_ext_config(ext_config.to_owned());
-            self.tname = config.tname;
-            self.tid = config.tid;
-        }
+        let mut config_write = self.instance.write();
+        config_write.set_ext_config(ext_config.to_owned());
+        self.tname = config_write.tname;
+        self.tid = config_write.tid;
     }
 
     pub fn add_logger(&mut self, logger: &'_ mut Logger) {
@@ -601,8 +595,7 @@ impl Logging {
                 ));
             }
         }
-        let mut instance = self.instance.write().unwrap();
-        instance.set_root_writer_config(config)
+        self.instance.write().set_root_writer_config(config)
     }
 
     pub fn set_root_writer(&mut self, writer: WriterEnum) -> Result<(), LoggingError> {
@@ -615,40 +608,39 @@ impl Logging {
                 ));
             }
         }
-        let mut instance = self.instance.write().unwrap();
-        instance.set_root_writer(writer);
+        self.instance.write().set_root_writer(writer);
         Ok(())
     }
 
     pub fn add_writer_config(&mut self, config: &WriterConfigEnum) -> Result<usize, LoggingError> {
-        self.instance.write().unwrap().add_writer_config(config)
+        self.instance.write().add_writer_config(config)
     }
 
     pub fn add_writer(&mut self, writer: WriterEnum) -> usize {
-        self.instance.write().unwrap().add_writer(writer)
+        self.instance.write().add_writer(writer)
     }
 
     pub fn remove_writer(&mut self, wid: usize) -> Option<WriterEnum> {
-        self.instance.write().unwrap().remove_writer(wid)
+        self.instance.write().remove_writer(wid)
     }
 
     pub fn add_writer_configs(
         &mut self,
         configs: Vec<WriterConfigEnum>,
     ) -> Result<Vec<usize>, LoggingError> {
-        self.instance.write().unwrap().add_writer_configs(configs)
+        self.instance.write().add_writer_configs(configs)
     }
 
     pub fn add_writers(&mut self, writers: Vec<WriterEnum>) -> Vec<usize> {
-        self.instance.write().unwrap().add_writers(writers)
+        self.instance.write().add_writers(writers)
     }
 
     pub fn remove_writers(&mut self, wids: Option<Vec<usize>>) -> Vec<WriterEnum> {
-        self.instance.write().unwrap().remove_writers(wids)
+        self.instance.write().remove_writers(wids)
     }
 
     pub fn enable(&self, wid: usize) -> Result<(), LoggingError> {
-        let mut instance = self.instance.write().unwrap();
+        let mut instance = self.instance.write();
         let writer = match instance.writers.get_mut(&wid) {
             Some(w) => w,
             None => {
@@ -672,7 +664,7 @@ impl Logging {
     }
 
     pub fn disable(&self, wid: usize) -> Result<(), LoggingError> {
-        let mut instance = self.instance.write().unwrap();
+        let mut instance = self.instance.write();
         let writer = match instance.writers.get_mut(&wid) {
             Some(w) => w,
             None => {
@@ -696,7 +688,7 @@ impl Logging {
     }
 
     pub fn enable_type(&self, typ: WriterTypeEnum) -> Result<(), LoggingError> {
-        let instance = self.instance.read().unwrap();
+        let instance = self.instance.read();
         let wids = match instance.typ2wids.get(&typ) {
             Some(w) => w,
             None => {
@@ -712,7 +704,7 @@ impl Logging {
     }
 
     pub fn disable_type(&self, typ: WriterTypeEnum) -> Result<(), LoggingError> {
-        let instance = self.instance.read().unwrap();
+        let instance = self.instance.read();
         let wids = match instance.typ2wids.get(&typ) {
             Some(w) => w,
             None => {
@@ -755,9 +747,9 @@ impl Logging {
     // File logger
 
     pub fn rotate(&self, path: Option<PathBuf>) -> Result<(), LoggingError> {
-        for writer in self.instance.read().unwrap().writers.values() {
+        for writer in self.instance.read().writers.values() {
             if let WriterEnum::File(writer) = writer
-                && (path.is_none() || path.as_ref().unwrap() == &writer.config.read().unwrap().path)
+                && (path.is_none() || path.as_ref().unwrap() == &writer.config.read().path)
             {
                 writer.rotate()?;
             }
@@ -772,7 +764,7 @@ impl Logging {
         wid: usize,
         method: EncryptionMethod,
     ) -> Result<(), LoggingError> {
-        match self.instance.write().unwrap().writers.get_mut(&wid) {
+        match self.instance.write().writers.get_mut(&wid) {
             Some(w) => match w {
                 WriterEnum::Client(client_writer) => {
                     client_writer.set_encryption(method)?;
@@ -798,7 +790,7 @@ impl Logging {
     // Config
 
     pub fn set_debug(&mut self, debug: u8) {
-        let mut config = self.instance.write().unwrap();
+        let mut config = self.instance.write();
         config.debug = debug;
         for writer in config.writers.values_mut() {
             match writer {
@@ -814,11 +806,11 @@ impl Logging {
     }
 
     pub fn get_writer_config(&self, wid: usize) -> Option<WriterConfigEnum> {
-        self.instance.read().unwrap().get_writer_config(wid)
+        self.instance.read().get_writer_config(wid)
     }
 
     pub fn get_writer_configs(&self) -> HashMap<usize, WriterConfigEnum> {
-        self.instance.read().unwrap().get_writer_configs()
+        self.instance.read().get_writer_configs()
     }
 
     pub fn get_server_config(&self, wid: usize) -> Result<ServerConfig, LoggingError> {
@@ -839,23 +831,23 @@ impl Logging {
     }
 
     pub fn get_server_configs(&self) -> HashMap<usize, ServerConfig> {
-        self.instance.read().unwrap().get_server_configs()
+        self.instance.read().get_server_configs()
     }
 
     pub fn get_root_server_address_port(&self) -> Option<String> {
-        self.instance.read().unwrap().get_root_server_address_port()
+        self.instance.read().get_root_server_address_port()
     }
 
     pub fn get_server_addresses_ports(&self) -> HashMap<usize, String> {
-        self.instance.read().unwrap().get_server_addresses_ports()
+        self.instance.read().get_server_addresses_ports()
     }
 
     pub fn get_server_addresses(&self) -> HashMap<usize, String> {
-        self.instance.read().unwrap().get_server_addresses()
+        self.instance.read().get_server_addresses()
     }
 
     pub fn get_server_ports(&self) -> HashMap<usize, u16> {
-        self.instance.read().unwrap().get_server_ports()
+        self.instance.read().get_server_ports()
     }
 
     pub fn get_server_auth_key(&self) -> EncryptionMethod {
@@ -863,7 +855,7 @@ impl Logging {
     }
 
     pub fn get_config_string(&self) -> String {
-        let instance = self.instance.read().unwrap();
+        let instance = self.instance.read();
         format!(
             "level={:?}\n\
             domain={:?}\n\
@@ -889,8 +881,7 @@ impl Logging {
     }
 
     pub fn save_config(&mut self, path: Option<&Path>) -> Result<(), LoggingError> {
-        self.config_file =
-            ConfigFile::from_instance(&self.config_file.path, &self.instance.read().unwrap());
+        self.config_file = ConfigFile::from_instance(&self.config_file.path, &self.instance.read());
         self.config_file.save(path)
     }
 
@@ -991,11 +982,11 @@ impl Logging {
     }
 
     pub fn __repr__(&self) -> String {
-        if let Ok(config) = self.instance.read() {
-            format!("Logging(level={} domain={})", self.level, config.domain)
-        } else {
-            format!("Logging(level={})", self.level)
-        }
+        format!(
+            "Logging(level={} domain={})",
+            self.level,
+            self.instance.read().domain
+        )
     }
 
     pub fn __str__(&self) -> String {

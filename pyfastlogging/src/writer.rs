@@ -1,8 +1,8 @@
 use std::path::PathBuf;
-use std::sync::Mutex;
 use std::time::{Duration, SystemTime};
 
 use once_cell::sync::Lazy;
+use parking_lot::RwLock;
 use pyo3::types::PyTuple;
 use pyo3::{IntoPyObjectExt, prelude::*};
 
@@ -330,14 +330,14 @@ impl From<&fastlogging::SyslogWriterConfig> for SyslogWriterConfig {
     }
 }
 
-pub static CALLBACK_PY_FUNC: Lazy<Mutex<Option<Py<PyAny>>>> = Lazy::new(|| Mutex::new(None));
+pub static CALLBACK_PY_FUNC: Lazy<RwLock<Option<Py<PyAny>>>> = Lazy::new(|| RwLock::new(None));
 
 pub fn callback_func(
     level: u8,
     domain: String,
     message: String,
 ) -> Result<(), fastlogging::LoggingError> {
-    if let Some(callable) = CALLBACK_PY_FUNC.lock().unwrap().as_ref() {
+    if let Some(callable) = CALLBACK_PY_FUNC.read().as_ref() {
         Python::attach(|py| -> Result<(), LoggingError> {
             let args = PyTuple::new(
                 py,
@@ -367,7 +367,7 @@ impl CallbackWriterConfig {
     #[new]
     #[pyo3(signature=(level, callback))]
     pub fn new(level: u8, callback: Py<PyAny>) -> Self {
-        *CALLBACK_PY_FUNC.lock().unwrap() = Some(callback);
+        *CALLBACK_PY_FUNC.write() = Some(callback);
         Self(fastlogging::CallbackWriterConfig::new(
             level,
             Some(Box::new(callback_func)),
@@ -376,7 +376,7 @@ impl CallbackWriterConfig {
 
     #[pyo3(signature=(callback=None))]
     pub fn set_callback(&self, callback: Option<Py<PyAny>>) {
-        *CALLBACK_PY_FUNC.lock().unwrap() = callback;
+        *CALLBACK_PY_FUNC.write() = callback;
     }
 
     fn __repr__(&self) -> String {

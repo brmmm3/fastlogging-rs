@@ -6,7 +6,7 @@ use std::{
     path::PathBuf,
     process,
     sync::{
-        Arc, RwLock,
+        Arc,
         atomic::{AtomicBool, Ordering},
     },
     thread::{self, JoinHandle},
@@ -14,6 +14,7 @@ use std::{
 };
 
 use flume::{Sender, bounded};
+use parking_lot::RwLock;
 use regex::Regex;
 use ring::aead::{self, BoundKey};
 
@@ -112,8 +113,8 @@ fn handle_client(
     let mut domain_buffer = [0u8; 256];
     let mut buffer = [0u8; 4352];
     let mut authenticated = false;
-    let mut config_level = config.write().unwrap().level;
-    let mut debug = config.write().unwrap().debug;
+    let mut config_level = config.read().level;
+    let mut debug = config.read().debug;
     if debug > 0 {
         println!("{} handle_client BEGIN", process::id());
     }
@@ -121,10 +122,9 @@ fn handle_client(
         if stop.load(Ordering::Relaxed) || stop_server.load(Ordering::Relaxed) {
             break;
         }
-        if let Ok(ref config) = config.read() {
-            config_level = config.level;
-            debug = config.debug;
-        }
+        let config_read = config.read();
+        config_level = config_read.level;
+        debug = config_read.debug;
         if debug > 1 {
             println!(
                 "{} handle_client: WAIT {:?}",
@@ -162,7 +162,7 @@ fn handle_client(
             // If channel is unencrypted then an AUTH_KEY is required first.
             // Wait up to 5 seconds for auth key.
             read(stream, &mut buffer, message_size)?;
-            let key: Vec<u8> = config.read().unwrap().key.key_cloned().unwrap();
+            let key: Vec<u8> = config.read().key.key_cloned().unwrap();
             /*println!(
                 "AUTH_KEY: {} {message_size}\n{:?}\n{:?}",
                 key.len(),
@@ -222,24 +222,20 @@ fn handle_encrypted_client(
     let mut buffer = [0u8; 4352];
     stream.set_read_timeout(Some(Duration::from_secs(5)))?;
     let mut key = aead::OpeningKey::new(
-        aead::UnboundKey::new(
-            &aead::AES_256_GCM,
-            config.read().unwrap().key.key().unwrap(),
-        )
-        .map_err(|e| Error::other(e.to_string()))?,
+        aead::UnboundKey::new(&aead::AES_256_GCM, config.read().key.key().unwrap())
+            .map_err(|e| Error::other(e.to_string()))?,
         NonceGenerator::new(),
     );
-    let seal = aead::Aad::from(config.read().unwrap().seal.clone());
-    let mut config_level = config.write().unwrap().level;
-    let mut debug = config.write().unwrap().debug;
+    let seal = aead::Aad::from(config.read().seal.clone());
+    let mut config_level = config.write().level;
+    let mut debug = config.write().debug;
     loop {
         if stop.load(Ordering::Relaxed) || stop_server.load(Ordering::Relaxed) {
             break;
         }
-        if let Ok(ref config) = config.read() {
-            config_level = config.level;
-            debug = config.debug;
-        }
+        let config_read = config.read();
+        config_level = config_read.level;
+        debug = config_read.debug;
         if debug > 1 {
             println!("handle_encrypted_client: WAIT");
         }
@@ -291,7 +287,7 @@ fn server_thread(
     tx: Sender<LoggingTypeEnum>,
     stop: Arc<AtomicBool>,
 ) -> Result<(), LoggingError> {
-    let mut debug = config.write().unwrap().debug;
+    let mut debug = config.read().debug;
     let pool = threadpool::ThreadPool::new(num_cpus::get());
     let clients: Arc<RwLock<HashMap<std::net::SocketAddr, TcpStream>>> =
         Arc::new(RwLock::new(HashMap::new()));
@@ -302,7 +298,7 @@ fn server_thread(
         println!("{} server_thread STARTED", process::id());
     }
     for stream in listener.incoming() {
-        debug = config.read().unwrap().debug;
+        debug = config.read().debug;
         if stop.load(Ordering::Relaxed) || stop_server.load(Ordering::Relaxed) {
             if debug > 0 {
                 println!("{} server_thread: EXIT FOR LOOP", process::id());
@@ -330,11 +326,11 @@ fn server_thread(
             println!(
                 "{} server_thread: CLIENT {} CONNECTED {addr:?}",
                 process::id(),
-                clients.read().unwrap().len() + 1
+                clients.read().len() + 1
             );
         }
         // Clients have are allowed to produce 3 errors. In case of more errors they will be ignored.
-        if *buggy_clients.read().unwrap().get(&addr).unwrap_or(&0) > 3 {
+        if *buggy_clients.read().get(&addr).unwrap_or(&0) > 3 {
             continue;
         }
         let config = config.clone();
@@ -342,10 +338,10 @@ fn server_thread(
         let buggy_clients = buggy_clients.clone();
         let stop = stop.clone();
         let stop_server = stop_server.clone();
-        clients.write().unwrap().insert(addr, stream.try_clone()?);
+        clients.write().insert(addr, stream.try_clone()?);
         let clients = clients.clone();
         pool.execute(move || {
-            let is_encrypted = config.read().unwrap().key.is_encrypted();
+            let is_encrypted = config.read().key.is_encrypted();
             if debug > 0 {
                 println!(
                     "{} server_thread: CLIENT {addr:?} ENCRYPTED {is_encrypted}",
@@ -360,10 +356,10 @@ fn server_thread(
                 println!(
                     "{} server_thread: CLIENT {} DISCONNECTED {addr:?}",
                     process::id(),
-                    clients.read().unwrap().len()
+                    clients.read().len()
                 );
             }
-            clients.write().unwrap().remove(&addr);
+            clients.write().remove(&addr);
             match result {
                 Ok(stop) => {
                     if stop {
@@ -372,12 +368,11 @@ fn server_thread(
                 }
                 Err(err) => {
                     eprintln!("server_thread: Error with client {stream:?}: {err:?}");
-                    if let Ok(mut buggy_client) = buggy_clients.write() {
-                        if let Some(c) = buggy_client.get_mut(&addr) {
-                            *c += 1;
-                        } else {
-                            buggy_client.insert(addr, 1);
-                        }
+                    let mut buggy_clients_write = buggy_clients.write();
+                    if let Some(c) = buggy_clients_write.get_mut(&addr) {
+                        *c += 1;
+                    } else {
+                        buggy_clients_write.insert(addr, 1);
                     }
                 }
             }
@@ -387,11 +382,11 @@ fn server_thread(
         println!(
             "{} server_thread: JOIN CLIENTS={}",
             process::id(),
-            clients.read().unwrap().len()
+            clients.read().len()
         );
     }
     stop_server.store(true, Ordering::Relaxed);
-    for (addr, stream) in clients.write().unwrap().drain() {
+    for (addr, stream) in clients.write().drain() {
         if debug > 0 {
             println!("{} server_thread: SHUTDOWN CLIENT {addr:?}", process::id());
         }
@@ -434,7 +429,7 @@ impl LoggingServer {
             .name("LoggingServer".to_string())
             .spawn(move || {
                 let listener = {
-                    let mut config_clone = config_clone.write().unwrap();
+                    let mut config_clone = config_clone.write();
                     let listener = match TcpListener::bind(format!(
                         "{}:{}",
                         config_clone.address, config_clone.port
@@ -467,7 +462,7 @@ impl LoggingServer {
                     eprintln!("LOGSRV: server_thread: {err:?}");
                 }
                 //println!("SERVER FIN {}", process::id());
-                if let Some(ref port_file) = config_clone.read().unwrap().port_file {
+                if let Some(ref port_file) = config_clone.read().port_file {
                     //println!("Remove PORT FILE {port_file:?}");
                     if let Err(err) = std::fs::remove_file(port_file) {
                         eprintln!("LOGSRV: Failed to remove port file {port_file:?}: {err:?}");
@@ -490,7 +485,7 @@ impl LoggingServer {
             // Send SHUTDOWN (255) to server socket
             let stop_cmd = [255, 255, 255, 255];
             loop {
-                let mut stream = TcpStream::connect(self.config.read().unwrap().get_address())?;
+                let mut stream = TcpStream::connect(self.config.read().get_address())?;
                 stream.write_all(&stop_cmd)?;
                 stream.flush()?;
                 //stream.shutdown(Shutdown::Both)?;
@@ -511,26 +506,26 @@ impl LoggingServer {
     }
 
     pub fn enable(&self) {
-        self.config.write().unwrap().enabled = true;
+        self.config.write().enabled = true;
     }
 
     pub fn disable(&self) {
-        self.config.write().unwrap().enabled = false;
+        self.config.write().enabled = false;
     }
 
     pub fn set_enabled(&self, enabled: bool) {
-        self.config.write().unwrap().enabled = enabled;
+        self.config.write().enabled = enabled;
     }
 
     pub fn set_level(&mut self, level: u8) {
-        self.config.write().unwrap().level = level;
+        self.config.write().level = level;
     }
 
     pub fn set_domain_filter(&self, domain_filter: Option<String>) -> Result<(), regex::Error> {
         if let Some(ref message) = domain_filter {
             Regex::new(message)?;
         }
-        self.config.write().unwrap().domain_filter = domain_filter;
+        self.config.write().domain_filter = domain_filter;
         Ok(())
     }
 
@@ -538,14 +533,13 @@ impl LoggingServer {
         if let Some(ref message) = message_filter {
             Regex::new(message)?;
         }
-        self.config.write().unwrap().message_filter = message_filter;
+        self.config.write().message_filter = message_filter;
         Ok(())
     }
 
     pub fn set_encryption(&mut self, method: EncryptionMethod) -> Result<(), LoggingError> {
         self.config
             .write()
-            .unwrap()
             .set_encryption(method.clone())
             .map_err(|e| {
                 LoggingError::InvalidEncryption("LoggingServer".to_string(), method, e.to_string())

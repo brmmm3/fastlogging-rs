@@ -27,6 +27,7 @@ gethostname = "1.1"
 flume = "0.12"
 chrono = "0.4"
 num_cpus = "1.17"
+parking_lot = "0.12"
 threadpool = "1.8"
 thread-id = "5.1"
 termcolor = "1.4"
@@ -65,12 +66,12 @@ criterion = { version = "0.8", features = ["html_reports"] }
 tempfile = "3.27"
 
 [target.'cfg(unix)'.dev-dependencies]
-fork = "0.8"
+fork = "0.9"
 
-#[[bench]]
-#name = "benchmarks"
-#path = "benches/benchmarks.rs"
-#harness = false
+[[bench]]
+name = "benchmarks"
+path = "benches/benchmarks.rs"
+harness = false
 
 [features]
 default = ["config_json", "config_xml", "config_yaml"]

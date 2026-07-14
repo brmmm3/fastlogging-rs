@@ -1,7 +1,7 @@
 use std::{
     fmt,
     sync::{
-        Arc, RwLock,
+        Arc,
         atomic::{AtomicBool, Ordering},
     },
     thread::{self, JoinHandle},
@@ -9,6 +9,7 @@ use std::{
 };
 
 use flume::{Receiver, SendError, Sender, bounded};
+use parking_lot::RwLock;
 use regex::Regex;
 
 use crate::{LoggingError, NOTSET};
@@ -94,14 +95,11 @@ fn callback_writer_thread(
         }
         match rx.recv()? {
             CallbackTypeEnum::Message((level, domain, message)) => {
-                if let Ok(ref config) = config.read() {
-                    if let Some(ref callback) = config.callback
-                        && let Err(err) = (callback.read().unwrap())(level, domain, message)
-                    {
-                        eprintln!("CallbackWriter: Error: {err:?}");
-                    }
-                } else {
-                    break;
+                let config_read = config.read();
+                if let Some(ref callback) = config_read.callback
+                    && let Err(err) = (callback.read())(level, domain, message)
+                {
+                    eprintln!("CallbackWriter: Error: {err:?}");
                 }
             }
             CallbackTypeEnum::Sync => {
@@ -188,26 +186,26 @@ impl CallbackWriter {
     }
 
     pub fn enable(&self) {
-        self.config.write().unwrap().enabled = true;
+        self.config.write().enabled = true;
     }
 
     pub fn disable(&self) {
-        self.config.write().unwrap().enabled = false;
+        self.config.write().enabled = false;
     }
 
     pub fn set_enabled(&self, enabled: bool) {
-        self.config.write().unwrap().enabled = enabled;
+        self.config.write().enabled = enabled;
     }
 
     pub fn set_level(&self, level: u8) {
-        self.config.write().unwrap().level = level;
+        self.config.write().level = level;
     }
 
     pub fn set_domain_filter(&self, domain_filter: Option<String>) -> Result<(), regex::Error> {
         if let Some(ref message) = domain_filter {
             Regex::new(message)?;
         }
-        self.config.write().unwrap().domain_filter = domain_filter;
+        self.config.write().domain_filter = domain_filter;
         Ok(())
     }
 
@@ -215,12 +213,12 @@ impl CallbackWriter {
         if let Some(ref message) = message_filter {
             Regex::new(message)?;
         }
-        self.config.write().unwrap().message_filter = message_filter;
+        self.config.write().message_filter = message_filter;
         Ok(())
     }
 
     pub fn set_callback(&self, callback: Option<CallbackFn>) {
-        self.config.write().unwrap().callback = callback.map(|f| Arc::new(RwLock::new(f)));
+        self.config.write().callback = callback.map(|f| Arc::new(RwLock::new(f)));
     }
 
     #[inline]
