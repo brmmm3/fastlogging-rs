@@ -1,4 +1,5 @@
 import os
+from tarfile import data_filter
 import time
 import platform
 
@@ -79,9 +80,18 @@ def GetPathName(tmpDirName: str, fileName: str | None, title: str) -> str | None
     if not fileName:
         return None
     dirName = os.path.join(tmpDirName, title)
-    if os.path.exists(dirName):
-        shutil.rmtree(dirName)
-    os.makedirs(dirName)
+    for _ in range(10):
+        if os.path.exists(dirName):
+            try:
+                shutil.rmtree(dirName)
+            except Exception:
+                time.sleep(1.0)
+                continue
+        try:
+            os.makedirs(dirName)
+            break
+        except Exception:
+            time.sleep(1.0)
     return os.path.join(dirName, fileName)
 
 
@@ -244,7 +254,7 @@ def DoFastLogging(
 
 
 # noinspection PyShadowingNames
-def DoFastLoggingRsDefault(
+def DoFastLoggingRsRoot(
     cnt: int,
     level: int,
     pathName: str | None,
@@ -258,6 +268,7 @@ def DoFastLoggingRsDefault(
     else:
         size = 0
         backlog = 0
+    fl.set_root_level(level)
     fl.remove_writers(None)
     if pathName:
         fw = FileWriterConfig(
@@ -333,10 +344,17 @@ if __name__ == "__main__":
     num = 0
     cnt = 5000
     print("cnt:", cnt)
+    platformName = platform.system().lower()
+    htmlDirName = f"doc/benchmarks/{platformName}"
+    if not os.path.exists(htmlDirName):
+        os.makedirs(htmlDirName)
     fileName = "logging.log"
     fastFileName = "logging.log"
     htmlTemplate = open("doc/benchmarks/template.html").read()
+    allJsonPathName = f"doc/benchmarks/python_{platformName}.json"
     dtAllJson = {}
+    if os.path.exists(allJsonPathName):
+        dtAllJson = json.loads(open(allJsonPathName).read())
     for msg, message in (
         ("short", "Message"),
         (
@@ -355,6 +373,7 @@ if __name__ == "__main__":
                 dtAllJsonMsgExcName = dtAllJsonMsgExc[name] = {}
                 dtAll = {"TITLE": title}
                 for level in (DEBUG, INFO, WARNING, ERROR, CRITICAL):
+                    print(f"\n### {msg} {'exc' if bWithException else 'noexc'} {name} {Level2Sym(level).name}\n")
                     dts = [
                         Measure(
                             num,
@@ -432,8 +451,8 @@ if __name__ == "__main__":
                         ),
                         Measure(
                             num,
-                            "FastLoggingRsDefault",
-                            DoFastLoggingRsDefault,
+                            "FastLoggingRsRoot",
+                            DoFastLoggingRsRoot,
                             cnt,
                             level,
                             fileName,
@@ -471,7 +490,16 @@ if __name__ == "__main__":
                     num += 1
                 if bWithException:
                     name += "_exc"
-                with open(f"doc/benchmarks/{name}_{msg}.html", "w") as F:
-                    F.write(htmlTemplate % dtAll)
-    with open(f"doc/benchmarks/python_{platform.system().lower()}.json", "w") as F:
-        F.write(json.dumps(dtAllJson, indent=4))
+                if len(dtAll) > 1:
+                    # Write HTML file
+                    data = htmlTemplate % dtAll
+                    with open(f"{htmlDirName}/{name}_{msg}.html", "w") as F:
+                        F.write(data)
+                    # Save intermediate measurement values
+                    data = json.dumps(dtAllJson, indent=4)
+                    with open(allJsonPathName, "w") as F:
+                        F.write(data)
+    # Save final measurement values
+    data = json.dumps(dtAllJson, indent=4)
+    with open(allJsonPathName, "w") as F:
+        F.write(data)
