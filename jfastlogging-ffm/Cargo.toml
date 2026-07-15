@@ -1,6 +1,6 @@
 [package]
 name = "jfastlogging-ffm"
-version = "0.3.0"
+version = "0.8.0"
 authors = ["Martin Bammer <mrbm74@gmail.com>"]
 edition = "2024"
 
