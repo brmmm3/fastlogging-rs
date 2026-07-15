@@ -10,11 +10,9 @@ The windows.html DATA layout is:
 
 from __future__ import annotations
 
-import argparse
 import json
 import re
 from pathlib import Path
-
 
 SINKS = ["nolog", "file", "rotate"]
 SIZES = ["short", "long"]
@@ -41,7 +39,6 @@ def _load_json(path: Path) -> dict:
 def _transform(source: dict) -> dict:
     """Transform source JSON to the DATA layout used by windows.html."""
     out: dict[str, dict] = {}
-
     for sink in SINKS:
         out[sink] = {}
         for size in SIZES:
@@ -54,7 +51,6 @@ def _transform(source: dict) -> dict:
                         dst_key: src_level[src_key]
                         for src_key, dst_key in FRAMEWORK_MAPPING
                     }
-
     return out
 
 
@@ -69,31 +65,25 @@ def _replace_data_block(html_text: str, data_obj: dict) -> tuple[str, int]:
 def main() -> int:
     base = Path(__file__).resolve().parent
 
-    parser = argparse.ArgumentParser(
-        description="Update windows.html const DATA from python_windows.json"
-    )
-    parser.add_argument(
-        "--json",
-        default=str(base / "python_windows.json"),
-        help="Path to source json (default: pyfastlogging/doc/benchmarks/python_windows.json)",
-    )
-    parser.add_argument(
-        "--html",
-        default=str(base / "windows.html"),
-        help="Path to target html (default: pyfastlogging/doc/benchmarks/windows.html)",
-    )
-    args = parser.parse_args()
+    linux_json_path = base / "python_linux.json"
+    windows_json_path = base / "python_windows.json"
+    html_path = base / "benchmarks.html"
 
-    json_path = Path(args.json)
-    html_path = Path(args.html)
-
-    if not json_path.exists():
-        raise FileNotFoundError(f"JSON file not found: {json_path}")
+    if not linux_json_path.exists():
+        raise FileNotFoundError(f"JSON file not found: {linux_json_path}")
+    if not windows_json_path.exists():
+        raise FileNotFoundError(f"JSON file not found: {windows_json_path}")
     if not html_path.exists():
         raise FileNotFoundError(f"HTML file not found: {html_path}")
 
-    source = _load_json(json_path)
-    transformed = _transform(source)
+    linux_source = _load_json(linux_json_path)
+    windows_source = _load_json(windows_json_path)
+    linux_transformed = _transform(linux_source)
+    windows_transformed = _transform(windows_source)
+    transformed = {
+        "linux": linux_transformed,
+        "windows": windows_transformed,
+    }
 
     with html_path.open("r", encoding="utf-8", newline="") as f:
         html_text = f.read()
@@ -107,7 +97,7 @@ def main() -> int:
     with html_path.open("w", encoding="utf-8", newline="") as f:
         f.write(updated_html)
 
-    print(f"Updated {html_path.name} using {json_path.name}")
+    print(f"Updated {html_path.name} using {linux_json_path.name} and {windows_json_path.name}")
     return 0
 
 

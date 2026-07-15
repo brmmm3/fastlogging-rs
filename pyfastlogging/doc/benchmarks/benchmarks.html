@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Benchmarks - pyfastlogging</title>
+  <style>
+    :root {
+      --bg: #070b14;
+      --panel: rgba(19, 27, 46, 0.72);
+      --border: rgba(148, 163, 184, 0.2);
+      --text: #e6eeff;
+      --muted: #9fb0d9;
+      --good: #34d399;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--text);
+      font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
+      background:
+        radial-gradient(1100px 700px at -20% -10%, #1a3a7a44, transparent 60%),
+        radial-gradient(1100px 700px at 120% 110%, #6f1f7f44, transparent 60%),
+        var(--bg);
+      min-height: 100vh;
+    }
+    .wrap {
+      width: min(1600px, 94vw);
+      margin: 22px auto 34px;
+      display: grid;
+      gap: 14px;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 8px 24px #00000040;
+    }
+    h1 { margin: 0; font-size: clamp(24px, 3vw, 34px); }
+    .sub { margin-top: 8px; color: var(--muted); }
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 10px;
+    }
+    label { display: block; color: var(--muted); font-size: 12px; margin-bottom: 5px; }
+    select {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid #334155;
+      background: #0b1220;
+      color: var(--text);
+      font-size: 14px;
+      padding: 10px;
+    }
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 10px;
+    }
+    .kpi {
+      border: 1px solid #ffffff22;
+      border-radius: 12px;
+      padding: 12px;
+      background: #0b1325aa;
+    }
+    .kpi-name { font-weight: 700; margin-bottom: 6px; }
+    .kpi-main { font-size: 22px; }
+    .kpi-sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+    .pill {
+      display: inline-block;
+      background: linear-gradient(135deg, #6ee7b7, #34d399);
+      color: #062016;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-top: 7px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th, td { padding: 9px 10px; border-bottom: 1px solid #ffffff14; text-align: left; }
+    th { background: #0a1325; color: #c9d6ff; position: sticky; top: 0; }
+    tr:hover td { background: #ffffff08; }
+    .best { color: var(--good); font-weight: 700; }
+    .bars { display: grid; gap: 10px; }
+    .row {
+      background: #0b1325;
+      border: 1px solid #ffffff12;
+      border-radius: 12px;
+      padding: 10px;
+    }
+    .row-head {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 7px;
+      color: #c8d5ff;
+      font-size: 13px;
+    }
+    .bar-item { margin-top: 7px; }
+    .bar-label { color: var(--muted); font-size: 12px; margin-bottom: 3px; }
+    .bar {
+      height: 10px;
+      border-radius: 999px;
+      background: #0f1a31;
+      border: 1px solid #ffffff12;
+      overflow: hidden;
+    }
+    .fill { height: 100%; border-radius: 999px; }
+    .note { color: var(--muted); font-size: 12px; }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="card">
+      <h1>pyfastlogging Benchmark Dashboard</h1>
+      <div class="sub">Interactive view generated from HTML files in <code>pyfastlogging/doc/benchmarks</code>. Lower values are faster.</div>
+    </section>
+
+    <section class="card controls">
+        <div>
+          <label for="os">OS</label>
+          <select id="os">
+            <option value="linux">Linux</option>
+            <option value="windows">Windows</option>
+          </select>
+        </div>
+        <div>
+          <label for="sink">Sink</label>
+          <select id="sink">
+            <option value="nolog">No log file</option>
+            <option value="file">Log file</option>
+            <option value="rotate">Rotating log file</option>
+          </select>
+        </div>
+      <div>
+        <label for="size">Message size</label>
+        <select id="size">
+          <option value="short">short</option>
+          <option value="long">long</option>
+        </select>
+      </div>
+      <div>
+        <label for="exc">Exception benchmark mode</label>
+        <select id="exc">
+          <option value="noexc">noexc</option>
+          <option value="exc">exc</option>
+        </select>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="kpis" id="kpis"></div>
+    </section>
+
+    <section class="card" style="overflow:auto">
+      <table id="table"></table>
+    </section>
+
+    <section class="card">
+      <div class="bars" id="bars"></div>
+    </section>
+
+    <section class="card note">
+      Source files: file_*.html, nolog_*.html, rotate_*.html (+ *_exc_* variants) in the linux/windows benchmark folder.
+    </section>
+  </main>
+
+  <script>
+    const DATA = {"linux":{"nolog":{"short":{"noexc":{"DEBUG":{"logging":1.2740108966827393,"logging OPTIMIZED":0.5978261828422546,"loguru":0.0533968448638916,"fastlogging":0.46808657646179197,"fastlogging THREADS":0.3416587511698405,"fastlogging-rs Logging":0.1267094850540161,"fastlogging-rs root":0.13383607864379882},"INFO":{"logging":0.5347458124160767,"logging OPTIMIZED":0.46639699935913087,"loguru":0.05645794868469238,"fastlogging":0.38453443845113117,"fastlogging THREADS":0.2828337848186493,"fastlogging-rs Logging":0.09973266124725341,"fastlogging-rs root":0.09564931392669677},"WARNING":{"logging":0.39177664120992023,"logging OPTIMIZED":0.3849389950434367,"loguru":0.053103089332580566,"fastlogging":0.2967303821018764,"fastlogging THREADS":0.2238074408637153,"fastlogging-rs Logging":0.07234585285186768,"fastlogging-rs root":0.07168459892272949},"ERROR":{"logging":0.2826213538646698,"logging OPTIMIZED":0.28706387111118864,"loguru":0.048609232902526854,"fastlogging":0.2171156406402588,"fastlogging THREADS":0.1620701551437378,"fastlogging-rs Logging":0.05971953868865967,"fastlogging-rs root":0.05745234489440918},"CRITICAL":{"logging":0.17215440273284913,"logging OPTIMIZED":0.17186760902404785,"loguru":0.053906369209289554,"fastlogging":0.12718985080718995,"fastlogging THREADS":0.10844185352325439,"fastlogging-rs Logging":0.05629556179046631,"fastlogging-rs root":0.05436816215515137}},"exc":{"DEBUG":{"logging":0.681394894917806,"logging OPTIMIZED":0.6517158150672913,"loguru":0.06290335655212402,"fastlogging":1.8444788455963135,"fastlogging THREADS":1.9342601299285889,"fastlogging-rs Logging":1.3816345930099487,"fastlogging-rs root":1.3402589559555054},"INFO":{"logging":0.5478249192237854,"logging OPTIMIZED":0.5385936498641968,"loguru":0.0581627607345581,"fastlogging":1.6968275308609009,"fastlogging THREADS":1.780786156654358,"fastlogging-rs Logging":1.3787683248519897,"fastlogging-rs root":1.3855574131011963},"WARNING":{"logging":0.43196425437927244,"logging OPTIMIZED":0.42950730323791503,"loguru":0.06112480163574219,"fastlogging":1.677147388458252,"fastlogging THREADS":1.5801501274108887,"fastlogging-rs Logging":1.3351365327835083,"fastlogging-rs root":1.3783138990402222},"ERROR":{"logging":0.3196267400469099,"logging OPTIMIZED":0.3579666217168172,"loguru":0.06246309280395508,"fastlogging":1.9495298862457275,"fastlogging THREADS":1.4935803413391113,"fastlogging-rs Logging":1.419356107711792,"fastlogging-rs root":1.2901055812835693},"CRITICAL":{"logging":0.18698503971099853,"logging OPTIMIZED":0.17646052837371826,"loguru":0.05874912738800049,"fastlogging":1.5185716152191162,"fastlogging THREADS":1.4215162992477417,"fastlogging-rs Logging":1.4086616039276123,"fastlogging-rs root":1.373844027519226}}},"long":{"noexc":{"DEBUG":{"logging":0.6121037602424622,"logging OPTIMIZED":0.5834388732910156,"loguru":0.05134968757629395,"fastlogging":0.45078139305114745,"fastlogging THREADS":0.3340705462864467,"fastlogging-rs Logging":0.12017250061035156,"fastlogging-rs root":0.13135392665863038},"INFO":{"logging":0.5121194124221802,"logging OPTIMIZED":0.48801331520080565,"loguru":0.04867286682128906,"fastlogging":0.37215272585550946,"fastlogging THREADS":0.3081021308898926,"fastlogging-rs Logging":0.09577162265777588,"fastlogging-rs root":0.09847774505615234},"WARNING":{"logging":0.4023933410644531,"logging OPTIMIZED":0.38919512430826825,"loguru":0.052756667137145996,"fastlogging":0.3075768266405378,"fastlogging THREADS":0.2373076015048557,"fastlogging-rs Logging":0.08099091053009033,"fastlogging-rs root":0.08369665145874024},"ERROR":{"logging":0.28756516320364817,"logging OPTIMIZED":0.2641717791557312,"loguru":0.054181361198425294,"fastlogging":0.2332335048251682,"fastlogging THREADS":0.1783613681793213,"fastlogging-rs Logging":0.06233437061309814,"fastlogging-rs root":0.058999824523925784},"CRITICAL":{"logging":0.16974935531616211,"logging OPTIMIZED":0.16254258155822754,"loguru":0.05082058906555176,"fastlogging":0.13270199298858643,"fastlogging THREADS":0.1196373701095581,"fastlogging-rs Logging":0.05275259017944336,"fastlogging-rs root":0.05245296955108643}},"exc":{"DEBUG":{"logging":0.7107622623443604,"logging OPTIMIZED":0.6894689400990804,"loguru":0.06424682140350342,"fastlogging":2.0565192699432373,"fastlogging THREADS":1.8381881713867188,"fastlogging-rs Logging":1.4852657318115234,"fastlogging-rs root":1.467389702796936},"INFO":{"logging":0.5271115899085999,"logging OPTIMIZED":0.5839681029319763,"loguru":0.06133742332458496,"fastlogging":1.8288090229034424,"fastlogging THREADS":1.8571851253509521,"fastlogging-rs Logging":1.4476535320281982,"fastlogging-rs root":1.3545435667037964},"WARNING":{"logging":0.46453108787536623,"logging OPTIMIZED":0.4310581207275391,"loguru":0.061680173873901366,"fastlogging":2.2456822395324707,"fastlogging THREADS":1.7850223779678345,"fastlogging-rs Logging":1.3982887268066406,"fastlogging-rs root":1.391757607460022},"ERROR":{"logging":0.322918244770595,"logging OPTIMIZED":0.33376848697662354,"loguru":0.06572349071502685,"fastlogging":1.7772396802902222,"fastlogging THREADS":1.6136045455932617,"fastlogging-rs Logging":1.316162109375,"fastlogging-rs root":1.3722957372665405},"CRITICAL":{"logging":0.1885840654373169,"logging OPTIMIZED":0.19090449810028076,"loguru":0.0674260139465332,"fastlogging":1.5479843616485596,"fastlogging THREADS":1.439581036567688,"fastlogging-rs Logging":1.3797883987426758,"fastlogging-rs root":1.3052802085876465}}}},"file":{"short":{"noexc":{"DEBUG":{"logging":2.2800300121307373,"logging OPTIMIZED":2.187936782836914,"loguru":5.528281211853027,"fastlogging":0.7626445293426514,"fastlogging THREADS":0.8917835553487142,"fastlogging-rs Logging":0.20436851978302,"fastlogging-rs root":0.19493634700775148},"INFO":{"logging":1.766123652458191,"logging OPTIMIZED":1.901724100112915,"loguru":4.608741283416748,"fastlogging":0.6006622314453125,"fastlogging THREADS":0.786122719446818,"fastlogging-rs Logging":0.16790404319763183,"fastlogging-rs root":0.15118024349212647},"WARNING":{"logging":1.4463858604431152,"logging OPTIMIZED":1.3898006677627563,"loguru":3.4337120056152344,"fastlogging":0.4965211868286133,"fastlogging THREADS":0.6059818863868713,"fastlogging-rs Logging":0.11415903568267823,"fastlogging-rs root":0.12596065998077394},"ERROR":{"logging":1.061405897140503,"logging OPTIMIZED":1.024551510810852,"loguru":2.493332624435425,"fastlogging":0.3201050077165876,"fastlogging THREADS":0.4337879180908203,"fastlogging-rs Logging":0.08028156757354736,"fastlogging-rs root":0.07088327407836914},"CRITICAL":{"logging":0.49326319694519044,"logging OPTIMIZED":0.5567206144332886,"loguru":1.2274178266525269,"fastlogging":0.2022496223449707,"fastlogging THREADS":0.2455391354031033,"fastlogging-rs Logging":0.05398893356323242,"fastlogging-rs root":0.052377748489379886}},"exc":{"DEBUG":{"logging":4.383979558944702,"logging OPTIMIZED":4.648616313934326,"loguru":9.144610404968262,"fastlogging":2.4062325954437256,"fastlogging THREADS":2.4906911849975586,"fastlogging-rs Logging":1.5409586429595947,"fastlogging-rs root":1.361219882965088},"INFO":{"logging":3.7407195568084717,"logging OPTIMIZED":4.041203022003174,"loguru":8.08000922203064,"fastlogging":2.1740665435791016,"fastlogging THREADS":2.3648147583007812,"fastlogging-rs Logging":1.4172790050506592,"fastlogging-rs root":1.4169893264770508},"WARNING":{"logging":3.084089994430542,"logging OPTIMIZED":3.5601308345794678,"loguru":6.990237236022949,"fastlogging":2.060173749923706,"fastlogging THREADS":2.1070951223373413,"fastlogging-rs Logging":1.5822750329971313,"fastlogging-rs root":1.404151201248169},"ERROR":{"logging":2.6046509742736816,"logging OPTIMIZED":2.7611286640167236,"loguru":5.332346677780151,"fastlogging":1.8804004192352295,"fastlogging THREADS":1.9196420907974243,"fastlogging-rs Logging":1.3776172399520874,"fastlogging-rs root":1.3266174793243408},"CRITICAL":{"logging":0.5689877867698669,"logging OPTIMIZED":0.560691773891449,"loguru":1.2339686155319214,"fastlogging":1.621726155281067,"fastlogging THREADS":1.671921730041504,"fastlogging-rs Logging":1.3720574378967285,"fastlogging-rs root":1.3999924659729004}}},"long":{"noexc":{"DEBUG":{"logging":2.128812313079834,"logging OPTIMIZED":2.2801012992858887,"loguru":5.468776702880859,"fastlogging":0.7632788817087809,"fastlogging THREADS":0.9659597078959147,"fastlogging-rs Logging":0.21655697822570802,"fastlogging-rs root":0.22018055915832518},"INFO":{"logging":1.8998526334762573,"logging OPTIMIZED":1.895878553390503,"loguru":4.630348443984985,"fastlogging":0.690915028254191,"fastlogging THREADS":0.7902309894561768,"fastlogging-rs Logging":0.19316041469573975,"fastlogging-rs root":0.18046674728393555},"WARNING":{"logging":1.3969613313674927,"logging OPTIMIZED":1.4660296440124512,"loguru":3.643528699874878,"fastlogging":0.5171178579330444,"fastlogging THREADS":0.7302676836649576,"fastlogging-rs Logging":0.14528627395629884,"fastlogging-rs root":0.14049694538116456},"ERROR":{"logging":0.9857586224873861,"logging OPTIMIZED":0.9933582146962484,"loguru":2.4588584899902344,"fastlogging":0.4207723140716553,"fastlogging THREADS":0.49070353507995607,"fastlogging-rs Logging":0.08837766647338867,"fastlogging-rs root":0.08835270404815673},"CRITICAL":{"logging":0.502018928527832,"logging OPTIMIZED":0.5071583986282349,"loguru":1.1773799657821655,"fastlogging":0.25038185715675354,"fastlogging THREADS":0.2883426121303013,"fastlogging-rs Logging":0.052808094024658206,"fastlogging-rs root":0.05312080383300781}},"exc":{"DEBUG":{"logging":4.360913038253784,"logging OPTIMIZED":4.498440742492676,"loguru":9.300880670547485,"fastlogging":2.4907031059265137,"fastlogging THREADS":2.858527183532715,"fastlogging-rs Logging":1.451730489730835,"fastlogging-rs root":1.4394786357879639},"INFO":{"logging":3.3518295288085938,"logging OPTIMIZED":3.8555843830108643,"loguru":7.888337135314941,"fastlogging":2.33733868598938,"fastlogging THREADS":2.7606284618377686,"fastlogging-rs Logging":1.5016131401062012,"fastlogging-rs root":1.3966195583343506},"WARNING":{"logging":3.3268747329711914,"logging OPTIMIZED":3.368288516998291,"loguru":6.9881978034973145,"fastlogging":2.2128958702087402,"fastlogging THREADS":2.554809331893921,"fastlogging-rs Logging":1.3960282802581787,"fastlogging-rs root":1.415916919708252},"ERROR":{"logging":2.8032023906707764,"logging OPTIMIZED":2.649894952774048,"loguru":5.553496360778809,"fastlogging":2.2270779609680176,"fastlogging THREADS":2.925161123275757,"fastlogging-rs Logging":1.5260957479476929,"fastlogging-rs root":1.3690789937973022},"CRITICAL":{"logging":0.5881398320198059,"logging OPTIMIZED":0.5126380324363708,"loguru":1.292344093322754,"fastlogging":1.7512024641036987,"fastlogging THREADS":1.7761482000350952,"fastlogging-rs Logging":1.3768435716629028,"fastlogging-rs root":1.2800958156585693}}}},"rotate":{"short":{"noexc":{"DEBUG":{"logging":3.31961727142334,"logging OPTIMIZED":3.1491596698760986,"loguru":6.5161051750183105,"fastlogging":0.6460414528846741,"fastlogging THREADS":1.1515759229660034,"fastlogging-rs Logging":0.21049184799194337,"fastlogging-rs root":0.2210477828979492},"INFO":{"logging":2.8200137615203857,"logging OPTIMIZED":2.496209144592285,"loguru":5.247580528259277,"fastlogging":0.49628186225891113,"fastlogging THREADS":0.8985168139139811,"fastlogging-rs Logging":0.16359272003173828,"fastlogging-rs root":0.15467367172241211},"WARNING":{"logging":1.882095217704773,"logging OPTIMIZED":1.8501883745193481,"loguru":3.833008050918579,"fastlogging":0.4126446723937988,"fastlogging THREADS":0.6691977977752686,"fastlogging-rs Logging":0.11780591011047363,"fastlogging-rs root":0.11501672267913818},"ERROR":{"logging":1.2886983156204224,"logging OPTIMIZED":1.1690140962600708,"loguru":2.75545597076416,"fastlogging":0.2927324431283133,"fastlogging THREADS":0.4468523979187012,"fastlogging-rs Logging":0.07356717586517333,"fastlogging-rs root":0.06901421546936035},"CRITICAL":{"logging":0.7039164702097574,"logging OPTIMIZED":0.6860869725545248,"loguru":1.2764874696731567,"fastlogging":0.16516120433807374,"fastlogging THREADS":0.25052563349405926,"fastlogging-rs Logging":0.05797574520111084,"fastlogging-rs root":0.05189778804779053}},"exc":{"DEBUG":{"logging":5.320562124252319,"logging OPTIMIZED":5.158263206481934,"loguru":9.695650815963745,"fastlogging":2.168382167816162,"fastlogging THREADS":2.4069764614105225,"fastlogging-rs Logging":1.5868406295776367,"fastlogging-rs root":1.4626173973083496},"INFO":{"logging":4.692246913909912,"logging OPTIMIZED":4.712355136871338,"loguru":9.161632061004639,"fastlogging":1.9485301971435547,"fastlogging THREADS":2.348284959793091,"fastlogging-rs Logging":1.4770561456680298,"fastlogging-rs root":1.5140373706817627},"WARNING":{"logging":3.8615658283233643,"logging OPTIMIZED":4.329976797103882,"loguru":7.617228746414185,"fastlogging":1.9075313806533813,"fastlogging THREADS":2.343027114868164,"fastlogging-rs Logging":1.5321118831634521,"fastlogging-rs root":1.413025140762329},"ERROR":{"logging":3.748448371887207,"logging OPTIMIZED":3.318328380584717,"loguru":6.2682740688323975,"fastlogging":1.811043620109558,"fastlogging THREADS":2.0290441513061523,"fastlogging-rs Logging":1.404908299446106,"fastlogging-rs root":1.3951575756072998},"CRITICAL":{"logging":0.7261841297149658,"logging OPTIMIZED":0.7575210730234782,"loguru":1.3426275253295898,"fastlogging":1.633462905883789,"fastlogging THREADS":1.782673954963684,"fastlogging-rs Logging":1.4502815008163452,"fastlogging-rs root":1.3666303157806396}}},"long":{"noexc":{"DEBUG":{"logging":3.369109869003296,"logging OPTIMIZED":3.3031344413757324,"loguru":6.435782432556152,"fastlogging":0.8096690972646078,"fastlogging THREADS":1.3852275609970093,"fastlogging-rs Logging":0.22624542978074816,"fastlogging-rs root":0.20020101070404053},"INFO":{"logging":2.5706746578216553,"logging OPTIMIZED":2.5036444664001465,"loguru":5.356399297714233,"fastlogging":0.6375566720962524,"fastlogging THREADS":1.107900619506836,"fastlogging-rs Logging":0.16153287887573242,"fastlogging-rs root":0.16246628761291504},"WARNING":{"logging":2.002633571624756,"logging OPTIMIZED":1.9235833883285522,"loguru":4.007559061050415,"fastlogging":0.5009251236915588,"fastlogging THREADS":0.9190765221913656,"fastlogging-rs Logging":0.1350733995437622,"fastlogging-rs root":0.12483706474304199},"ERROR":{"logging":1.3975492715835571,"logging OPTIMIZED":1.4471707344055176,"loguru":2.6477785110473633,"fastlogging":0.37737449010213214,"fastlogging THREADS":0.5858149528503418,"fastlogging-rs Logging":0.0805391550064087,"fastlogging-rs root":0.08181679248809814},"CRITICAL":{"logging":0.7217737833658854,"logging OPTIMIZED":0.6863842010498047,"loguru":1.4020744562149048,"fastlogging":0.19593069553375245,"fastlogging THREADS":0.3335585594177246,"fastlogging-rs Logging":0.052590680122375486,"fastlogging-rs root":0.05066282749176025}},"exc":{"DEBUG":{"logging":5.6646788120269775,"logging OPTIMIZED":5.415498733520508,"loguru":10.3504159450531,"fastlogging":2.2153167724609375,"fastlogging THREADS":3.211134910583496,"fastlogging-rs Logging":1.3839892148971558,"fastlogging-rs root":1.542641043663025},"INFO":{"logging":4.925729990005493,"logging OPTIMIZED":4.877684116363525,"loguru":9.087255239486694,"fastlogging":2.0892210006713867,"fastlogging THREADS":2.6898460388183594,"fastlogging-rs Logging":1.4144474267959595,"fastlogging-rs root":1.4970256090164185},"WARNING":{"logging":4.2658936977386475,"logging OPTIMIZED":4.257640838623047,"loguru":7.612521409988403,"fastlogging":1.9897269010543823,"fastlogging THREADS":2.798839807510376,"fastlogging-rs Logging":1.4177651405334473,"fastlogging-rs root":1.4082059860229492},"ERROR":{"logging":3.3680644035339355,"logging OPTIMIZED":2.967400074005127,"loguru":5.323845863342285,"fastlogging":1.824489712715149,"fastlogging THREADS":1.8136082887649536,"fastlogging-rs Logging":1.2431750297546387,"fastlogging-rs root":1.292771339416504},"CRITICAL":{"logging":0.6665285229682922,"logging OPTIMIZED":0.7879985968271891,"loguru":1.378787875175476,"fastlogging":1.5746060609817505,"fastlogging THREADS":2.058982014656067,"fastlogging-rs Logging":1.276543378829956,"fastlogging-rs root":1.4236572980880737}}}}},"windows":{"nolog":{"short":{"noexc":{"DEBUG":{"logging":0.6246374249458313,"logging OPTIMIZED":0.2785339057445526,"loguru":0.024047279357910158,"fastlogging":0.2331753306918674,"fastlogging THREADS":0.0975010871887207,"fastlogging-rs Logging":0.10841851234436035,"fastlogging-rs root":0.1072693109512329},"INFO":{"logging":0.22858542866177028,"logging OPTIMIZED":0.22930145263671875,"loguru":0.02292134761810303,"fastlogging":0.18948724269866943,"fastlogging THREADS":0.08307015895843506,"fastlogging-rs Logging":0.08845715522766114,"fastlogging-rs root":0.0858137845993042},"WARNING":{"logging":0.17806518077850342,"logging OPTIMIZED":0.18227815628051758,"loguru":0.024155664443969726,"fastlogging":0.14884014129638673,"fastlogging THREADS":0.06396548748016358,"fastlogging-rs Logging":0.07002565860748292,"fastlogging-rs root":0.06729433536529542},"ERROR":{"logging":0.12859563827514647,"logging OPTIMIZED":0.12721760272979737,"loguru":0.02395005226135254,"fastlogging":0.1059347152709961,"fastlogging THREADS":0.04789211750030518,"fastlogging-rs Logging":0.046803951263427734,"fastlogging-rs root":0.045302724838256835},"CRITICAL":{"logging":0.07362060546875,"logging OPTIMIZED":0.07397661209106446,"loguru":0.023332905769348145,"fastlogging":0.06028282642364502,"fastlogging THREADS":0.030540728569030763,"fastlogging-rs Logging":0.019808864593505858,"fastlogging-rs root":0.01914820671081543}},"exc":{"DEBUG":{"logging":0.3079850673675537,"logging OPTIMIZED":0.3059159346989223,"loguru":0.026310157775878907,"fastlogging":0.7390875816345215,"fastlogging THREADS":0.5919535160064697,"fastlogging-rs Logging":0.5102424025535583,"fastlogging-rs root":0.50626140832901},"INFO":{"logging":0.24961045053270128,"logging OPTIMIZED":0.25068360567092896,"loguru":0.025843000411987303,"fastlogging":0.686671257019043,"fastlogging THREADS":0.5716383457183838,"fastlogging-rs Logging":0.5145507454872131,"fastlogging-rs root":0.5029879212379456},"WARNING":{"logging":0.19872889518737794,"logging OPTIMIZED":0.19980545043945314,"loguru":0.02608523368835449,"fastlogging":0.6456104516983032,"fastlogging THREADS":0.5428804755210876,"fastlogging-rs Logging":0.5020798444747925,"fastlogging-rs root":0.4957595348358154},"ERROR":{"logging":0.14905209541320802,"logging OPTIMIZED":0.14515161514282227,"loguru":0.02579061985015869,"fastlogging":0.5949408411979675,"fastlogging THREADS":0.5282910466194153,"fastlogging-rs Logging":0.4963524341583252,"fastlogging-rs root":0.497326135635376},"CRITICAL":{"logging":0.07699415683746338,"logging OPTIMIZED":0.07720630168914795,"loguru":0.025556159019470216,"fastlogging":0.5516876578330994,"fastlogging THREADS":0.5134841799736023,"fastlogging-rs Logging":0.49378113746643065,"fastlogging-rs root":0.4954681873321533}}},"long":{"noexc":{"DEBUG":{"logging":0.29594881193978445,"logging OPTIMIZED":0.2916593211037772,"loguru":0.023964357376098634,"fastlogging":0.2378187444474962,"fastlogging THREADS":0.11667058467864991,"fastlogging-rs Logging":0.10994236469268799,"fastlogging-rs root":0.10863080024719238},"INFO":{"logging":0.23663255903455946,"logging OPTIMIZED":0.23528438144259983,"loguru":0.024141263961791993,"fastlogging":0.23328677813212076,"fastlogging THREADS":0.10592920780181884,"fastlogging-rs Logging":0.08905045986175537,"fastlogging-rs root":0.08788430690765381},"WARNING":{"logging":0.1834252119064331,"logging OPTIMIZED":0.18304898738861083,"loguru":0.024134397506713867,"fastlogging":0.18048357963562012,"fastlogging THREADS":0.08266804218292237,"fastlogging-rs Logging":0.06890416145324707,"fastlogging-rs root":0.06770031452178955},"ERROR":{"logging":0.13037805557250975,"logging OPTIMIZED":0.1291987657546997,"loguru":0.02429933547973633,"fastlogging":0.12765917778015137,"fastlogging THREADS":0.06044340133666992,"fastlogging-rs Logging":0.04574329853057861,"fastlogging-rs root":0.043331265449523926},"CRITICAL":{"logging":0.07766106128692626,"logging OPTIMIZED":0.07687227725982666,"loguru":0.024434661865234374,"fastlogging":0.07527077198028564,"fastlogging THREADS":0.041217589378356935,"fastlogging-rs Logging":0.021653962135314942,"fastlogging-rs root":0.020802617073059082}},"exc":{"DEBUG":{"logging":0.31022255761282785,"logging OPTIMIZED":0.30769106319972445,"loguru":0.02608637809753418,"fastlogging":0.7820857365926107,"fastlogging THREADS":0.6161569952964783,"fastlogging-rs Logging":0.5180892944335938,"fastlogging-rs root":0.5111317038536072},"INFO":{"logging":0.257071852684021,"logging OPTIMIZED":0.2569501996040344,"loguru":0.02574634552001953,"fastlogging":0.7304739952087402,"fastlogging THREADS":0.591437816619873,"fastlogging-rs Logging":0.5087562203407288,"fastlogging-rs root":0.5024306774139404},"WARNING":{"logging":0.20333926677703856,"logging OPTIMIZED":0.20000309944152833,"loguru":0.026326537132263184,"fastlogging":0.6831773122151693,"fastlogging THREADS":0.5656108856201172,"fastlogging-rs Logging":0.5025742650032043,"fastlogging-rs root":0.5003492832183838},"ERROR":{"logging":0.148588228225708,"logging OPTIMIZED":0.148293137550354,"loguru":0.026043510437011717,"fastlogging":0.6302981376647949,"fastlogging THREADS":0.5435276031494141,"fastlogging-rs Logging":0.4985053062438965,"fastlogging-rs root":0.49243621826171874},"CRITICAL":{"logging":0.07984414100646972,"logging OPTIMIZED":0.07993175983428955,"loguru":0.025679922103881835,"fastlogging":0.5684303641319275,"fastlogging THREADS":0.5250278115272522,"fastlogging-rs Logging":0.4941657066345215,"fastlogging-rs root":0.4907355785369873}}}},"file":{"short":{"noexc":{"DEBUG":{"logging":1.9438817501068115,"logging OPTIMIZED":1.9348618984222412,"loguru":2.650371551513672,"fastlogging":0.83426300684611,"fastlogging THREADS":0.8149413267771403,"fastlogging-rs Logging":0.730913241704305,"fastlogging-rs root":0.15461330413818358},"INFO":{"logging":1.4930322170257568,"logging OPTIMIZED":1.4421286582946777,"loguru":2.1570920944213867,"fastlogging":0.6881895860036215,"fastlogging THREADS":0.6607818007469177,"fastlogging-rs Logging":0.6983203887939453,"fastlogging-rs root":0.12104473114013672},"WARNING":{"logging":1.286885380744934,"logging OPTIMIZED":1.277146577835083,"loguru":1.6215872764587402,"fastlogging":0.6924685637156168,"fastlogging THREADS":0.6801346937815348,"fastlogging-rs Logging":0.6533253788948059,"fastlogging-rs root":0.08935735225677491},"ERROR":{"logging":1.0319898128509521,"logging OPTIMIZED":1.03313148021698,"loguru":1.0923689603805542,"fastlogging":0.6115170121192932,"fastlogging THREADS":0.6047757267951965,"fastlogging-rs Logging":0.4971488952636719,"fastlogging-rs root":0.0589562177658081},"CRITICAL":{"logging":0.46918692588806155,"logging OPTIMIZED":0.5566813945770264,"loguru":0.5755659341812134,"fastlogging":0.18797900676727294,"fastlogging THREADS":0.24456463919745552,"fastlogging-rs Logging":0.03148653507232666,"fastlogging-rs root":0.029477810859680174}},"exc":{"DEBUG":{"logging":2.362616777420044,"logging OPTIMIZED":2.3131179809570312,"loguru":4.071331262588501,"fastlogging":0.9788536230723063,"fastlogging THREADS":0.9626941680908203,"fastlogging-rs Logging":0.5279709100723267,"fastlogging-rs root":0.5227604508399963},"INFO":{"logging":2.089769124984741,"logging OPTIMIZED":2.078049898147583,"loguru":3.5552473068237305,"fastlogging":0.8877139091491699,"fastlogging THREADS":0.9183828830718994,"fastlogging-rs Logging":0.5310762524604797,"fastlogging-rs root":0.5239104628562927},"WARNING":{"logging":1.7175813913345337,"logging OPTIMIZED":1.7081451416015625,"loguru":2.9790399074554443,"fastlogging":0.7892645994822184,"fastlogging THREADS":0.8039948145548502,"fastlogging-rs Logging":0.5180799961090088,"fastlogging-rs root":0.5238322615623474},"ERROR":{"logging":1.43841552734375,"logging OPTIMIZED":1.4107195138931274,"loguru":2.4059369564056396,"fastlogging":0.7289024194081625,"fastlogging THREADS":0.763553778330485,"fastlogging-rs Logging":0.5144051313400269,"fastlogging-rs root":0.5128093361854553},"CRITICAL":{"logging":0.3512621720631917,"logging OPTIMIZED":0.35438772042592365,"loguru":0.5974137187004089,"fastlogging":0.6320546269416809,"fastlogging THREADS":0.6911254723866781,"fastlogging-rs Logging":0.501004695892334,"fastlogging-rs root":0.5026660561561584}}},"long":{"noexc":{"DEBUG":{"logging":1.6548856496810913,"logging OPTIMIZED":1.6565570831298828,"loguru":2.720707893371582,"fastlogging":0.5570547580718994,"fastlogging THREADS":0.5440911054611206,"fastlogging-rs Logging":0.1532449960708618,"fastlogging-rs root":0.14768190383911134},"INFO":{"logging":1.3204916715621948,"logging OPTIMIZED":1.3146671056747437,"loguru":2.1931214332580566,"fastlogging":0.45369744300842285,"fastlogging THREADS":0.43081841468811033,"fastlogging-rs Logging":0.12299823760986328,"fastlogging-rs root":0.12110626697540283},"WARNING":{"logging":0.9918286005655924,"logging OPTIMIZED":0.9929656187693278,"loguru":1.6398837566375732,"fastlogging":0.34344613552093506,"fastlogging THREADS":0.32948616572788786,"fastlogging-rs Logging":0.09166350364685058,"fastlogging-rs root":0.0923663854598999},"ERROR":{"logging":0.6803818543752035,"logging OPTIMIZED":0.6714797814687093,"loguru":1.1149277687072754,"fastlogging":0.23657682206895617,"fastlogging THREADS":0.2253179285261366,"fastlogging-rs Logging":0.06192982196807861,"fastlogging-rs root":0.061027359962463376},"CRITICAL":{"logging":0.3448967933654785,"logging OPTIMIZED":0.3598421812057495,"loguru":0.561941385269165,"fastlogging":0.13186924457550048,"fastlogging THREADS":0.12458837032318115,"fastlogging-rs Logging":0.03276958465576172,"fastlogging-rs root":0.03909614086151123}},"exc":{"DEBUG":{"logging":2.4425394535064697,"logging OPTIMIZED":2.425750732421875,"loguru":4.034363746643066,"fastlogging":1.1260836124420166,"fastlogging THREADS":1.095314383506775,"fastlogging-rs Logging":0.5260884761810303,"fastlogging-rs root":0.5128247141838074},"INFO":{"logging":2.0816454887390137,"logging OPTIMIZED":2.098253011703491,"loguru":3.492527723312378,"fastlogging":1.0210902690887451,"fastlogging THREADS":1.0022052526474,"fastlogging-rs Logging":0.5175848603248596,"fastlogging-rs root":0.5100768804550171},"WARNING":{"logging":1.7577838897705078,"logging OPTIMIZED":1.754789113998413,"loguru":2.9472029209136963,"fastlogging":0.8991978168487549,"fastlogging THREADS":0.8949141502380371,"fastlogging-rs Logging":0.5158573389053345,"fastlogging-rs root":0.5049827098846436},"ERROR":{"logging":1.4168065786361694,"logging OPTIMIZED":1.419493556022644,"loguru":2.377089500427246,"fastlogging":0.7865007718404134,"fastlogging THREADS":0.7919659614562988,"fastlogging-rs Logging":0.5036934018135071,"fastlogging-rs root":0.4932869911193848},"CRITICAL":{"logging":0.35025302569071454,"logging OPTIMIZED":0.3499409755071004,"loguru":0.5748069882392883,"fastlogging":0.6723863283793131,"fastlogging THREADS":0.7036889394124349,"fastlogging-rs Logging":0.4946528434753418,"fastlogging-rs root":0.4928922176361084}}}},"rotate":{"short":{"noexc":{"DEBUG":{"logging":2.814431667327881,"logging OPTIMIZED":3.125858783721924,"loguru":3.153211832046509,"fastlogging":0.4229616641998291,"fastlogging THREADS":0.522002100944519,"fastlogging-rs Logging":0.1772820234298706,"fastlogging-rs root":0.17080938816070557},"INFO":{"logging":2.521209716796875,"logging OPTIMIZED":2.5485622882843018,"loguru":2.5727593898773193,"fastlogging":0.34422123432159424,"fastlogging THREADS":0.40656294822692873,"fastlogging-rs Logging":0.17543766498565674,"fastlogging-rs root":0.11566634178161621},"WARNING":{"logging":1.2622531652450562,"logging OPTIMIZED":1.5696005821228027,"loguru":1.9209736585617065,"fastlogging":0.29373019082205637,"fastlogging THREADS":0.25491923093795776,"fastlogging-rs Logging":0.09373712539672852,"fastlogging-rs root":0.08624346256256103},"ERROR":{"logging":1.0682452917099,"logging OPTIMIZED":1.0062739849090576,"loguru":1.2914605140686035,"fastlogging":0.24118537902832032,"fastlogging THREADS":0.1657848358154297,"fastlogging-rs Logging":0.06271181106567383,"fastlogging-rs root":0.061734676361083984},"CRITICAL":{"logging":0.4377830982208252,"logging OPTIMIZED":0.43693156242370607,"loguru":0.6639621257781982,"fastlogging":0.07749285697937011,"fastlogging THREADS":0.08736894130706788,"fastlogging-rs Logging":0.03205010890960693,"fastlogging-rs root":0.029273676872253417}},"exc":{"DEBUG":{"logging":2.9166531562805176,"logging OPTIMIZED":2.9162979125976562,"loguru":4.546786785125732,"fastlogging":0.839988629023234,"fastlogging THREADS":0.9539837042490641,"fastlogging-rs Logging":0.5139121413230896,"fastlogging-rs root":0.5154790282249451},"INFO":{"logging":2.469811201095581,"logging OPTIMIZED":2.4934310913085938,"loguru":3.9421677589416504,"fastlogging":0.7869206269582113,"fastlogging THREADS":0.9178420702616373,"fastlogging-rs Logging":0.5119710564613342,"fastlogging-rs root":0.5060213208198547},"WARNING":{"logging":2.073965549468994,"logging OPTIMIZED":2.0538666248321533,"loguru":3.2933928966522217,"fastlogging":0.7185321648915609,"fastlogging THREADS":0.78277587890625,"fastlogging-rs Logging":0.5086900591850281,"fastlogging-rs root":0.5018360614776611},"ERROR":{"logging":1.6312912702560425,"logging OPTIMIZED":1.6238937377929688,"loguru":2.6366348266601562,"fastlogging":0.6521876454353333,"fastlogging THREADS":0.7770832379659017,"fastlogging-rs Logging":0.5107059478759766,"fastlogging-rs root":0.5001262187957763},"CRITICAL":{"logging":0.4445812225341797,"logging OPTIMIZED":0.4378701686859131,"loguru":0.6868063608805338,"fastlogging":0.592888593673706,"fastlogging THREADS":0.6525014042854309,"fastlogging-rs Logging":0.4980156421661377,"fastlogging-rs root":0.4979701519012451}}},"long":{"noexc":{"DEBUG":{"logging":2.982085704803467,"logging OPTIMIZED":2.3254036903381348,"loguru":3.2591564655303955,"fastlogging":0.5924068689346313,"fastlogging THREADS":0.5828557014465332,"fastlogging-rs Logging":0.1713491678237915,"fastlogging-rs root":0.13797531127929688},"INFO":{"logging":2.4906270503997803,"logging OPTIMIZED":2.2171120643615723,"loguru":2.6526808738708496,"fastlogging":0.5136765837669373,"fastlogging THREADS":0.4641088962554932,"fastlogging-rs Logging":0.13941709995269774,"fastlogging-rs root":0.11133086681365967},"WARNING":{"logging":2.058736562728882,"logging OPTIMIZED":2.0048364400863647,"loguru":1.9741144180297852,"fastlogging":0.34678781032562256,"fastlogging THREADS":0.3506912390391032,"fastlogging-rs Logging":0.12238006591796875,"fastlogging-rs root":0.0930396556854248},"ERROR":{"logging":1.4276403188705444,"logging OPTIMIZED":1.0056548118591309,"loguru":1.315274715423584,"fastlogging":0.3297680446079799,"fastlogging THREADS":0.23491501808166504,"fastlogging-rs Logging":0.060998034477233884,"fastlogging-rs root":0.05482633113861084},"CRITICAL":{"logging":0.6240348219871521,"logging OPTIMIZED":0.5279200077056885,"loguru":0.6801931063334147,"fastlogging":0.1721898317337036,"fastlogging THREADS":0.123199200630188,"fastlogging-rs Logging":0.049096536636352536,"fastlogging-rs root":0.026174426078796387}},"exc":{"DEBUG":{"logging":3.209853410720825,"logging OPTIMIZED":3.114053726196289,"loguru":4.676267147064209,"fastlogging":1.0834184885025024,"fastlogging THREADS":1.0251460075378418,"fastlogging-rs Logging":0.521104097366333,"fastlogging-rs root":0.5122467875480652},"INFO":{"logging":2.6941921710968018,"logging OPTIMIZED":2.63582444190979,"loguru":4.020441293716431,"fastlogging":0.9756096204121908,"fastlogging THREADS":0.9493654568990072,"fastlogging-rs Logging":0.5179970860481262,"fastlogging-rs root":0.5059019923210144},"WARNING":{"logging":2.19207501411438,"logging OPTIMIZED":2.126763343811035,"loguru":3.398088216781616,"fastlogging":0.8677170276641846,"fastlogging THREADS":0.8595096270243326,"fastlogging-rs Logging":0.5266658663749695,"fastlogging-rs root":0.5119657516479492},"ERROR":{"logging":1.778108835220337,"logging OPTIMIZED":1.7456071376800537,"loguru":2.6631908416748047,"fastlogging":0.7426087856292725,"fastlogging THREADS":0.7778865496317545,"fastlogging-rs Logging":0.5090212821960449,"fastlogging-rs root":0.49954924583435056},"CRITICAL":{"logging":0.6319817304611206,"logging OPTIMIZED":0.468479061126709,"loguru":0.6828206380208334,"fastlogging":0.6338964104652405,"fastlogging THREADS":0.7025498549143473,"fastlogging-rs Logging":0.5000253915786743,"fastlogging-rs root":0.49568929672241213}}}}}};
+
+    const COLORS = {
+      "logging": "#fb7185",
+      "logging OPTIMIZED": "#f59e0b",
+      "loguru": "#facc15",
+      "fastlogging": "#22d3ee",
+      "fastlogging THREADS": "#38bdf8",
+      "fastlogging-rs Logging": "#60a5fa",
+      "fastlogging-rs root": "#34d399"
+    };
+
+    const LEVELS = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"];
+    const sel = (id) => document.getElementById(id);
+    const fmt = (n) => Number(n).toFixed(4);
+
+    function getCurrent() {
+      return DATA[sel("os").value][sel("sink").value][sel("size").value][sel("exc").value];
+    }
+
+    function sortedFrameworks(series) {
+      const names = Object.keys(series[LEVELS[0]]);
+      return names.map((name) => {
+        const vals = LEVELS.map((l) => series[l][name]);
+        const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+        return { name, avg, min: Math.min(...vals), max: Math.max(...vals) };
+      }).sort((a, b) => a.avg - b.avg);
+    }
+
+    function renderKpis(series) {
+      const rank = sortedFrameworks(series);
+      const fastest = rank[0].avg;
+      document.getElementById("kpis").innerHTML = rank.map((r, i) => `
+        <article class="kpi">
+          <div class="kpi-name" style="color:${COLORS[r.name] || "#ddd"}">${r.name}</div>
+          <div class="kpi-main">${fmt(r.avg)} ms</div>
+          <div class="kpi-sub">avg latency (${fmt(r.min)} - ${fmt(r.max)} ms)</div>
+          <div class="kpi-sub">${(r.avg / fastest).toFixed(2)}x of fastest</div>
+          ${i === 0 ? '<span class="pill">Fastest in current selection</span>' : ""}
+        </article>
+      `).join("");
+    }
+
+    function renderTable(series) {
+      const frameworks = Object.keys(series.DEBUG);
+      const head = `
+        <thead><tr>
+          <th>Level</th>
+          ${frameworks.map((f) => `<th>${f}</th>`).join("")}
+          <th>Winner</th>
+        </tr></thead>`;
+
+      const rows = LEVELS.map((lvl) => {
+        const values = frameworks.map((f) => ({ f, v: series[lvl][f] }));
+        const winner = values.reduce((a, b) => a.v <= b.v ? a : b);
+        return `<tr>
+          <td>${lvl}</td>
+          ${values.map((x) => `<td class="${x.f === winner.f ? "best" : ""}">${fmt(x.v)}</td>`).join("")}
+          <td class="best">${winner.f}</td>
+        </tr>`;
+      }).join("");
+
+      document.getElementById("table").innerHTML = `${head}<tbody>${rows}</tbody>`;
+    }
+
+    function renderBars(series) {
+      const frameworks = Object.keys(series.DEBUG);
+      const max = Math.max(...LEVELS.flatMap((lvl) => frameworks.map((f) => series[lvl][f])));
+      document.getElementById("bars").innerHTML = LEVELS.map((lvl) => {
+        const vals = frameworks.map((f) => ({ f, v: series[lvl][f] })).sort((a, b) => a.v - b.v);
+        return `<section class="row">
+          <div class="row-head"><strong>${lvl}</strong><span>${vals[0].f} fastest (${fmt(vals[0].v)} ms)</span></div>
+          ${vals.map((x) => `
+            <div class="bar-item">
+              <div class="bar-label">${x.f} - ${fmt(x.v)} ms</div>
+              <div class="bar"><div class="fill" style="width:${(x.v / max) * 100}%;background:${COLORS[x.f] || "#999"}"></div></div>
+            </div>
+          `).join("")}
+        </section>`;
+      }).join("");
+    }
+
+    function render() {
+      const series = getCurrent();
+      renderKpis(series);
+      renderTable(series);
+      renderBars(series);
+    }
+
+    ["os", "sink", "size", "exc"].forEach((id) => sel(id).addEventListener("change", render));
+    render();
+  </script>
+</body>
+</html>
