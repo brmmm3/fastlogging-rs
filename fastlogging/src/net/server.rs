@@ -224,8 +224,8 @@ fn handle_encrypted_client(
         NonceGenerator::new(),
     );
     let seal = aead::Aad::from(config.read().seal.clone());
-    let mut config_level = config.write().level;
-    let mut debug = config.write().debug;
+    let mut config_level;
+    let mut debug;
     loop {
         if stop.load(Ordering::Relaxed) || stop_server.load(Ordering::Relaxed) {
             break;
