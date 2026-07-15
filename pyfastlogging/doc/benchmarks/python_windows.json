@@ -1,0 +1,271 @@
+{
+    "short": {
+        "noexc": {
+            "nolog": {
+                "DEBUG": {
+                    "logging": 0.8660460313161215,
+                    "fastlogging": 0.38824033737182617,
+                    "fastlogging-threads": 0.03605208396911621,
+                    "fastlogging-rs": 0.32398888042994906,
+                    "fastlogging-rs-default": 0.14693813323974608
+                },
+                "INFO": {
+                    "logging": 0.3106620992933001,
+                    "fastlogging": 0.3154074805123465,
+                    "fastlogging-threads": 0.035712265968322755,
+                    "fastlogging-rs": 0.2659359276294708,
+                    "fastlogging-rs-default": 0.12066416740417481
+                },
+                "WARNING": {
+                    "logging": 0.24805212020874023,
+                    "fastlogging": 0.28083619475364685,
+                    "fastlogging-threads": 0.039601683616638184,
+                    "fastlogging-rs": 0.21653759479522705,
+                    "fastlogging-rs-default": 0.0943138599395752
+                },
+                "ERROR": {
+                    "logging": 0.1802340030670166,
+                    "fastlogging": 0.17580277919769288,
+                    "fastlogging-threads": 0.03921947479248047,
+                    "fastlogging-rs": 0.14294543266296386,
+                    "fastlogging-rs-default": 0.07297139167785645
+                },
+                "CRITICAL": {
+                    "logging": 0.10614452362060547,
+                    "fastlogging": 0.10223424434661865,
+                    "fastlogging-threads": 0.035740232467651366,
+                    "fastlogging-rs": 0.10190002918243408,
+                    "fastlogging-rs-default": 0.055482006072998045
+                }
+            }
+        }
+    },
+    "long": {
+        "noexc": {
+            "nolog": {
+                "DEBUG": {
+                    "logging": 0.5184608101844788,
+                    "fastlogging": 0.4417279243469238,
+                    "fastlogging-threads": 0.04783496856689453,
+                    "fastlogging-rs": 0.4237431526184082,
+                    "fastlogging-rs-default": 0.18409345149993897
+                },
+                "INFO": {
+                    "logging": 0.36352745691935223,
+                    "fastlogging": 0.3688046137491862,
+                    "fastlogging-threads": 0.047914862632751465,
+                    "fastlogging-rs": 0.30074804169791086,
+                    "fastlogging-rs-default": 0.13841917514801025
+                },
+                "WARNING": {
+                    "logging": 0.316366365977696,
+                    "fastlogging": 0.28147390484809875,
+                    "fastlogging-threads": 0.0445249080657959,
+                    "fastlogging-rs": 0.24712570508321127,
+                    "fastlogging-rs-default": 0.1211543321609497
+                },
+                "ERROR": {
+                    "logging": 0.21245901584625243,
+                    "fastlogging": 0.21495404243469238,
+                    "fastlogging-threads": 0.04389796257019043,
+                    "fastlogging-rs": 0.2057870149612427,
+                    "fastlogging-rs-default": 0.10118176937103271
+                },
+                "CRITICAL": {
+                    "logging": 0.13479418754577638,
+                    "fastlogging": 0.13485195636749267,
+                    "fastlogging-threads": 0.04975416660308838,
+                    "fastlogging-rs": 0.11095354557037354,
+                    "fastlogging-rs-default": 0.06378774642944336
+                }
+            },
+            "file": {
+                "DEBUG": {
+                    "logging": 3.0890824794769287,
+                    "fastlogging": 2.912510871887207,
+                    "fastlogging-threads": 5.6367316246032715,
+                    "fastlogging-rs": 0.8105748494466146,
+                    "fastlogging-rs-default": 0.9403628508249918
+                },
+                "INFO": {
+                    "logging": 2.6157259941101074,
+                    "fastlogging": 2.846670150756836,
+                    "fastlogging-threads": 4.134362697601318,
+                    "fastlogging-rs": 0.8558349609375,
+                    "fastlogging-rs-default": 0.7589279015858968
+                },
+                "WARNING": {
+                    "logging": 1.9951382875442505,
+                    "fastlogging": 2.070709466934204,
+                    "fastlogging-threads": 3.625549793243408,
+                    "fastlogging-rs": 0.5797985196113586,
+                    "fastlogging-rs-default": 0.5399134755134583
+                },
+                "ERROR": {
+                    "logging": 1.144237995147705,
+                    "fastlogging": 1.467225432395935,
+                    "fastlogging-threads": 2.1390767097473145,
+                    "fastlogging-rs": 0.49360003471374514,
+                    "fastlogging-rs-default": 0.408521842956543
+                },
+                "CRITICAL": {
+                    "logging": 0.5926936864852905,
+                    "fastlogging": 0.62452232837677,
+                    "fastlogging-threads": 1.1591051816940308,
+                    "fastlogging-rs": 0.22463695208231607,
+                    "fastlogging-rs-default": 0.21794891357421875
+                }
+            },
+            "rotate": {
+                "DEBUG": {
+                    "logging": 7.1152777671813965,
+                    "fastlogging": 5.747271299362183,
+                    "fastlogging-threads": 6.166006088256836,
+                    "fastlogging-rs": 1.1599953174591064,
+                    "fastlogging-rs-default": 1.071299433708191
+                },
+                "INFO": {
+                    "logging": 5.816801309585571,
+                    "fastlogging": 3.398805856704712,
+                    "fastlogging-threads": 5.618066310882568,
+                    "fastlogging-rs": 2.18399977684021,
+                    "fastlogging-rs-default": 0.9046932061513265
+                },
+                "WARNING": {
+                    "logging": 4.11165976524353,
+                    "fastlogging": 2.884753465652466,
+                    "fastlogging-threads": 3.5622591972351074,
+                    "fastlogging-rs": 1.1240301132202148,
+                    "fastlogging-rs-default": 0.7062164942423502
+                },
+                "ERROR": {
+                    "logging": 2.271828532218933,
+                    "fastlogging": 2.8556578159332275,
+                    "fastlogging-threads": 2.2489428520202637,
+                    "fastlogging-rs": 0.43036208152770994,
+                    "fastlogging-rs-default": 0.404651403427124
+                },
+                "CRITICAL": {
+                    "logging": 1.1092967987060547,
+                    "fastlogging": 1.3111573457717896,
+                    "fastlogging-threads": 1.4101542234420776,
+                    "fastlogging-rs": 0.29038023948669434,
+                    "fastlogging-rs-default": 0.24872914950052896
+                }
+            }
+        },
+        "exc": {
+            "nolog": {
+                "DEBUG": {
+                    "logging": 0.4832885265350342,
+                    "fastlogging": 0.46837244033813474,
+                    "fastlogging-threads": 0.049032282829284665,
+                    "fastlogging-rs": 1.2173250913619995,
+                    "fastlogging-rs-default": 1.1159683465957642
+                },
+                "INFO": {
+                    "logging": 0.3929516077041626,
+                    "fastlogging": 0.38117241859436035,
+                    "fastlogging-threads": 0.04040138721466065,
+                    "fastlogging-rs": 1.1221123933792114,
+                    "fastlogging-rs-default": 0.9143893718719482
+                },
+                "WARNING": {
+                    "logging": 0.32194723401750835,
+                    "fastlogging": 0.2971870558602469,
+                    "fastlogging-threads": 0.051984429359436035,
+                    "fastlogging-rs": 1.1386700868606567,
+                    "fastlogging-rs-default": 0.8684391180674235
+                },
+                "ERROR": {
+                    "logging": 0.29503253528050016,
+                    "fastlogging": 0.2564615309238434,
+                    "fastlogging-threads": 0.047557520866394046,
+                    "fastlogging-rs": 0.9661946296691895,
+                    "fastlogging-rs-default": 0.8543953895568848
+                },
+                "CRITICAL": {
+                    "logging": 0.13990569114685059,
+                    "fastlogging": 0.1574005365371704,
+                    "fastlogging-threads": 0.05876178741455078,
+                    "fastlogging-rs": 1.4773204326629639,
+                    "fastlogging-rs-default": 1.2368676662445068
+                }
+            },
+            "file": {
+                "DEBUG": {
+                    "logging": 4.310497283935547,
+                    "fastlogging": 4.023730039596558,
+                    "fastlogging-threads": 7.136587381362915,
+                    "fastlogging-rs": 1.7496923208236694,
+                    "fastlogging-rs-default": 2.1630215644836426
+                },
+                "INFO": {
+                    "logging": 3.8335392475128174,
+                    "fastlogging": 4.147623538970947,
+                    "fastlogging-threads": 5.895253419876099,
+                    "fastlogging-rs": 1.6037958860397339,
+                    "fastlogging-rs-default": 2.187922716140747
+                },
+                "WARNING": {
+                    "logging": 2.88676381111145,
+                    "fastlogging": 3.2128775119781494,
+                    "fastlogging-threads": 4.991959571838379,
+                    "fastlogging-rs": 1.4155770540237427,
+                    "fastlogging-rs-default": 2.157701253890991
+                },
+                "ERROR": {
+                    "logging": 2.3559460639953613,
+                    "fastlogging": 2.47710919380188,
+                    "fastlogging-threads": 3.9162895679473877,
+                    "fastlogging-rs": 1.319351315498352,
+                    "fastlogging-rs-default": 1.8333698511123657
+                },
+                "CRITICAL": {
+                    "logging": 0.7923611799875895,
+                    "fastlogging": 0.669614315032959,
+                    "fastlogging-threads": 1.0085804462432861,
+                    "fastlogging-rs": 1.0877095460891724,
+                    "fastlogging-rs-default": 1.4029980897903442
+                }
+            },
+            "rotate": {
+                "DEBUG": {
+                    "logging": 5.474794626235962,
+                    "fastlogging": 5.218543291091919,
+                    "fastlogging-threads": 8.684524059295654,
+                    "fastlogging-rs": 1.7258782386779785,
+                    "fastlogging-rs-default": 2.0683863162994385
+                },
+                "INFO": {
+                    "logging": 4.493827819824219,
+                    "fastlogging": 4.888278007507324,
+                    "fastlogging-threads": 7.46995210647583,
+                    "fastlogging-rs": 1.7198256254196167,
+                    "fastlogging-rs-default": 2.066450834274292
+                },
+                "WARNING": {
+                    "logging": 3.6955063343048096,
+                    "fastlogging": 3.6705055236816406,
+                    "fastlogging-threads": 5.726639747619629,
+                    "fastlogging-rs": 1.5716627836227417,
+                    "fastlogging-rs-default": 1.7992442846298218
+                },
+                "ERROR": {
+                    "logging": 2.9187369346618652,
+                    "fastlogging": 2.890775442123413,
+                    "fastlogging-threads": 5.0570900440216064,
+                    "fastlogging-rs": 1.2592486143112183,
+                    "fastlogging-rs-default": 1.5179754495620728
+                },
+                "CRITICAL": {
+                    "logging": 1.0888950824737549,
+                    "fastlogging": 1.1043193340301514,
+                    "fastlogging-threads": 1.557138442993164,
+                    "fastlogging-rs": 1.3434853553771973,
+                    "fastlogging-rs-default": 1.6044576168060303
+                }
+            }
+        }
+    }
+}

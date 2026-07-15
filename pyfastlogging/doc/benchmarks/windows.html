@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Windows Benchmarks - pyfastlogging</title>
+  <style>
+    :root {
+      --bg: #070b14;
+      --panel: rgba(19, 27, 46, 0.72);
+      --border: rgba(148, 163, 184, 0.2);
+      --text: #e6eeff;
+      --muted: #9fb0d9;
+      --good: #34d399;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--text);
+      font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
+      background:
+        radial-gradient(1100px 700px at -20% -10%, #1a3a7a44, transparent 60%),
+        radial-gradient(1100px 700px at 120% 110%, #6f1f7f44, transparent 60%),
+        var(--bg);
+      min-height: 100vh;
+    }
+    .wrap {
+      width: min(1280px, 94vw);
+      margin: 22px auto 34px;
+      display: grid;
+      gap: 14px;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 8px 24px #00000040;
+    }
+    h1 { margin: 0; font-size: clamp(24px, 3vw, 34px); }
+    .sub { margin-top: 8px; color: var(--muted); }
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 10px;
+    }
+    label { display: block; color: var(--muted); font-size: 12px; margin-bottom: 5px; }
+    select {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid #334155;
+      background: #0b1220;
+      color: var(--text);
+      font-size: 14px;
+      padding: 10px;
+    }
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 10px;
+    }
+    .kpi {
+      border: 1px solid #ffffff22;
+      border-radius: 12px;
+      padding: 12px;
+      background: #0b1325aa;
+    }
+    .kpi-name { font-weight: 700; margin-bottom: 6px; }
+    .kpi-main { font-size: 22px; }
+    .kpi-sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+    .pill {
+      display: inline-block;
+      background: linear-gradient(135deg, #6ee7b7, #34d399);
+      color: #062016;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-top: 7px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th, td { padding: 9px 10px; border-bottom: 1px solid #ffffff14; text-align: left; }
+    th { background: #0a1325; color: #c9d6ff; position: sticky; top: 0; }
+    tr:hover td { background: #ffffff08; }
+    .best { color: var(--good); font-weight: 700; }
+    .bars { display: grid; gap: 10px; }
+    .row {
+      background: #0b1325;
+      border: 1px solid #ffffff12;
+      border-radius: 12px;
+      padding: 10px;
+    }
+    .row-head {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 7px;
+      color: #c8d5ff;
+      font-size: 13px;
+    }
+    .bar-item { margin-top: 7px; }
+    .bar-label { color: var(--muted); font-size: 12px; margin-bottom: 3px; }
+    .bar {
+      height: 10px;
+      border-radius: 999px;
+      background: #0f1a31;
+      border: 1px solid #ffffff12;
+      overflow: hidden;
+    }
+    .fill { height: 100%; border-radius: 999px; }
+    .note { color: var(--muted); font-size: 12px; }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="card">
+      <h1>pyfastlogging Windows Benchmark Dashboard</h1>
+      <div class="sub">Interactive view generated from HTML files in <code>pyfastlogging/doc/benchmarks/windows</code>. Lower values are faster.</div>
+    </section>
+
+    <section class="card controls">
+      <div>
+        <label for="sink">Sink</label>
+        <select id="sink">
+          <option value="nolog">No log file</option>
+          <option value="file">Log file</option>
+          <option value="rotate">Rotating log file</option>
+        </select>
+      </div>
+      <div>
+        <label for="size">Message size</label>
+        <select id="size">
+          <option value="short">short</option>
+          <option value="long">long</option>
+        </select>
+      </div>
+      <div>
+        <label for="exc">Exception benchmark mode</label>
+        <select id="exc">
+          <option value="noexc">noexc</option>
+          <option value="exc">exc</option>
+        </select>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="kpis" id="kpis"></div>
+    </section>
+
+    <section class="card" style="overflow:auto">
+      <table id="table"></table>
+    </section>
+
+    <section class="card">
+      <div class="bars" id="bars"></div>
+    </section>
+
+    <section class="card note">
+      Source files: file_*.html, nolog_*.html, rotate_*.html (+ *_exc_* variants) in the windows benchmark folder.
+    </section>
+  </main>
+
+  <script>
+    const DATA = {"nolog":{"short":{"noexc":{"DEBUG":{"fastlogging-rs root":0.2128,"loguru":0.0434,"fastlogging DIRECT":0.3665,"fastlogging THREADS":0.1815,"fastlogging-rs Logging":0.2334,"logging Optimized":0.4427,"logging":0.9254},"ERROR":{"fastlogging-rs root":0.2434,"loguru":0.0442,"fastlogging DIRECT":0.1786,"fastlogging THREADS":0.089,"fastlogging-rs Logging":0.1003,"logging Optimized":0.2251,"logging":0.2598},"WARNING":{"fastlogging-rs root":0.2133,"loguru":0.0466,"fastlogging DIRECT":0.2435,"fastlogging THREADS":0.1164,"fastlogging-rs Logging":0.1337,"logging Optimized":0.3415,"logging":0.3188},"INFO":{"fastlogging-rs root":0.2282,"loguru":0.0454,"fastlogging DIRECT":0.299,"fastlogging THREADS":0.1367,"fastlogging-rs Logging":0.1867,"logging Optimized":0.3583,"logging":0.3564},"CRITICAL":{"fastlogging-rs root":0.2185,"loguru":0.0448,"fastlogging DIRECT":0.1106,"fastlogging THREADS":0.0668,"fastlogging-rs Logging":0.053,"logging Optimized":0.1273,"logging":0.143}},"exc":{"DEBUG":{"fastlogging-rs root":0.2517,"loguru":0.0558,"fastlogging DIRECT":1.7471,"fastlogging THREADS":1.2845,"fastlogging-rs Logging":1.082,"logging Optimized":0.4802,"logging":0.5418},"ERROR":{"fastlogging-rs root":0.2641,"loguru":0.0516,"fastlogging DIRECT":1.0756,"fastlogging THREADS":1.0157,"fastlogging-rs Logging":1.0669,"logging Optimized":0.2656,"logging":0.2904},"WARNING":{"fastlogging-rs root":0.2662,"loguru":0.053,"fastlogging DIRECT":1.3168,"fastlogging THREADS":1.1281,"fastlogging-rs Logging":1.0881,"logging Optimized":0.3755,"logging":0.3343},"INFO":{"fastlogging-rs root":0.2588,"loguru":0.0523,"fastlogging DIRECT":1.098,"fastlogging THREADS":1.0527,"fastlogging-rs Logging":1.5114,"logging Optimized":0.4428,"logging":0.4911},"CRITICAL":{"fastlogging-rs root":0.2515,"loguru":0.0609,"fastlogging DIRECT":1.1381,"fastlogging THREADS":0.9948,"fastlogging-rs Logging":1.0536,"logging Optimized":0.1545,"logging":0.1507}}},"long":{"noexc":{"DEBUG":{"fastlogging-rs root":0.2231,"loguru":0.0478,"fastlogging DIRECT":0.4237,"fastlogging THREADS":0.1841,"fastlogging-rs Logging":0.2159,"logging Optimized":0.4417,"logging":0.5185},"ERROR":{"fastlogging-rs root":0.2139,"loguru":0.0439,"fastlogging DIRECT":0.2058,"fastlogging THREADS":0.1012,"fastlogging-rs Logging":0.1039,"logging Optimized":0.215,"logging":0.2125},"WARNING":{"fastlogging-rs root":0.2127,"loguru":0.0445,"fastlogging DIRECT":0.2471,"fastlogging THREADS":0.1212,"fastlogging-rs Logging":0.1327,"logging Optimized":0.2815,"logging":0.3164},"INFO":{"fastlogging-rs root":0.2509,"loguru":0.0479,"fastlogging DIRECT":0.3007,"fastlogging THREADS":0.1384,"fastlogging-rs Logging":0.189,"logging Optimized":0.3688,"logging":0.3635},"CRITICAL":{"fastlogging-rs root":0.2201,"loguru":0.0498,"fastlogging DIRECT":0.111,"fastlogging THREADS":0.0638,"fastlogging-rs Logging":0.0488,"logging Optimized":0.1349,"logging":0.1348}},"exc":{"DEBUG":{"fastlogging-rs root":0.2154,"loguru":0.049,"fastlogging DIRECT":1.2173,"fastlogging THREADS":1.116,"fastlogging-rs Logging":0.9077,"logging Optimized":0.4684,"logging":0.4833},"ERROR":{"fastlogging-rs root":0.23,"loguru":0.0476,"fastlogging DIRECT":0.9662,"fastlogging THREADS":0.8544,"fastlogging-rs Logging":0.9441,"logging Optimized":0.2565,"logging":0.295},"WARNING":{"fastlogging-rs root":0.2349,"loguru":0.052,"fastlogging DIRECT":1.1387,"fastlogging THREADS":0.8684,"fastlogging-rs Logging":0.8708,"logging Optimized":0.2972,"logging":0.3219},"INFO":{"fastlogging-rs root":0.2431,"loguru":0.0404,"fastlogging DIRECT":1.1221,"fastlogging THREADS":0.9144,"fastlogging-rs Logging":0.9595,"logging Optimized":0.3812,"logging":0.393},"CRITICAL":{"fastlogging-rs root":0.2296,"loguru":0.0588,"fastlogging DIRECT":1.4773,"fastlogging THREADS":1.2369,"fastlogging-rs Logging":0.8711,"logging Optimized":0.1574,"logging":0.1399}}}},"rotate":{"short":{"noexc":{"DEBUG":{"fastlogging-rs root":0.4026,"loguru":5.6728,"fastlogging DIRECT":2.5673,"fastlogging THREADS":1.0374,"fastlogging-rs Logging":0.4553,"logging Optimized":5.673,"logging":4.6689},"ERROR":{"fastlogging-rs root":0.291,"loguru":2.5385,"fastlogging DIRECT":0.4131,"fastlogging THREADS":0.299,"fastlogging-rs Logging":0.1384,"logging Optimized":1.8068,"logging":1.3544},"WARNING":{"fastlogging-rs root":0.2777,"loguru":3.6854,"fastlogging DIRECT":0.7902,"fastlogging THREADS":0.4432,"fastlogging-rs Logging":0.1944,"logging Optimized":3.0283,"logging":3.2201},"INFO":{"fastlogging-rs root":0.489,"loguru":4.7211,"fastlogging DIRECT":1.4057,"fastlogging THREADS":1.0039,"fastlogging-rs Logging":0.2921,"logging Optimized":3.7789,"logging":3.7977},"CRITICAL":{"fastlogging-rs root":0.2795,"loguru":1.2753,"fastlogging DIRECT":0.145,"fastlogging THREADS":0.1708,"fastlogging-rs Logging":0.0725,"logging Optimized":1.0417,"logging":0.811}},"exc":{"DEBUG":{"fastlogging-rs root":0.3237,"loguru":8.8965,"fastlogging DIRECT":1.3996,"fastlogging THREADS":2.0466,"fastlogging-rs Logging":1.0301,"logging Optimized":5.74,"logging":5.7784},"ERROR":{"fastlogging-rs root":0.2904,"loguru":4.9712,"fastlogging DIRECT":1.0686,"fastlogging THREADS":1.4157,"fastlogging-rs Logging":0.9319,"logging Optimized":2.6506,"logging":2.8344},"WARNING":{"fastlogging-rs root":0.2957,"loguru":5.4769,"fastlogging DIRECT":1.3767,"fastlogging THREADS":1.5629,"fastlogging-rs Logging":0.9905,"logging Optimized":3.7373,"logging":4.7851},"INFO":{"fastlogging-rs root":0.3969,"loguru":6.5678,"fastlogging DIRECT":1.2344,"fastlogging THREADS":1.667,"fastlogging-rs Logging":1.1325,"logging Optimized":4.0026,"logging":4.6381},"CRITICAL":{"fastlogging-rs root":0.2805,"loguru":1.3597,"fastlogging DIRECT":1.1092,"fastlogging THREADS":1.6684,"fastlogging-rs Logging":0.9789,"logging Optimized":1.1625,"logging":0.8396}}},"long":{"noexc":{"DEBUG":{"fastlogging-rs root":0.3185,"loguru":6.166,"fastlogging DIRECT":1.16,"fastlogging THREADS":1.0713,"fastlogging-rs Logging":0.3101,"logging Optimized":5.7473,"logging":7.1153},"ERROR":{"fastlogging-rs root":0.2885,"loguru":2.2489,"fastlogging DIRECT":0.4304,"fastlogging THREADS":0.4047,"fastlogging-rs Logging":0.1274,"logging Optimized":2.8557,"logging":2.2718},"WARNING":{"fastlogging-rs root":0.2704,"loguru":3.5623,"fastlogging DIRECT":1.124,"fastlogging THREADS":0.7062,"fastlogging-rs Logging":0.2078,"logging Optimized":2.8848,"logging":4.1117},"INFO":{"fastlogging-rs root":0.3043,"loguru":5.6181,"fastlogging DIRECT":2.184,"fastlogging THREADS":0.9047,"fastlogging-rs Logging":0.2776,"logging Optimized":3.3988,"logging":5.8168},"CRITICAL":{"fastlogging-rs root":0.2661,"loguru":1.4102,"fastlogging DIRECT":0.2904,"fastlogging THREADS":0.2487,"fastlogging-rs Logging":0.0713,"logging Optimized":1.3112,"logging":1.1093}},"exc":{"DEBUG":{"fastlogging-rs root":0.309,"loguru":8.6845,"fastlogging DIRECT":1.7259,"fastlogging THREADS":2.0684,"fastlogging-rs Logging":1.0091,"logging Optimized":5.2185,"logging":5.4748},"ERROR":{"fastlogging-rs root":0.3239,"loguru":5.0571,"fastlogging DIRECT":1.2592,"fastlogging THREADS":1.518,"fastlogging-rs Logging":0.9917,"logging Optimized":2.8908,"logging":2.9187},"WARNING":{"fastlogging-rs root":0.3149,"loguru":5.7266,"fastlogging DIRECT":1.5717,"fastlogging THREADS":1.7992,"fastlogging-rs Logging":1.0471,"logging Optimized":3.6705,"logging":3.6955},"INFO":{"fastlogging-rs root":0.3182,"loguru":7.47,"fastlogging DIRECT":1.7198,"fastlogging THREADS":2.0665,"fastlogging-rs Logging":1.1484,"logging Optimized":4.8883,"logging":4.4938},"CRITICAL":{"fastlogging-rs root":0.3451,"loguru":1.5571,"fastlogging DIRECT":1.3435,"fastlogging THREADS":1.6045,"fastlogging-rs Logging":1.0763,"logging Optimized":1.1043,"logging":1.0889}}}},"file":{"short":{"noexc":{"DEBUG":{"fastlogging-rs root":0.3039,"loguru":4.9964,"fastlogging DIRECT":1.2937,"fastlogging THREADS":1.2932,"fastlogging-rs Logging":1.3419,"logging Optimized":3.1205,"logging":4.3797},"ERROR":{"fastlogging-rs root":0.3174,"loguru":2.0437,"fastlogging DIRECT":0.856,"fastlogging THREADS":0.8801,"fastlogging-rs Logging":0.9268,"logging Optimized":1.9031,"logging":1.6134},"WARNING":{"fastlogging-rs root":0.3083,"loguru":2.8155,"fastlogging DIRECT":0.7878,"fastlogging THREADS":0.787,"fastlogging-rs Logging":0.5702,"logging Optimized":2.3361,"logging":2.2362},"INFO":{"fastlogging-rs root":0.3091,"loguru":3.8756,"fastlogging DIRECT":1.0444,"fastlogging THREADS":1.1698,"fastlogging-rs Logging":1.2465,"logging Optimized":3.086,"logging":2.5002},"CRITICAL":{"fastlogging-rs root":0.2864,"loguru":0.9683,"fastlogging DIRECT":0.5187,"fastlogging THREADS":0.5198,"fastlogging-rs Logging":0.1515,"logging Optimized":0.9,"logging":0.8683}},"exc":{"DEBUG":{"fastlogging-rs root":0.3277,"loguru":7.3857,"fastlogging DIRECT":1.5193,"fastlogging THREADS":1.9307,"fastlogging-rs Logging":1.0662,"logging Optimized":3.9966,"logging":4.7797},"ERROR":{"fastlogging-rs root":0.3059,"loguru":4.1823,"fastlogging DIRECT":1.1511,"fastlogging THREADS":1.7505,"fastlogging-rs Logging":1.0963,"logging Optimized":2.3289,"logging":2.3418},"WARNING":{"fastlogging-rs root":0.2941,"loguru":5.0083,"fastlogging DIRECT":1.235,"fastlogging THREADS":1.7912,"fastlogging-rs Logging":1.0619,"logging Optimized":3.1879,"logging":3.1239},"INFO":{"fastlogging-rs root":0.3499,"loguru":5.8867,"fastlogging DIRECT":1.7183,"fastlogging THREADS":1.7996,"fastlogging-rs Logging":1.0864,"logging Optimized":3.7692,"logging":3.7351},"CRITICAL":{"fastlogging-rs root":0.323,"loguru":0.9605,"fastlogging DIRECT":1.0178,"fastlogging THREADS":1.49,"fastlogging-rs Logging":1.0564,"logging Optimized":0.5888,"logging":0.5829}}},"long":{"noexc":{"DEBUG":{"fastlogging-rs root":0.3784,"loguru":5.6367,"fastlogging DIRECT":0.8106,"fastlogging THREADS":0.9404,"fastlogging-rs Logging":0.3493,"logging Optimized":2.9125,"logging":3.0891},"ERROR":{"fastlogging-rs root":0.2789,"loguru":2.1391,"fastlogging DIRECT":0.4936,"fastlogging THREADS":0.4085,"fastlogging-rs Logging":0.1403,"logging Optimized":1.4672,"logging":1.1442},"WARNING":{"fastlogging-rs root":0.2886,"loguru":3.6255,"fastlogging DIRECT":0.5798,"fastlogging THREADS":0.5399,"fastlogging-rs Logging":0.1944,"logging Optimized":2.0707,"logging":1.9951},"INFO":{"fastlogging-rs root":0.3307,"loguru":4.1344,"fastlogging DIRECT":0.8558,"fastlogging THREADS":0.7589,"fastlogging-rs Logging":0.2958,"logging Optimized":2.8467,"logging":2.6157},"CRITICAL":{"fastlogging-rs root":0.2691,"loguru":1.1591,"fastlogging DIRECT":0.2246,"fastlogging THREADS":0.2179,"fastlogging-rs Logging":0.0708,"logging Optimized":0.6245,"logging":0.5927}},"exc":{"DEBUG":{"fastlogging-rs root":0.3698,"loguru":7.1366,"fastlogging DIRECT":1.7497,"fastlogging THREADS":2.163,"fastlogging-rs Logging":1.0951,"logging Optimized":4.0237,"logging":4.3105},"ERROR":{"fastlogging-rs root":0.3072,"loguru":3.9163,"fastlogging DIRECT":1.3194,"fastlogging THREADS":1.8334,"fastlogging-rs Logging":1.1966,"logging Optimized":2.4771,"logging":2.3559},"WARNING":{"fastlogging-rs root":0.2977,"loguru":4.992,"fastlogging DIRECT":1.4156,"fastlogging THREADS":2.1577,"fastlogging-rs Logging":1.015,"logging Optimized":3.2129,"logging":2.8868},"INFO":{"fastlogging-rs root":0.3316,"loguru":5.8953,"fastlogging DIRECT":1.6038,"fastlogging THREADS":2.1879,"fastlogging-rs Logging":1.0086,"logging Optimized":4.1476,"logging":3.8335},"CRITICAL":{"fastlogging-rs root":0.3045,"loguru":1.0086,"fastlogging DIRECT":1.0877,"fastlogging THREADS":1.403,"fastlogging-rs Logging":1.0194,"logging Optimized":0.6696,"logging":0.7924}}}}};
+
+    const COLORS = {
+      "logging": "#fb7185",
+      "logging Optimized": "#f59e0b",
+      "loguru": "#facc15",
+      "fastlogging DIRECT": "#22d3ee",
+      "fastlogging THREADS": "#38bdf8",
+      "fastlogging-rs Logging": "#60a5fa",
+      "fastlogging-rs root": "#34d399"
+    };
+
+    const LEVELS = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"];
+    const sel = (id) => document.getElementById(id);
+    const fmt = (n) => Number(n).toFixed(4);
+
+    function getCurrent() {
+      return DATA[sel("sink").value][sel("size").value][sel("exc").value];
+    }
+
+    function sortedFrameworks(series) {
+      const names = Object.keys(series[LEVELS[0]]);
+      return names.map((name) => {
+        const vals = LEVELS.map((l) => series[l][name]);
+        const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+        return { name, avg, min: Math.min(...vals), max: Math.max(...vals) };
+      }).sort((a, b) => a.avg - b.avg);
+    }
+
+    function renderKpis(series) {
+      const rank = sortedFrameworks(series);
+      const fastest = rank[0].avg;
+      document.getElementById("kpis").innerHTML = rank.map((r, i) => `
+        <article class="kpi">
+          <div class="kpi-name" style="color:${COLORS[r.name] || "#ddd"}">${r.name}</div>
+          <div class="kpi-main">${fmt(r.avg)} ms</div>
+          <div class="kpi-sub">avg latency (${fmt(r.min)} - ${fmt(r.max)} ms)</div>
+          <div class="kpi-sub">${(r.avg / fastest).toFixed(2)}x of fastest</div>
+          ${i === 0 ? '<span class="pill">Fastest in current selection</span>' : ""}
+        </article>
+      `).join("");
+    }
+
+    function renderTable(series) {
+      const frameworks = Object.keys(series.DEBUG);
+      const head = `
+        <thead><tr>
+          <th>Level</th>
+          ${frameworks.map((f) => `<th>${f}</th>`).join("")}
+          <th>Winner</th>
+        </tr></thead>`;
+
+      const rows = LEVELS.map((lvl) => {
+        const values = frameworks.map((f) => ({ f, v: series[lvl][f] }));
+        const winner = values.reduce((a, b) => a.v <= b.v ? a : b);
+        return `<tr>
+          <td>${lvl}</td>
+          ${values.map((x) => `<td class="${x.f === winner.f ? "best" : ""}">${fmt(x.v)}</td>`).join("")}
+          <td class="best">${winner.f}</td>
+        </tr>`;
+      }).join("");
+
+      document.getElementById("table").innerHTML = `${head}<tbody>${rows}</tbody>`;
+    }
+
+    function renderBars(series) {
+      const frameworks = Object.keys(series.DEBUG);
+      const max = Math.max(...LEVELS.flatMap((lvl) => frameworks.map((f) => series[lvl][f])));
+      document.getElementById("bars").innerHTML = LEVELS.map((lvl) => {
+        const vals = frameworks.map((f) => ({ f, v: series[lvl][f] })).sort((a, b) => a.v - b.v);
+        return `<section class="row">
+          <div class="row-head"><strong>${lvl}</strong><span>${vals[0].f} fastest (${fmt(vals[0].v)} ms)</span></div>
+          ${vals.map((x) => `
+            <div class="bar-item">
+              <div class="bar-label">${x.f} - ${fmt(x.v)} ms</div>
+              <div class="bar"><div class="fill" style="width:${(x.v / max) * 100}%;background:${COLORS[x.f] || "#999"}"></div></div>
+            </div>
+          `).join("")}
+        </section>`;
+      }).join("");
+    }
+
+    function render() {
+      const series = getCurrent();
+      renderKpis(series);
+      renderTable(series);
+      renderBars(series);
+    }
+
+    ["sink", "size", "exc"].forEach((id) => sel(id).addEventListener("change", render));
+    render();
+  </script>
+</body>
+</html>

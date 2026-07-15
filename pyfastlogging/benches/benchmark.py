@@ -464,10 +464,12 @@ if __name__ == "__main__":
                     ]
                     dtAllJsonMsgExcName[Level2Sym(level).name] = {
                         "logging": dts[0],
-                        "fastlogging": dts[1],
-                        "fastlogging-threads": dts[2],
-                        "fastlogging-rs": dts[3],
-                        "fastlogging-rs-default": dts[4],
+                        "logging-optimized": dts[1],
+                        "loguru": dts[2],
+                        "fastlogging": dts[3],
+                        "fastlogging-threads": dts[4],
+                        "fastlogging-rs": dts[5],
+                        "fastlogging-rs-root": dts[6],
                     }
                     dtAll[Level2Sym(level).name] = ", ".join(
                         [f"{dt: .4f}" for dt in dts]
@@ -480,7 +482,7 @@ if __name__ == "__main__":
                         "FastLogging",
                         "FastLoggingThread",
                         "FastLoggingRs",
-                        "FastLoggingRsDefault",
+                        "FastLoggingRsRoot",
                     ):
                         title = GetTitle(prefix, msg, fileName, bRotate, bWithException, level)
                         if pathName := GetPathName(tmpDirName, fileName, title):
