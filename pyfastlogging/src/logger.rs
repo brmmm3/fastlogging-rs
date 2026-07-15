@@ -1,7 +1,8 @@
 use std::cmp;
 
+use pyo3::{exceptions::PyException, prelude::*};
+
 use fastlogging::{CRITICAL, DEBUG, ERROR, EXCEPTION, FATAL, INFO, SUCCESS, TRACE, WARNING};
-use pyo3::{exceptions::PyException, prelude::*, types::PyString};
 
 #[pyclass]
 #[derive(Debug)]
@@ -13,13 +14,9 @@ pub struct Logger {
 }
 
 impl Logger {
-    fn do_indent(&self, obj: Bound<'_, PyAny>) -> PyResult<String> {
+    fn do_indent(&self, msg: &str) -> PyResult<String> {
         Python::attach(|py| -> PyResult<String> {
-            let mut message: String = if let Ok(py_str) = obj.cast::<PyString>() {
-                py_str.to_string()
-            } else {
-                obj.str()?.to_string()
-            };
+            let mut message: String = msg.to_string();
             if let Some((offset, inc, max, s)) = &self.indent
                 && let Ok(mut frame) = self.getframe.call1(py, (*offset,))
             {
@@ -53,14 +50,15 @@ impl Logger {
         indent: Option<(usize, usize, usize)>,
         tname: Option<bool>,
         tid: Option<bool>,
+        py: Python,
     ) -> PyResult<Self> {
-        let (getframe, format_exc) = Python::attach(|py| -> PyResult<(Py<PyAny>, Py<PyAny>)> {
+        let (getframe, format_exc) = {
             let sys = py.import("sys")?;
             let getframe = sys.getattr("_getframe")?;
             let traceback = py.import("traceback")?;
             let format_exc = traceback.getattr("format_exc")?;
-            Ok((getframe.into(), format_exc.into()))
-        })?;
+            (getframe.into(), format_exc.into())
+        };
         let indent = match indent {
             Some((offset, mut inc, mut max)) => {
                 inc = cmp::min(inc, 8);
@@ -100,108 +98,101 @@ impl Logger {
 
     // Logging calls
 
-    #[pyo3(signature = (obj, /))]
-    pub fn trace(&self, obj: Bound<'_, PyAny>) -> PyResult<()> {
+    #[pyo3(signature = (msg, /))]
+    pub fn trace(&self, msg: &str) -> PyResult<()> {
         if self.instance.level() <= TRACE {
             self.instance
-                .trace(self.do_indent(obj)?)
+                .trace(self.do_indent(msg)?)
                 .map_err(|e| PyException::new_err(e.to_string()))
         } else {
             Ok(())
         }
     }
 
-    #[pyo3(signature = (obj, /))]
-    pub fn debug(&self, obj: Bound<'_, PyAny>) -> PyResult<()> {
+    #[pyo3(signature = (msg, /))]
+    pub fn debug(&self, msg: &str) -> PyResult<()> {
         if self.instance.level() <= DEBUG {
             self.instance
-                .debug(self.do_indent(obj)?)
+                .debug(self.do_indent(msg)?)
                 .map_err(|e| PyException::new_err(e.to_string()))
         } else {
             Ok(())
         }
     }
 
-    #[pyo3(signature = (obj, /))]
-    pub fn info(&self, obj: Bound<'_, PyAny>) -> PyResult<()> {
+    #[pyo3(signature = (msg, /))]
+    pub fn info(&self, msg: &str) -> PyResult<()> {
         if self.instance.level() <= INFO {
             self.instance
-                .info(self.do_indent(obj)?)
+                .info(self.do_indent(msg)?)
                 .map_err(|e| PyException::new_err(e.to_string()))
         } else {
             Ok(())
         }
     }
 
-    #[pyo3(signature = (obj, /))]
-    pub fn success(&self, obj: Bound<'_, PyAny>) -> PyResult<()> {
+    #[pyo3(signature = (msg, /))]
+    pub fn success(&self, msg: &str) -> PyResult<()> {
         if self.instance.level() <= SUCCESS {
             self.instance
-                .success(self.do_indent(obj)?)
+                .success(self.do_indent(msg)?)
                 .map_err(|e| PyException::new_err(e.to_string()))
         } else {
             Ok(())
         }
     }
 
-    #[pyo3(signature = (obj, /))]
-    pub fn warning(&self, obj: Bound<'_, PyAny>) -> PyResult<()> {
+    #[pyo3(signature = (msg, /))]
+    pub fn warning(&self, msg: &str) -> PyResult<()> {
         if self.instance.level() <= WARNING {
             self.instance
-                .warning(self.do_indent(obj)?)
+                .warning(self.do_indent(msg)?)
                 .map_err(|e| PyException::new_err(e.to_string()))
         } else {
             Ok(())
         }
     }
 
-    #[pyo3(signature = (obj, /))]
-    pub fn error(&self, obj: Bound<'_, PyAny>) -> PyResult<()> {
+    #[pyo3(signature = (msg, /))]
+    pub fn error(&self, msg: &str) -> PyResult<()> {
         if self.instance.level() <= ERROR {
             self.instance
-                .error(self.do_indent(obj)?)
+                .error(self.do_indent(msg)?)
                 .map_err(|e| PyException::new_err(e.to_string()))
         } else {
             Ok(())
         }
     }
 
-    #[pyo3(signature = (obj, /))]
-    pub fn critical(&self, obj: Bound<'_, PyAny>) -> PyResult<()> {
+    #[pyo3(signature = (msg, /))]
+    pub fn critical(&self, msg: &str) -> PyResult<()> {
         if self.instance.level() <= CRITICAL {
             self.instance
-                .critical(self.do_indent(obj)?)
+                .critical(self.do_indent(msg)?)
                 .map_err(|e| PyException::new_err(e.to_string()))
         } else {
             Ok(())
         }
     }
 
-    #[pyo3(signature = (obj, /))]
-    pub fn fatal(&self, obj: Bound<'_, PyAny>) -> PyResult<()> {
+    #[pyo3(signature = (msg, /))]
+    pub fn fatal(&self, msg: &str) -> PyResult<()> {
         if self.instance.level() <= FATAL {
             self.instance
-                .fatal(self.do_indent(obj)?)
+                .fatal(self.do_indent(msg)?)
                 .map_err(|e| PyException::new_err(e.to_string()))
         } else {
             Ok(())
         }
     }
 
-    #[pyo3(signature = (obj, /))]
-    pub fn exception(&self, obj: Bound<'_, PyAny>) -> PyResult<()> {
+    #[pyo3(signature = (msg, /))]
+    pub fn exception(&self, msg: &str, py: Python) -> PyResult<()> {
         if self.instance.level() <= EXCEPTION {
-            Python::attach(|py| {
-                let message: String = if let Ok(py_str) = obj.cast::<PyString>() {
-                    py_str.to_string()
-                } else {
-                    obj.str()?.to_string()
-                };
-                let tb: String = self.format_exc.call0(py)?.extract(py)?;
-                self.instance
-                    .exception(format!("{message}\n{tb}"))
-                    .map_err(|e| PyException::new_err(e.to_string()))
-            })
+            let tb: String = self.format_exc.call0(py)?.extract(py)?;
+            self.instance
+                .exception(format!("{msg}\n{tb}"))
+                .map_err(|e| PyException::new_err(e.to_string()))
         } else {
             Ok(())
         }

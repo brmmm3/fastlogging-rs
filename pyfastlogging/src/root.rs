@@ -7,6 +7,7 @@ use std::{
 use fastlogging::{
     CRITICAL, DEBUG, ERROR, EXCEPTION, FATAL, INFO, NOTSET, SUCCESS, TRACE, WARNING,
 };
+use once_cell::sync::OnceCell;
 use pyo3::prelude::*;
 
 use crate::{
@@ -17,6 +18,17 @@ use crate::{
 };
 
 static LEVEL: AtomicU8 = AtomicU8::new(NOTSET);
+
+static FORMAT_EXC: OnceCell<Py<PyAny>> = OnceCell::new();
+
+pub fn get_format_exc(py: Python) -> PyResult<&'static Py<PyAny>> {
+    FORMAT_EXC
+        .get_or_try_init(|| {
+            let traceback = py.import("traceback")?;
+            traceback.getattr("format_exc").map(|f| f.into())
+        })
+        .map(|f| f.as_ref())
+}
 
 /// Python layer for fastlogging.
 
@@ -138,6 +150,7 @@ pub fn add_writers(configs: Vec<Py<PyAny>>, py: Python) -> Result<Vec<usize>, Lo
 }
 
 #[pyfunction]
+#[pyo3(signature = (wids=None, /))]
 pub fn remove_writers(wids: Option<Vec<usize>>) -> Vec<WriterConfigEnum> {
     fastlogging::root::remove_writers(wids)
         .into_iter()
@@ -357,9 +370,10 @@ pub fn fatal(msg: &str) -> Result<(), LoggingError> {
 
 #[pyfunction]
 #[pyo3(signature = (msg, /))]
-pub fn exception(msg: &str) -> Result<(), LoggingError> {
+pub fn exception(msg: &str, py: Python) -> Result<(), LoggingError> {
     if LEVEL.load(Ordering::Relaxed) <= EXCEPTION {
-        Ok(fastlogging::root::exception(msg.to_string())?)
+        let tb: String = get_format_exc(py)?.call0(py)?.extract(py)?;
+        Ok(fastlogging::root::exception(format!("{msg}\n{tb}"))?)
     } else {
         Ok(())
     }
