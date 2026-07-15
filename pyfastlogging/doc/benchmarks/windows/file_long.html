@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Logging benchmark results</title>
+  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+  <script type="text/javascript">
+    google.charts.load('current', { 'packages': ['bar'] });
+    google.charts.setOnLoadCallback(drawChart);
+
+    function drawChart() {
+      var data = google.visualization.arrayToDataTable([
+        ['Log level', 'logging', 'logging Optimized', 'loguru', 'fastlogging DIRECT', 'fastlogging THREADS', 'fastlogging-rs Logging', 'fastlogging-rs root'],
+        ['DEBUG',  1.6549,  1.6566,  2.7207,  0.5571,  0.5441,  0.1532,  0.1477],
+        ['INFO',  1.3205,  1.3147,  2.1931,  0.4537,  0.4308,  0.1230,  0.1211],
+        ['WARNING',  0.9918,  0.9930,  1.6399,  0.3434,  0.3295,  0.0917,  0.0924],
+        ['ERROR',  0.6804,  0.6715,  1.1149,  0.2366,  0.2253,  0.0619,  0.0610],
+        ['CRITICAL',  0.3449,  0.3598,  0.5619,  0.1319,  0.1246,  0.0328,  0.0391]
+      ]);
+
+      var options = {
+        chart: {
+          title: 'Log file',
+        },
+        bars: 'horizontal' // Required for Material Bar Charts.
+      };
+
+      var chart = new google.charts.Bar(document.getElementById('barchart_material'));
+
+      chart.draw(data, google.charts.Bar.convertOptions(options));
+    }
+  </script>
+</head>
+
+<body>
+  <div id="barchart_material" style="width: 900px; height: 500px;"></div>
+</body>
+
+</html>
