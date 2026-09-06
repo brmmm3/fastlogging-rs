@@ -8,26 +8,23 @@ jobs:
     name: Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          profile: minimal
           toolchain: nightly
-          override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: check
+      - run: cargo check
 
   clippy_check:
     runs-on: ubuntu-latest
+    permissions:
+      checks: write
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: nightly
           components: clippy
-          override: true
-      - uses: actions-rs/clippy-check@v1
+      - uses: actions/rs-clippy-check@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           args: --all-features --all-targets -- -A clippy::unnecessary_wraps
@@ -54,13 +51,11 @@ jobs:
       CIBW_TEST_COMMAND: pytest {package}/tests
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v7
 
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          profile: minimal
           toolchain: nightly
-          override: true
 
       - if: runner.os == 'Windows'
         run: |
@@ -81,7 +76,7 @@ jobs:
           args: --release
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v7
         with:
           python-version: "3.x"
           cache: pip
@@ -99,7 +94,7 @@ jobs:
           python -m cibuildwheel --output-dir wheelhouse
 
       - name: Upload as build artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: wheels
           path: target/wheels/*.whl
@@ -122,13 +117,13 @@ jobs:
     steps:
 
     - name: Set up Go 1.22.3
-      uses: actions/setup-go@v2
+      uses: actions/setup-go@v7
       with:
         go-version: 1.22.3
       id: go
 
     - name: Check out code into the Go module directory
-      uses: actions/checkout@v1
+      uses: actions/checkout@v7
 
     - name: Format
       run: make lint
