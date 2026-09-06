@@ -72,7 +72,7 @@ To give you an idea how fast `fastlogging-rs` is, here are some benchmarks:
 
 More benchmarks can be found in `doc/benchmarks`.
 
-You can explore the full benchmark results with interactive charts and tables: **[Benchmarks overview](doc/benchmarks/index.html)** (generated from the raw JSON data).
+You can explore the full benchmark results with interactive charts and tables: **[Benchmarks overview](doc/benchmarks.html)** (generated from the raw JSON data).
 
 ## Usage
 
