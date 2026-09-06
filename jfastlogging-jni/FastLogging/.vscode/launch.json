@@ -1,0 +1,75 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "☕ ConsoleExample",
+            "request": "launch",
+            "mainClass": "org.logging.examples.ConsoleExample",
+            "projectName": "FastLogging",
+            "vmArgs": "-Dcom.sun.management.jmxremote=false -Djava.awt.headless=true -XX:+DisableAttachMechanism -Djava.library.path=lib",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "type": "java",
+            "name": "☕ FileExample",
+            "request": "launch",
+            "mainClass": "org.logging.examples.FileExample",
+            "projectName": "FastLogging",
+            "vmArgs": "-Dcom.sun.management.jmxremote=false -Djava.awt.headless=true -XX:+DisableAttachMechanism",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "type": "java",
+            "name": "☕ CallbackExample",
+            "request": "launch",
+            "mainClass": "org.logging.examples.CallbackExample",
+            "projectName": "FastLogging",
+            "vmArgs": "-Dcom.sun.management.jmxremote=false -Djava.awt.headless=true -XX:+DisableAttachMechanism",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "type": "java",
+            "name": "☕ BenchmarksLog4j2",
+            "request": "launch",
+            "mainClass": "org.logging.benchmarks.BenchmarksLog4j2",
+            "projectName": "FastLogging",
+            "vmArgs": "-Dcom.sun.management.jmxremote=false -Djava.awt.headless=true -XX:+DisableAttachMechanism",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "type": "java",
+            "name": "☕ BenchmarksLog4j",
+            "request": "launch",
+            "mainClass": "org.logging.benchmarks.BenchmarksLog4j",
+            "projectName": "FastLogging",
+            "vmArgs": "-Dcom.sun.management.jmxremote=false -Djava.awt.headless=true -XX:+DisableAttachMechanism",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "type": "java",
+            "name": "☕ BenchmarksFastLoggingRs",
+            "request": "launch",
+            "mainClass": "org.logging.benchmarks.BenchmarksFastLoggingRs",
+            "projectName": "FastLogging",
+            "vmArgs": "-Dcom.sun.management.jmxremote=false -Djava.awt.headless=true -XX:+DisableAttachMechanism",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "type": "java",
+            "name": "🧪 AppTest",
+            "request": "launch",
+            "mainClass": "org.logging.AppTest",
+            "projectName": "FastLogging",
+            "vmArgs": "-Dcom.sun.management.jmxremote=false -Djava.awt.headless=true -XX:+DisableAttachMechanism -ea",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        }
+    ]
+}

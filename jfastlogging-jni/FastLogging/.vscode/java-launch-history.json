@@ -1,0 +1,12 @@
+{
+  "version": "1.0.0",
+  "history": [
+    {
+      "type": "entry",
+      "className": "org.logging.examples.ConsoleExample",
+      "methodName": "main",
+      "lastLaunchTime": 1784147855851,
+      "launchCount": 2
+    }
+  ]
+}
