@@ -113,55 +113,16 @@ fn main() {
         );
     }
 
-    // Step 3: Copy the shared library to Java resources
-    let target_dir = Path::new("target/release");
-    let lib_prefix = if cfg!(target_os = "windows") {
-        ""
-    } else {
-        "lib"
-    };
-    let lib_extension = if cfg!(target_os = "windows") {
-        "dll"
-    } else if cfg!(target_os = "macos") {
-        "dylib"
-    } else {
-        "so"
-    };
-    let lib_name = format!("{lib_prefix}jffitest.{lib_extension}");
-    let source_lib = target_dir.join(&lib_name);
-    let dest_lib = Path::new("java_project/src/main/resources").join(&lib_name);
-
+    // Note: Step 3 (copying the shared library to Java resources) cannot run here
+    // because build.rs executes BEFORE the crate is compiled. The .so/.dll/.dylib
+    // output is only produced after build.rs completes and the crate itself is
+    // compiled. Use a post-build script (e.g. run_jextract.sh) or the Makefile
+    // to copy the library to java_project/src/main/resources/ after cargo build.
     println!(
-        "cargo:warning=Checking for shared library: {}",
-        source_lib.display()
-    );
-    if !source_lib.exists() {
-        println!(
-            "cargo:warning=Shared library {} not found. Ensure crate-type = [\"cdylib\"] in Cargo.toml",
-            source_lib.display()
-        );
-        return;
-    }
-
-    fs::create_dir_all(dest_lib.parent().expect("No parent directory"))
-        .expect("Failed to create resources directory");
-
-    fs::copy(&source_lib, &dest_lib).unwrap_or_else(|_| {
-        panic!(
-            "Failed to copy {} to {}",
-            source_lib.display(),
-            dest_lib.display()
-        )
-    });
-
-    println!(
-        "cargo:warning=Copied {} to {}",
-        source_lib.display(),
-        dest_lib.display()
+        "cargo:warning=Shared library will be placed at target/{}/libjfastlogging_ffm.so after a successful build.",
+        env::var("PROFILE").unwrap_or_else(|_| "debug".to_string())
     );
 
-    // Trigger rebuild if source files or library change
     println!("cargo:rerun-if-changed=src/lib.rs");
     println!("cargo:rerun-if-changed=build.rs");
-    println!("cargo:rerun-if-changed={}", source_lib.display());
 }
