@@ -9,9 +9,19 @@
 - [Go](gofastlogging/README.md)
 - [Java](jfastlogging/README.md) (JNI and FFM)
 
+## Features
+
+- Extremely fast — logging calls are non-blocking and writers run in background threads
+- Thread-safe logging calls
+- Multiple writers (sinks) per logger: console, file, network, syslog, callback, …
+- Optional file rotation and compression
+- Optional AES encryption for network logging
+- Configuration via API or configuration file (JSON, XML, YAML)
+- Automatic forwarding of log messages from sub processes to the main process
+
 ## Writers
 
-Writers are sinks for the logging data. Following writers are available:
+Writers are sinks for the logging data. The following writers are available:
 
 - Console (optional colored)
 - File (optional rotation and compression)
@@ -19,7 +29,7 @@ Writers are sinks for the logging data. Following writers are available:
 - Syslog (Linux), EventLog (Windows)
 - Callback function
 
-All writers are running in background threads. So the speed / slowness of the writers don't slow down the application
+All writers run in background threads. So the speed / slowness of the writers doesn't slow down the application
 as long as the queue is not running full.
 
 ## Threads
@@ -29,35 +39,73 @@ Logging calls are thread safe.
 ## Processes
 
 `fastlogging-rs` supports logging from sub processes to the main process automatically.
-So if a sub process logs messages then these messages are forwarded to the main process.
+So if a sub process logs messages, these messages are forwarded to the main process.
 This also works with higher nesting levels. This feature is enabled by default and can be disabled.
 
 ## Configuration
 
-As an alterantive through API calls, configuration can be done through a configuration file.
-Supported formats are JSON, XML and YAML. The configuration file must have the filename `fastlogging.<EXT>`.
-`EXT` is one of `json`, `xml` or `yaml`. 
+As an alternative to API calls, configuration can be done through a configuration file.
+Supported formats are JSON, XML and YAML. The configuration file must have the filename `fastlogging.<EXT>`,
+where `EXT` is one of `json`, `xml` or `yaml`.
+
+Example configuration files (default and full) are available in [`doc/configs`](doc/configs).
 
 ## Benchmarks
 
-To give you an idea how fast `fastlogging-rs` is some benchmarks here:
+To give you an idea how fast `fastlogging-rs` is, here are some benchmarks:
 
 ### Writing to a file
 
-```text
-Python logging 29.37s
-log4j          1.48s
-fastlogging-rs 0.2s
-```
+| Framework       | Time  |
+| --------------- | ----- |
+| Python logging  | 29.37s|
+| log4j           | 1.48s |
+| fastlogging-rs  | 0.2s  |
 
 ### Rotating file logging
 
-```text
-Python logging 35.24s
-jog4j          1.56s
-fastlogging-rs 0.17s
-```
+| Framework       | Time  |
+| --------------- | ----- |
+| Python logging  | 35.24s|
+| log4j           | 1.56s |
+| fastlogging-rs  | 0.17s |
 
 More benchmarks can be found in `doc/benchmarks`.
 
+You can explore the full benchmark results with interactive charts and tables: **[Benchmarks overview](doc/benchmarks/index.html)** (generated from the raw JSON data).
+
 ## Usage
+
+### Rust
+
+```rust
+use fastlogging::{logging_new_default, LoggingError};
+
+fn main() -> Result<(), LoggingError> {
+    let mut log = logging_new_default()?;
+    log.info("Hello, fastlogging!")?;
+    log.shutdown(false)?;
+    Ok(())
+}
+```
+
+### Python
+
+```python
+from fastlogging import Logging
+
+log = Logging()
+log.info("Hello, fastlogging!")
+log.shutdown(False)
+```
+
+## Documentation
+
+Detailed documentation is available for each language binding:
+
+- Rust: [fastlogging/README.md](fastlogging/README.md)
+- Python: [pyfastlogging/README.md](pyfastlogging/README.md)
+- C: [cfastlogging/README.md](cfastlogging/README.md)
+- C++: [cppfastlogging/README.md](cppfastlogging/README.md)
+- Go: [gofastlogging/README.md](gofastlogging/README.md)
+- Java: [jfastlogging/README.md](jfastlogging/README.md)

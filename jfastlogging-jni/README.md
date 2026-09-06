@@ -19,6 +19,8 @@ Java bindings for the fastlogging Rust logging library via JNI (Java Native Inte
 
 The native library is built with Rust/Cargo and wired into the Java side via Make targets in `jfastlogging-jni/`.
 
+> **Requirements:** JDK 25 (the Maven project compiles with `source`/`target` 25) and a recent Maven 3.9+.
+
 #### 1. Build the JNI shared library
 
 ```sh
@@ -49,6 +51,14 @@ Run from the repo root or from `jfastlogging-jni/`. This produces `target/releas
    make lib-debug
    cargo build
    ```
+
+#### 5. Build and test the Maven project
+
+   ```sh
+   mvn clean test
+   ```
+
+   Run from `jfastlogging-jni/FastLogging/`. The Maven build compiles the Java sources, runs the JUnit test suite and packages the JAR. The tests load the native library from `FastLogging/lib/` via `-Djava.library.path=${project.basedir}/lib` (already configured in the POM).
 
 The Java source lives at `jfastlogging-jni/org/logging/FastLogging.java`. The Maven project lives at `jfastlogging-jni/FastLogging/`.
 
@@ -90,7 +100,8 @@ flowchart TD
 ## Important Notes
 
 - **All classes are nested inside `org.logging.FastLogging`.** There is one top-level Java class; every config class, enum, `Logging`, and `Logger` is a static nested class or enum of it.
-- **The native library `libjfastlogging.so` must be on `java.library.path`.** It is loaded via `System.loadLibrary("jfastlogging")`; ensure the directory containing the `.so` is passed with `-Djava.library.path=...`.
+- **Requires JDK 25.** The Maven project compiles with `maven.compiler.source`/`target` = 25 (see `FastLogging/pom.xml`).
+- **The native library `libjfastlogging.so` must be on `java.library.path`.** It is loaded via `System.loadLibrary("jfastlogging")`; ensure the directory containing the `.so` is passed with `-Djava.library.path=...`. The Maven build already sets this to `${project.basedir}/lib` for tests via the Surefire plugin.
 - **`Logging` constructors take individual writer config objects, not a list.** Each writer is passed as its own parameter (see [LOGGING.md](LOGGING.md) for the full set of overloads).
 - **Client-side level filtering happens in Java.** `Logging` methods compare the message level against `instance_level` before invoking JNI, so filtered-out messages never cross the JNI boundary.
 - **`Logger` is a non-static inner class** and must be created from a `FastLogging` instance (i.e. you need a `FastLogging` instance to create a `Logger`).

@@ -1,17 +1,143 @@
-# `cxxfastlogging`
+# cxxfastlogging — Documentation
 
-C++ bindings for the [`fastlogging`](../fastlogging) crate, generated with the
-[`cxx`](https://cxx.rs) crate. It exposes `Logging`, `Logger` and `WriterConfig`
-(console, file, network client/server, and syslog writers) as opaque types
-usable from C++, plus a set of `root_*` free functions mirroring
-`fastlogging::root` for the process-wide singleton logger.
+Type-safe C++ bindings for the [`fastlogging`](../fastlogging) Rust library, generated with the [`cxx`](https://cxx.rs) crate. It exposes `Logging`, `Logger` and `WriterConfig` (console, file, network client/server, syslog, callback) as opaque types usable from C++, plus a set of `root_*` free functions mirroring `fastlogging::root` for the process-wide singleton logger. Errors are mapped to C++ exceptions (`rust::Error`).
 
-Unlike [`cfastlogging`](../cfastlogging) (raw `extern "C"` FFI) this crate uses
-`cxx`'s statically type-checked bridge, so the generated C++ API is type-safe
-and does not require manual memory management of raw pointers.
+Unlike [`cfastlogging`](../cfastlogging) (raw `extern "C"` FFI), this crate uses `cxx`'s statically type-checked bridge, so the generated C++ API is type-safe and does not require manual memory management of raw pointers.
 
-## Building
+## Table of Contents
+
+- [doc/LEVELS.md](doc/LEVELS.md) — Log-level constants
+- [doc/LOGGING.md](doc/LOGGING.md) — `Logging` class — primary API
+- [doc/LOGGER.md](doc/LOGGER.md) — `Logger` class — per-domain handles
+- [doc/WRITERS.md](doc/WRITERS.md) — Writer factory functions: console, file, callback, syslog
+- [doc/NETWORK.md](doc/NETWORK.md) — Network logging — client and server writers
+- [doc/CONFIG.md](doc/CONFIG.md) — `ExtConfigFfi` and configuration helpers
+- [doc/ROOT.md](doc/ROOT.md) — Process-wide root logger (`root_*` free functions)
+- [doc/EXAMPLES.md](doc/EXAMPLES.md) — Full, buildable C++ examples
+
+> The full guide (quick start, error handling, platform notes, relationship to the Rust crate) lives in **[doc/README.md](doc/README.md)**.
+
+## Quick Start
+
+### Prerequisites
+
+- A C++17-capable compiler (`g++`, `clang++`)
+- Rust toolchain with `cargo`
+
+### 1. Build the static library
+
+From the repository root:
 
 ```sh
-cargo build -p cxxfastlogging
+cargo build -p cxxfastlogging          # debug
+# or
+cargo build -p cxxfastlogging --release
 ```
+
+This produces `target/{debug,release}/libcxxfastlogging.a` (static library) and a generated header via `cxxbridge`.
+
+### 2. Build and run the examples
+
+```sh
+cd cxxfastlogging
+make build-debug   # debug build -> ./bin/console
+# or
+make build         # release build -> ./bin/console
+```
+
+The Makefile compiles `examples/console.cpp` against the cxxbridge headers and links the static library (`-lpthread -ldl -lm`).
+
+### Minimal console example
+
+```cpp
+#include "cxxfastlogging/h/fastlogging.h"
+
+int main() {
+    auto console = WriterConfig::new_console(DEBUG, true);
+    rust::Vec<rust::Box<WriterConfig>> configs;
+    configs.push_back(std::move(console));
+
+    auto log = Logging::create(NOTSET, "myapp", std::move(configs));
+    log->info("Hello from cxxfastlogging!");
+    log->shutdown(false);
+    return 0;
+}
+```
+
+### Including the Header
+
+The stable include path is:
+
+```cpp
+#include "cxxfastlogging/src/lib.rs.h"
+```
+
+Or via the convenience forwarding header:
+
+```cpp
+#include "cxxfastlogging/h/fastlogging.h"
+```
+
+### Linking Manually
+
+```sh
+# Locate the generated cxxbridge header directory:
+CXXBRIDGE=$(find target/debug/build -maxdepth 4 -type d \
+            -path '*/cxxfastlogging-*/out/cxxbridge/include' | head -1)
+
+g++ -std=c++17 -I. -I"$CXXBRIDGE" \
+    -o myapp myapp.cpp \
+    -L target/debug -l:libcxxfastlogging.a \
+    -lpthread -ldl -lm
+```
+
+## Architecture
+
+Log calls never touch I/O on the caller's thread. Each call performs a level check (the hot path), and if it passes, the message is handed to a flume-backed channel. A single `LoggingThread` running in the background drains that channel and dispatches to each writer's own thread.
+
+```plantuml
+@startuml
+
+participant "C++ code" as cpp
+participant "cxx bridge\n(Rust, in-process)" as bridge
+participant "LoggingThread\n(background)" as lt
+participant "ConsoleWriter\n(thread)" as cw
+participant "FileWriter\n(thread)" as fw
+participant "ClientWriter\n(thread)" as clw
+participant "LoggingServer\n(thread)" as ls
+participant "CallbackWriter\n(thread)" as cbw
+participant "SyslogWriter\n(thread, unix)" as sw
+
+cpp -> bridge : log->info("msg")\n(level check, no lock)
+bridge -> lt : push to channel
+
+lt -> cw : dispatch
+lt -> fw : dispatch
+lt -> clw : dispatch
+lt -> ls : dispatch
+lt -> cbw : dispatch
+lt -> sw : dispatch
+
+@enduml
+```
+
+## Error Handling
+
+Fallible bridge functions throw `rust::Error` on failure. `rust::Error` is a standard C++ exception that inherits from `std::exception`:
+
+```cpp
+try {
+    auto log = Logging::create(DEBUG, "app", std::move(configs));
+    log->info("hello");
+} catch (const rust::Error& e) {
+    std::cerr << "fastlogging error: " << e.what() << "\n";
+}
+```
+
+## Platform Notes
+
+- `WriterConfig::new_syslog` is available on **Unix** only. On **Windows** the underlying `eventlog`-backed writer is exposed under the same name.
+
+## Relationship to the Rust Crate
+
+`cxxfastlogging` wraps `fastlogging` (Rust) directly — no C intermediate layer. Types shared by value across the FFI boundary (`EncryptionMethodEnum`, `CompressionMethodEnum`, `MessageStructEnum`, `LevelSymsEnum`, `WriterTypeTag`, `ExtConfigFfi`, `ServerConfigInfo`, `IdString`, `IdU16`) are declared as `struct`/`enum class` in the generated C++ header and can be used like ordinary C++ types. Opaque handle types (`Logging`, `Logger`, `WriterConfig`) are accessible only through `rust::Box<T>` pointers returned by factory functions.

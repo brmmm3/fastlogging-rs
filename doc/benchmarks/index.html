@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>fastlogging-rs — Benchmark Results</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1420;
+    --panel: #1a2233;
+    --panel2: #212c42;
+    --text: #e6ebf5;
+    --muted: #93a1b8;
+    --accent: #2e9e46;
+    --border: #2c3a55;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.55;
+  }
+  header {
+    padding: 40px 24px 24px;
+    text-align: center;
+    background: linear-gradient(135deg, #141d31 0%, #1d2a44 55%, #17351f 100%);
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 { margin: 0 0 6px; font-size: 2rem; }
+  header p { margin: 0 auto; max-width: 760px; color: var(--muted); }
+  .badges { margin-top: 14px; }
+  .badge {
+    display: inline-block; margin: 4px; padding: 4px 12px; border-radius: 999px;
+    background: var(--panel2); border: 1px solid var(--border); font-size: .85rem;
+  }
+  main { max-width: 1180px; margin: 0 auto; padding: 24px; }
+  h2 { margin-top: 48px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+  h3 { margin: 28px 0 8px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(460px, 1fr)); gap: 18px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px; overflow: hidden;
+  }
+  .card h4 { margin: 0 0 4px; font-size: 1rem; }
+  .card .sub { margin: 0 0 10px; color: var(--muted); font-size: .85rem; }
+  .card canvas { max-height: 280px; }
+  table {
+    width: 100%; border-collapse: collapse; margin: 10px 0; font-size: .9rem;
+    background: var(--panel); border-radius: 8px; overflow: hidden;
+  }
+  th, td { padding: 7px 10px; border-bottom: 1px solid var(--border); text-align: right; }
+  th { background: var(--panel2); text-align: left; }
+  td:first-child, th:first-child { text-align: left; }
+  tr:last-child td { border-bottom: none; }
+  .speedup { color: var(--accent); font-weight: 600; }
+  .slow { color: #e74c3c; }
+  .note { color: var(--muted); font-size: .88rem; margin: 6px 0 18px; }
+  details { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; margin: 10px 0; }
+  summary { cursor: pointer; font-weight: 600; }
+  footer { text-align: center; color: var(--muted); padding: 30px; font-size: .85rem; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 0 4px; font-size: .85rem; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+</style>
+</head>
+<body>
+<header>
+  <h1>⚡ fastlogging-rs — Benchmark Results</h1>
+  <p>Head-to-head comparison of the <strong>fastlogging</strong> logging framework against
+     Python&rsquo;s <code>logging</code>, Apache Log4j and Log4j2, plus the raw Rust core.
+     Lower is better — all values are wall-clock seconds for the full log run.</p>
+  <div class="badges">
+    <span class="badge">Linux</span><span class="badge">Windows&nbsp;10</span>
+    <span class="badge">short / long messages</span><span class="badge">with / without exception</span>
+    <span class="badge">console&nbsp;(none) / file / rotating file</span>
+  </div>
+</header>
+<main>
+  <div id="content"></div>
+  <footer>Generated from the raw JSON files in <code>doc/benchmarks/</code> by <code>benchmarks2html.py</code>.</footer>
+</main>
+<script>
+const BENCH_DATA = {
+  "linux_jfastlogging": {
+    "Linux": {
+      "short": {
+        "exc": {
+          "nolog": {
+            "ERROR": 0.149,
+            "INFO": 0.197,
+            "DEBUG": 0.224,
+            "WARNING": 0.178,
+            "CRITICAL": 0.123
+          },
+          "rotate": {
+            "ERROR": 0.088,
+            "INFO": 0.204,
+            "DEBUG": 0.237,
+            "WARNING": 0.116,
+            "CRITICAL": 0.061
+          },
+          "file": {
+            "ERROR": 0.155,
+            "INFO": 0.195,
+            "DEBUG": 0.217,
+            "WARNING": 0.187,
+            "CRITICAL": 0.126
+          }
+        },
+        "noexc": {
+          "nolog": {
+            "ERROR": 0.158,
+            "INFO": 0.207,
+            "DEBUG": 0.352,
+            "WARNING": 0.212,
+            "CRITICAL": 0.145
+          },
+          "rotate": {
+            "ERROR": 0.076,
+            "INFO": 0.192,
+            "DEBUG": 0.181,
+            "WARNING": 0.153,
+            "CRITICAL": 0.065
+          },
+          "file": {
+            "ERROR": 0.115,
+            "INFO": 0.161,
+            "DEBUG": 0.231,
+            "WARNING": 0.121,
+            "CRITICAL": 0.08
+          }
+        }
+      },
+      "long": {
+        "exc": {
+          "nolog": {
+            "ERROR": 0.096,
+            "INFO": 0.165,
+            "DEBUG": 0.215,
+            "WARNING": 0.132,
+            "CRITICAL": 0.061
+          },
+          "rotate": {
+            "ERROR": 0.102,
+            "INFO": 0.163,
+            "DEBUG": 0.208,
+            "WARNING": 0.153,
+            "CRITICAL": 0.07
+          },
+          "file": {
+            "ERROR": 0.11,
+            "INFO": 0.175,
+            "DEBUG": 0.244,
+            "WARNING": 0.135,
+            "CRITICAL": 0.066
+          }
+        },
+        "noexc": {
+          "nolog": {
+            "ERROR": 0.091,
+            "INFO": 0.147,
+            "DEBUG": 0.156,
+            "WARNING": 0.114,
+            "CRITICAL": 0.06
+          },
+          "rotate": {
+            "ERROR": 0.09,
+            "INFO": 0.158,
+            "DEBUG": 0.19,
+            "WARNING": 0.131,
+            "CRITICAL": 0.067
+          },
+          "file": {
+            "ERROR": 0.084,
+            "INFO": 0.148,
+            "DEBUG": 0.193,
+            "WARNING": 0.11,
+            "CRITICAL": 0.061
+          }
+        }
+      }
+    }
+  },
+  "linux_log4j": {
+    "Linux": {
+      "short": {
+        "exc": {
+          "nolog": {
+            "ERROR": 0.078,
+            "INFO": 0.071,
+            "DEBUG": 0.075,
+            "WARNING": 0.069,
+            "CRITICAL": 0.073
+          },
+          "rotate": {
+            "ERROR": 1.573,
+            "INFO": 1.681,
+            "DEBUG": 1.644,
+            "WARNING": 1.612,
+            "CRITICAL": 1.594
+          },
+          "file": {
+            "ERROR": 1.574,
+            "INFO": 1.644,
+            "DEBUG": 1.704,
+            "WARNING": 1.683,
+            "CRITICAL": 1.68
+          }
+        },
+        "noexc": {
+          "nolog": {
+            "ERROR": 0.089,
+            "INFO": 0.059,
+            "DEBUG": 0.203,
+            "WARNING": 0.103,
+            "CRITICAL": 0.086
+          },
+          "rotate": {
+            "ERROR": 1.53,
+            "INFO": 1.504,
+            "DEBUG": 1.609,
+            "WARNING": 1.557,
+            "CRITICAL": 1.596
+          },
+          "file": {
+            "ERROR": 1.544,
+            "INFO": 1.497,
+            "DEBUG": 1.828,
+            "WARNING": 1.511,
+            "CRITICAL": 1.519
+          }
+        }
+      },
+      "long": {
+        "exc": {
+          "nolog": {
+            "ERROR": 0.033,
+            "INFO": 0.032,
+            "DEBUG": 0.031,
+            "WARNING": 0.031,
+            "CRITICAL": 0.035
+          },
+          "rotate": {
+            "ERROR": 1.63,
+            "INFO": 1.666,
+            "DEBUG": 1.732,
+            "WARNING": 1.6,
+            "CRITICAL": 1.596
+          },
+          "file": {
+            "ERROR": 1.536,
+            "INFO": 1.565,
+            "DEBUG": 1.596,
+            "WARNING": 1.551,
+            "CRITICAL": 1.598
+          }
+        },
+        "noexc": {
+          "nolog": {
+            "ERROR": 0.034,
+            "INFO": 0.035,
+            "DEBUG": 0.035,
+            "WARNING": 0.034,
+            "CRITICAL": 0.033
+          },
+          "rotate": {
+            "ERROR": 1.601,
+            "INFO": 1.559,
+            "DEBUG": 1.563,
+            "WARNING": 1.6,
+            "CRITICAL": 1.592
+          },
+          "file": {
+            "ERROR": 1.624,
+            "INFO": 1.532,
+            "DEBUG": 1.481,
+            "WARNING": 1.533,
+            "CRITICAL": 1.46
+          }
+        }
+      }
+    }
+  },
+  "linux_pybenchmarks": {
+    "short": {
+      "noexc": {
+        "nolog": {
+          "DEBUG": {
+            "logging": 1.0878305435180664,
+            "fastlogging": 0.3131115436553955,
+            "fastlogging-threads": 0.2717115879058838,
+            "fastlogging-rs": 0.12993669509887695,
+            "fastlogging-rs-default": 0.13770508766174316
+          },
+          "INFO": {
+            "logging": 0.8867554664611816,
+            "fastlogging": 0.25777196884155273,
+            "fastlogging-threads": 0.22847366333007812,
+            "fastlogging-rs": 0.10207843780517578,
+            "fastlogging-rs-default": 0.12326383590698242
+          },
+          "WARNING": {
+            "logging": 0.6843652725219727,
+            "fastlogging": 0.20138144493103027,
+            "fastlogging-threads": 0.17391228675842285,
+            "fastlogging-rs": 0.08278083801269531,
+            "fastlogging-rs-default": 0.12396025657653809
+          },
+          "ERROR": {
+            "logging": 0.484163761138916,
+            "fastlogging": 0.14840412139892578,
+            "fastlogging-threads": 0.13369250297546387,
+            "fastlogging-rs": 0.04593682289123535,
+            "fastlogging-rs-default": 0.12447500228881836
+          },
+          "CRITICAL": {
+            "logging": 0.2765219211578369,
+            "fastlogging": 0.09313058853149414,
+            "fastlogging-threads": 0.07960844039916992,
+            "fastlogging-rs": 0.04037809371948242,
+            "fastlogging-rs-default": 0.14421415328979492
+          }
+        },
+        "file": {
+          "DEBUG": {
+            "logging": 2.735168218612671,
+            "fastlogging": 0.5519270896911621,
+            "fastlogging-threads": 0.6987819671630859,
+            "fastlogging-rs": 0.20552587509155273,
+            "fastlogging-rs-default": 0.1858673095703125
+          },
+          "INFO": {
+            "logging": 3.088840961456299,
+            "fastlogging": 0.433624267578125,
+            "fastlogging-threads": 0.5654971599578857,
+            "fastlogging-rs": 0.14320635795593262,
+            "fastlogging-rs-default": 0.17563390731811523
+          },
+          "WARNING": {
+            "logging": 2.9530229568481445,
+            "fastlogging": 0.33351564407348633,
+            "fastlogging-threads": 0.43453359603881836,
+            "fastlogging-rs": 0.10972952842712402,
+            "fastlogging-rs-default": 0.17471575736999512
+          },
+          "ERROR": {
+            "logging": 2.3998708724975586,
+            "fastlogging": 0.23818564414978027,
+            "fastlogging-threads": 0.3156282901763916,
+            "fastlogging-rs": 0.07976603507995605,
+            "fastlogging-rs-default": 0.16475820541381836
+          },
+          "CRITICAL": {
+            "logging": 1.4456470012664795,
+            "fastlogging": 0.13887715339660645,
+            "fastlogging-threads": 0.19237899780273438,
+            "fastlogging-rs": 0.04526782035827637,
+            "fastlogging-rs-default": 0.1402115821838379
+          }
+        },
+        "rotate": {
+          "DEBUG": {
+            "logging": 8.643224000930786,
+            "fastlogging": 0.43323326110839844,
+            "fastlogging-threads": 0.7695176601409912,
+            "fastlogging-rs": 0.1790304183959961,
+            "fastlogging-rs-default": 0.2319955825805664
+          },
+          "INFO": {
+            "logging": 9.642033100128174,
+            "fastlogging": 0.35049891471862793,
+            "fastlogging-threads": 0.7542610168457031,
+            "fastlogging-rs": 0.13119029998779297,
+            "fastlogging-rs-default": 0.2027144432067871
+          },
+          "WARNING": {
+            "logging": 9.389599561691284,
+            "fastlogging": 0.2753322124481201,
+            "fastlogging-threads": 0.47539830207824707,
+            "fastlogging-rs": 0.10298442840576172,
+            "fastlogging-rs-default": 0.15767359733581543
+          },
+          "ERROR": {
+            "logging": 7.723585605621338,
+            "fastlogging": 0.1947495937347412,
+            "fastlogging-threads": 0.3840219974517822,
+            "fastlogging-rs": 0.07955503463745117,
+            "fastlogging-rs-default": 0.15343379974365234
+          },
+          "CRITICAL": {
+            "logging": 4.614999294281006,
+            "fastlogging": 0.11574339866638184,
+            "fastlogging-threads": 0.19754958152770996,
+            "fastlogging-rs": 0.05587196350097656,
+            "fastlogging-rs-default": 0.16292500495910645
+          }
+        }
+      },
+      "exc": {
+        "nolog": {
+          "DEBUG": {
+            "logging": 17.063868522644043,
+            "fastlogging": 1.0550565719604492,
+            "fastlogging-threads": 1.0069470405578613,
+            "fastlogging-rs": 0.8086249828338623,
+            "fastlogging-rs-default": 0.8036625385284424
+          },
+          "INFO": {
+            "logging": 15.610645532608032,
+            "fastlogging": 0.9997849464416504,
+            "fastlogging-threads": 0.9560568332672119,
+            "fastlogging-rs": 0.8093349933624268,
+            "fastlogging-rs-default": 0.8163490295410156
+          },
+          "WARNING": {
+            "logging": 13.410648107528687,
+            "fastlogging": 0.9452729225158691,
+            "fastlogging-threads": 0.9035384654998779,
+            "fastlogging-rs": 0.7882394790649414,
+            "fastlogging-rs-default": 0.7779233455657959
+          },
+          "ERROR": {
+            "logging": 10.849583625793457,
+            "fastlogging": 0.8878750801086426,
+            "fastlogging-threads": 0.8551511764526367,
+            "fastlogging-rs": 0.7899987697601318,
+            "fastlogging-rs-default": 0.7920231819152832
+          },
+          "CRITICAL": {
+            "logging": 4.653805732727051,
+            "fastlogging": 0.8404550552368164,
+            "fastlogging-threads": 0.7975320816040039,
+            "fastlogging-rs": 0.7910528182983398,
+            "fastlogging-rs-default": 0.7682590484619141
+          }
+        },
+        "file": {
+          "DEBUG": {
+            "logging": 18.03759217262268,
+            "fastlogging": 1.3228840827941895,
+            "fastlogging-threads": 1.4396378993988037,
+            "fastlogging-rs": 0.8746442794799805,
+            "fastlogging-rs-default": 0.8175690174102783
+          },
+          "INFO": {
+            "logging": 17.49116063117981,
+            "fastlogging": 1.2249526977539062,
+            "fastlogging-threads": 1.3593754768371582,
+            "fastlogging-rs": 0.7752149105072021,
+            "fastlogging-rs-default": 0.7861206531524658
+          },
+          "WARNING": {
+            "logging": 15.873973608016968,
+            "fastlogging": 1.1267776489257812,
+            "fastlogging-threads": 1.1842868328094482,
+            "fastlogging-rs": 0.8036725521087646,
+            "fastlogging-rs-default": 0.77535080909729
+          },
+          "ERROR": {
+            "logging": 12.469857692718506,
+            "fastlogging": 1.030397891998291,
+            "fastlogging-threads": 1.0771136283874512,
+            "fastlogging-rs": 0.8115794658660889,
+            "fastlogging-rs-default": 0.7832293510437012
+          },
+          "CRITICAL": {
+            "logging": 5.763285875320435,
+            "fastlogging": 0.91866135597229,
+            "fastlogging-threads": 0.9586830139160156,
+            "fastlogging-rs": 0.7923362255096436,
+            "fastlogging-rs-default": 0.8098206520080566
+          }
+        },
+        "rotate": {
+          "DEBUG": {
+            "logging": 24.03923988342285,
+            "fastlogging": 1.1898584365844727,
+            "fastlogging-threads": 1.5982298851013184,
+            "fastlogging-rs": 0.8152694702148438,
+            "fastlogging-rs-default": 0.8661983013153076
+          },
+          "INFO": {
+            "logging": 24.48316216468811,
+            "fastlogging": 1.1099286079406738,
+            "fastlogging-threads": 1.4203367233276367,
+            "fastlogging-rs": 0.8538413047790527,
+            "fastlogging-rs-default": 0.7727658748626709
+          },
+          "WARNING": {
+            "logging": 22.9156436920166,
+            "fastlogging": 1.0566561222076416,
+            "fastlogging-threads": 1.3158807754516602,
+            "fastlogging-rs": 0.8201093673706055,
+            "fastlogging-rs-default": 0.7701046466827393
+          },
+          "ERROR": {
+            "logging": 18.49807834625244,
+            "fastlogging": 0.9830257892608643,
+            "fastlogging-threads": 1.121161699295044,
+            "fastlogging-rs": 0.8014092445373535,
+            "fastlogging-rs-default": 0.7725858688354492
+          },
+          "CRITICAL": {
+            "logging": 8.992351055145264,
+            "fastlogging": 0.874697208404541,
+            "fastlogging-threads": 0.9664499759674072,
+            "fastlogging-rs": 0.8173153400421143,
+            "fastlogging-rs-default": 0.7748594284057617
+          }
+        }
+      }
+    },
+    "long": {
+      "noexc": {
+        "nolog": {
+          "DEBUG": {
+            "logging": 28.631285190582275,
+            "fastlogging": 0.3103787899017334,
+            "fastlogging-threads": 0.27764391899108887,
+            "fastlogging-rs": 0.13690996170043945,
+            "fastlogging-rs-default": 0.18295955657958984
+          },
+          "INFO": {
+            "logging": 26.184934377670288,
+            "fastlogging": 0.25611329078674316,
+            "fastlogging-threads": 0.22974753379821777,
+            "fastlogging-rs": 0.10472917556762695,
+            "fastlogging-rs-default": 0.15179157257080078
+          },
+          "WARNING": {
+            "logging": 22.351008415222168,
+            "fastlogging": 0.20092058181762695,
+            "fastlogging-threads": 0.17534351348876953,
+            "fastlogging-rs": 0.08228635787963867,
+            "fastlogging-rs-default": 0.1655135154724121
+          },
+          "ERROR": {
+            "logging": 16.63564157485962,
+            "fastlogging": 0.14724493026733398,
+            "fastlogging-threads": 0.1284635066986084,
+            "fastlogging-rs": 0.053095340728759766,
+            "fastlogging-rs-default": 0.17282724380493164
+          },
+          "CRITICAL": {
+            "logging": 9.165080785751343,
+            "fastlogging": 0.09457945823669434,
+            "fastlogging-threads": 0.08062314987182617,
+            "fastlogging-rs": 0.042952537536621094,
+            "fastlogging-rs-default": 0.1470949649810791
+          }
+        },
+        "file": {
+          "DEBUG": {
+            "logging": 29.373442888259888,
+            "fastlogging": 0.546165943145752,
+            "fastlogging-threads": 0.7314252853393555,
+            "fastlogging-rs": 0.19923114776611328,
+            "fastlogging-rs-default": 0.2272779941558838
+          },
+          "INFO": {
+            "logging": 27.91132879257202,
+            "fastlogging": 0.44716596603393555,
+            "fastlogging-threads": 0.5802052021026611,
+            "fastlogging-rs": 0.13088369369506836,
+            "fastlogging-rs-default": 0.23688125610351562
+          },
+          "WARNING": {
+            "logging": 24.243204355239868,
+            "fastlogging": 0.3503592014312744,
+            "fastlogging-threads": 0.44490790367126465,
+            "fastlogging-rs": 0.1076819896697998,
+            "fastlogging-rs-default": 0.2168867588043213
+          },
+          "ERROR": {
+            "logging": 18.476359128952026,
+            "fastlogging": 0.2487165927886963,
+            "fastlogging-threads": 0.3316042423248291,
+            "fastlogging-rs": 0.09749126434326172,
+            "fastlogging-rs-default": 0.20258474349975586
+          },
+          "CRITICAL": {
+            "logging": 10.229120254516602,
+            "fastlogging": 0.142622709274292,
+            "fastlogging-threads": 0.2016773223876953,
+            "fastlogging-rs": 0.04707908630371094,
+            "fastlogging-rs-default": 0.1938316822052002
+          }
+        },
+        "rotate": {
+          "DEBUG": {
+            "logging": 35.23746728897095,
+            "fastlogging": 0.4608595371246338,
+            "fastlogging-threads": 0.9968061447143555,
+            "fastlogging-rs": 0.17321038246154785,
+            "fastlogging-rs-default": 0.2341294288635254
+          },
+          "INFO": {
+            "logging": 34.55997157096863,
+            "fastlogging": 0.3692045211791992,
+            "fastlogging-threads": 0.7063803672790527,
+            "fastlogging-rs": 0.14703607559204102,
+            "fastlogging-rs-default": 0.21564793586730957
+          },
+          "WARNING": {
+            "logging": 31.20003843307495,
+            "fastlogging": 0.28644227981567383,
+            "fastlogging-threads": 0.5635054111480713,
+            "fastlogging-rs": 0.1078789234161377,
+            "fastlogging-rs-default": 0.2084825038909912
+          },
+          "ERROR": {
+            "logging": 24.01557683944702,
+            "fastlogging": 0.20602822303771973,
+            "fastlogging-threads": 0.39281678199768066,
+            "fastlogging-rs": 0.09242892265319824,
+            "fastlogging-rs-default": 0.18707585334777832
+          },
+          "CRITICAL": {
+            "logging": 13.652567625045776,
+            "fastlogging": 0.12010312080383301,
+            "fastlogging-threads": 0.20882248878479004,
+            "fastlogging-rs": 0.06697559356689453,
+            "fastlogging-rs-default": 0.18254542350769043
+          }
+        }
+      },
+      "exc": {
+        "nolog": {
+          "DEBUG": {
+            "logging": 47.88929557800293,
+            "fastlogging": 1.0613112449645996,
+            "fastlogging-threads": 1.0269179344177246,
+            "fastlogging-rs": 0.7662546634674072,
+            "fastlogging-rs-default": 0.7691333293914795
+          },
+          "INFO": {
+            "logging": 50.568153858184814,
+            "fastlogging": 1.0882484912872314,
+            "fastlogging-threads": 1.0986149311065674,
+            "fastlogging-rs": 0.891063928604126,
+            "fastlogging-rs-default": 0.9904015064239502
+          },
+          "WARNING": {
+            "logging": 44.739834785461426,
+            "fastlogging": 1.048457384109497,
+            "fastlogging-threads": 1.00612473487854,
+            "fastlogging-rs": 0.8587841987609863,
+            "fastlogging-rs-default": 0.9242849349975586
+          },
+          "ERROR": {
+            "logging": 33.19281005859375,
+            "fastlogging": 1.0274755954742432,
+            "fastlogging-threads": 1.0681486129760742,
+            "fastlogging-rs": 0.8756749629974365,
+            "fastlogging-rs-default": 0.8376898765563965
+          },
+          "CRITICAL": {
+            "logging": 16.23386836051941,
+            "fastlogging": 0.965550422668457,
+            "fastlogging-threads": 0.9264874458312988,
+            "fastlogging-rs": 0.8422839641571045,
+            "fastlogging-rs-default": 0.8739485740661621
+          }
+        },
+        "file": {
+          "DEBUG": {
+            "logging": 54.059356451034546,
+            "fastlogging": 1.4922807216644287,
+            "fastlogging-threads": 1.691288709640503,
+            "fastlogging-rs": 0.8463735580444336,
+            "fastlogging-rs-default": 0.8646223545074463
+          },
+          "INFO": {
+            "logging": 52.859145164489746,
+            "fastlogging": 1.3304157257080078,
+            "fastlogging-threads": 1.4413015842437744,
+            "fastlogging-rs": 0.8662431240081787,
+            "fastlogging-rs-default": 0.8989112377166748
+          },
+          "WARNING": {
+            "logging": 47.485514402389526,
+            "fastlogging": 1.2479913234710693,
+            "fastlogging-threads": 1.3709385395050049,
+            "fastlogging-rs": 0.8819785118103027,
+            "fastlogging-rs-default": 1.03385591506958
+          },
+          "ERROR": {
+            "logging": 36.51402044296265,
+            "fastlogging": 1.152632474899292,
+            "fastlogging-threads": 1.1952126026153564,
+            "fastlogging-rs": 0.8330504894256592,
+            "fastlogging-rs-default": 0.8727385997772217
+          },
+          "CRITICAL": {
+            "logging": 17.683024883270264,
+            "fastlogging": 0.9844894409179688,
+            "fastlogging-threads": 1.041196584701538,
+            "fastlogging-rs": 0.8812508583068848,
+            "fastlogging-rs-default": 0.9323379993438721
+          }
+        },
+        "rotate": {
+          "DEBUG": {
+            "logging": 61.594565868377686,
+            "fastlogging": 1.2770211696624756,
+            "fastlogging-threads": 1.800584077835083,
+            "fastlogging-rs": 0.9959242343902588,
+            "fastlogging-rs-default": 0.8633584976196289
+          },
+          "INFO": {
+            "logging": 60.935096979141235,
+            "fastlogging": 1.2107505798339844,
+            "fastlogging-threads": 1.5891153812408447,
+            "fastlogging-rs": 0.8875701427459717,
+            "fastlogging-rs-default": 0.8552207946777344
+          },
+          "WARNING": {
+            "logging": 57.22700023651123,
+            "fastlogging": 1.1982626914978027,
+            "fastlogging-threads": 1.4471685886383057,
+            "fastlogging-rs": 0.8687715530395508,
+            "fastlogging-rs-default": 0.8681640625
+          },
+          "ERROR": {
+            "logging": 44.70660042762756,
+            "fastlogging": 1.0833783149719238,
+            "fastlogging-threads": 1.314286708831787,
+            "fastlogging-rs": 0.8629825115203857,
+            "fastlogging-rs-default": 0.8890976905822754
+          },
+          "CRITICAL": {
+            "logging": 22.094006061553955,
+            "fastlogging": 0.9660496711730957,
+            "fastlogging-threads": 1.0479843616485596,
+            "fastlogging-rs": 0.8396027088165283,
+            "fastlogging-rs-default": 0.8604254722595215
+          }
+        }
+      }
+    }
+  },
+  "windows_jfastlogging": {
+    "Windows 10": {
+      "short": {
+        "exc": {
+          "nolog": {
+            "EXCEPTION": 0.014,
+            "ERROR": 0.07,
+            "INFO": 0.11,
+            "DEBUG": 0.178,
+            "WARNING": 0.145,
+            "CRITICAL": 0.038
+          },
+          "rotate": {
+            "EXCEPTION": 0.013,
+            "ERROR": 0.08,
+            "INFO": 0.129,
+            "DEBUG": 0.155,
+            "WARNING": 0.125,
+            "CRITICAL": 0.048
+          },
+          "file": {
+            "EXCEPTION": 0.013,
+            "ERROR": 0.075,
+            "INFO": 0.163,
+            "DEBUG": 0.21,
+            "WARNING": 0.099,
+            "CRITICAL": 0.048
+          }
+        },
+        "noexc": {
+          "nolog": {
+            "EXCEPTION": 0.015,
+            "ERROR": 0.051,
+            "INFO": 0.098,
+            "DEBUG": 0.136,
+            "WARNING": 0.072,
+            "CRITICAL": 0.036
+          },
+          "rotate": {
+            "EXCEPTION": 0.011,
+            "ERROR": 0.058,
+            "INFO": 0.115,
+            "DEBUG": 0.148,
+            "WARNING": 0.098,
+            "CRITICAL": 0.031
+          },
+          "file": {
+            "EXCEPTION": 0.011,
+            "ERROR": 0.063,
+            "INFO": 0.141,
+            "DEBUG": 0.149,
+            "WARNING": 0.089,
+            "CRITICAL": 0.033
+          }
+        }
+      },
+      "long": {
+        "exc": {
+          "nolog": {
+            "EXCEPTION": 0.015,
+            "ERROR": 0.054,
+            "INFO": 0.112,
+            "DEBUG": 0.16,
+            "WARNING": 0.095,
+            "CRITICAL": 0.04
+          },
+          "rotate": {
+            "EXCEPTION": 0.014,
+            "ERROR": 0.093,
+            "INFO": 0.227,
+            "DEBUG": 0.253,
+            "WARNING": 0.141,
+            "CRITICAL": 0.051
+          },
+          "file": {
+            "EXCEPTION": 0.014,
+            "ERROR": 0.078,
+            "INFO": 0.144,
+            "DEBUG": 0.208,
+            "WARNING": 0.127,
+            "CRITICAL": 0.04
+          }
+        },
+        "noexc": {
+          "nolog": {
+            "EXCEPTION": 0.013,
+            "ERROR": 0.061,
+            "INFO": 0.114,
+            "DEBUG": 0.126,
+            "WARNING": 0.072,
+            "CRITICAL": 0.04
+          },
+          "rotate": {
+            "EXCEPTION": 0.012,
+            "ERROR": 0.068,
+            "INFO": 0.171,
+            "DEBUG": 0.161,
+            "WARNING": 0.114,
+            "CRITICAL": 0.045
+          },
+          "file": {
+            "EXCEPTION": 0.013,
+            "ERROR": 0.07,
+            "INFO": 0.124,
+            "DEBUG": 0.165,
+            "WARNING": 0.095,
+            "CRITICAL": 0.046
+          }
+        }
+      }
+    }
+  },
+  "windows_log4j": {
+    "Windows 10": {
+      "short": {
+        "exc": {
+          "nolog": {
+            "EXCEPTION": 0.013,
+            "ERROR": 0.013,
+            "INFO": 0.013,
+            "DEBUG": 0.025,
+            "WARNING": 0.013,
+            "CRITICAL": 0.013
+          },
+          "rotate": {
+            "EXCEPTION": 0.348,
+            "ERROR": 0.634,
+            "INFO": 1.178,
+            "DEBUG": 1.433,
+            "WARNING": 0.919,
+            "CRITICAL": 0.357
+          },
+          "file": {
+            "EXCEPTION": 0.339,
+            "ERROR": 0.602,
+            "INFO": 1.107,
+            "DEBUG": 1.393,
+            "WARNING": 0.872,
+            "CRITICAL": 0.338
+          }
+        },
+        "noexc": {
+          "nolog": {
+            "EXCEPTION": 0.018,
+            "ERROR": 0.018,
+            "INFO": 0.021,
+            "DEBUG": 0.038,
+            "WARNING": 0.02,
+            "CRITICAL": 0.018
+          },
+          "rotate": {
+            "EXCEPTION": 0.291,
+            "ERROR": 0.564,
+            "INFO": 1.146,
+            "DEBUG": 1.409,
+            "WARNING": 0.839,
+            "CRITICAL": 0.289
+          },
+          "file": {
+            "EXCEPTION": 0.279,
+            "ERROR": 0.569,
+            "INFO": 1.091,
+            "DEBUG": 1.482,
+            "WARNING": 0.84,
+            "CRITICAL": 0.284
+          }
+        }
+      },
+      "long": {
+        "exc": {
+          "nolog": {
+            "EXCEPTION": 0.013,
+            "ERROR": 0.013,
+            "INFO": 0.014,
+            "DEBUG": 0.015,
+            "WARNING": 0.014,
+            "CRITICAL": 0.014
+          },
+          "rotate": {
+            "EXCEPTION": 0.375,
+            "ERROR": 0.667,
+            "INFO": 1.241,
+            "DEBUG": 1.563,
+            "WARNING": 0.964,
+            "CRITICAL": 0.373
+          },
+          "file": {
+            "EXCEPTION": 0.344,
+            "ERROR": 0.604,
+            "INFO": 1.15,
+            "DEBUG": 1.405,
+            "WARNING": 0.861,
+            "CRITICAL": 0.346
+          }
+        },
+        "noexc": {
+          "nolog": {
+            "EXCEPTION": 0.012,
+            "ERROR": 0.013,
+            "INFO": 0.014,
+            "DEBUG": 0.014,
+            "WARNING": 0.014,
+            "CRITICAL": 0.013
+          },
+          "rotate": {
+            "EXCEPTION": 0.311,
+            "ERROR": 0.596,
+            "INFO": 1.192,
+            "DEBUG": 1.486,
+            "WARNING": 0.901,
+            "CRITICAL": 0.307
+          },
+          "file": {
+            "EXCEPTION": 0.286,
+            "ERROR": 0.543,
+            "INFO": 1.053,
+            "DEBUG": 1.343,
+            "WARNING": 0.799,
+            "CRITICAL": 0.282
+          }
+        }
+      }
+    }
+  },
+  "windows_log4j2": {
+    "Windows 10": {
+      "short": {
+        "exc": {
+          "nolog": {
+            "EXCEPTION": 0.012,
+            "ERROR": 0.012,
+            "INFO": 0.011,
+            "DEBUG": 0.022,
+            "WARNING": 0.013,
+            "CRITICAL": 0.012
+          },
+          "rotate": {
+            "EXCEPTION": 0.099,
+            "ERROR": 0.167,
+            "INFO": 0.336,
+            "DEBUG": 0.414,
+            "WARNING": 0.259,
+            "CRITICAL": 0.101
+          },
+          "file": {
+            "EXCEPTION": 0.097,
+            "ERROR": 0.16,
+            "INFO": 0.32,
+            "DEBUG": 0.39,
+            "WARNING": 0.257,
+            "CRITICAL": 0.098
+          }
+        },
+        "noexc": {
+          "nolog": {
+            "EXCEPTION": 0.015,
+            "ERROR": 0.012,
+            "INFO": 0.018,
+            "DEBUG": 0.036,
+            "WARNING": 0.017,
+            "CRITICAL": 0.011
+          },
+          "rotate": {
+            "EXCEPTION": 0.082,
+            "ERROR": 0.149,
+            "INFO": 0.322,
+            "DEBUG": 0.4,
+            "WARNING": 0.238,
+            "CRITICAL": 0.081
+          },
+          "file": {
+            "EXCEPTION": 0.081,
+            "ERROR": 0.141,
+            "INFO": 0.309,
+            "DEBUG": 0.409,
+            "WARNING": 0.226,
+            "CRITICAL": 0.079
+          }
+        }
+      },
+      "long": {
+        "exc": {
+          "nolog": {
+            "EXCEPTION": 0.013,
+            "ERROR": 0.013,
+            "INFO": 0.013,
+            "DEBUG": 0.013,
+            "WARNING": 0.013,
+            "CRITICAL": 0.013
+          },
+          "rotate": {
+            "EXCEPTION": 0.109,
+            "ERROR": 0.181,
+            "INFO": 0.385,
+            "DEBUG": 0.458,
+            "WARNING": 0.283,
+            "CRITICAL": 0.112
+          },
+          "file": {
+            "EXCEPTION": 0.101,
+            "ERROR": 0.167,
+            "INFO": 0.339,
+            "DEBUG": 0.416,
+            "WARNING": 0.26,
+            "CRITICAL": 0.101
+          }
+        },
+        "noexc": {
+          "nolog": {
+            "EXCEPTION": 0.013,
+            "ERROR": 0.013,
+            "INFO": 0.014,
+            "DEBUG": 0.012,
+            "WARNING": 0.013,
+            "CRITICAL": 0.013
+          },
+          "rotate": {
+            "EXCEPTION": 0.102,
+            "ERROR": 0.172,
+            "INFO": 0.345,
+            "DEBUG": 0.43,
+            "WARNING": 0.294,
+            "CRITICAL": 0.092
+          },
+          "file": {
+            "EXCEPTION": 0.087,
+            "ERROR": 0.15,
+            "INFO": 0.312,
+            "DEBUG": 0.396,
+            "WARNING": 0.241,
+            "CRITICAL": 0.084
+          }
+        }
+      }
+    }
+  }
+};
+
+/* ------------------------------------------------------------------ *
+ *  Rendering helpers
+ * ------------------------------------------------------------------ */
+
+const LEVELS = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL", "EXCEPTION"];
+const SIZE_LABEL = { short: "Short message", long: "Long message" };
+const EXC_LABEL  = { exc: "With exception", noexc: "Without exception" };
+const WRITER_LABEL = { nolog: "No output (console, filtered)", file: "File writer", rotate: "Rotating file writer" };
+
+function orderLevels(obj) {
+  const out = {};
+  for (const lv of LEVELS) if (lv in obj) out[lv] = obj[lv];
+  // append any level we did not know about
+  for (const k of Object.keys(obj)) if (!(k in out)) out[k] = obj[k];
+  return out;
+}
+
+function fmt(v) { return v === undefined ? "—" : Number(v).toFixed(3); }
+
+function colorFor(name) { return COLORS[name] || "#7f8c8d"; }
+
+/* Speedup vs. the slowest competing implementation for a single value. */
+function ratio(base, other) {
+  if (base === undefined || other === undefined || other === 0) return null;
+  return base / other;
+}
+
+function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
+
+/* ------------------------------------------------------------------ *
+ *  Java comparison charts (jfastlogging vs log4j vs log4j2)
+ * ------------------------------------------------------------------ */
+
+function javaCharts(osName) {
+  const files = {
+    jfastlogging: (osName === "Linux" ? "linux_jfastlogging" : "windows_jfastlogging"),
+    log4j:        (osName === "Linux" ? "linux_log4j"        : "windows_log4j"),
+    log4j2:       (osName === "Linux" ? null                  : "windows_log4j2"),
+  };
+  const sets = {};
+  for (const [name, file] of Object.entries(files)) {
+    if (!file || !BENCH_DATA[file]) continue;
+    sets[name] = BENCH_DATA[file][osName];
+  }
+  if (Object.keys(sets).length === 0) return "";
+
+  let html = `<h2>Java benchmarks — ${esc(osName)}</h2><p class="note">jfastlogging (JNI) vs Apache Log4j${sets.log4j2 ? " and Log4j2" : ""}. Values in seconds, lower is better.</p>`;
+
+  for (const size of ["short", "long"]) {
+    for (const exc of ["exc", "noexc"]) {
+      html += `<h3>${SIZE_LABEL[size]} — ${EXC_LABEL[exc]}</h3><div class="grid">`;
+      for (const writer of ["nolog", "file", "rotate"]) {
+        const labels = new Set();
+        for (const s of Object.values(sets)) {
+          const w = s?.[size]?.[exc]?.[writer];
+          if (w) Object.keys(orderLevels(w)).forEach((l) => labels.add(l));
+        }
+        const levelList = LEVELS.filter((l) => labels.has(l));
+        const datasets = Object.entries(sets).map(([name, s]) => {
+          const w = s?.[size]?.[exc]?.[writer] || {};
+          const o = orderLevels(w);
+          return {
+            label: name,
+            data: levelList.map((l) => o[l]),
+            backgroundColor: colorFor(name),
+          };
+        });
+        const cardId = "java-" + osName + "-" + size + "-" + exc + "-" + writer;
+        html += `<div class="card"><h4>${WRITER_LABEL[writer]}</h4><canvas id="${cardId}"></canvas></div>`;
+        chartsToCreate.push({
+          id: cardId,
+          type: "bar",
+          labels: levelList,
+          datasets,
+        });
+      }
+      html += `</div>`;
+    }
+  }
+  return html;
+}
+
+/* ------------------------------------------------------------------ *
+ *  Python benchmark charts (logging vs fastlogging vs Rust)
+ * ------------------------------------------------------------------ */
+
+function pythonCharts() {
+  const d = BENCH_DATA["linux_pybenchmarks"];
+  if (!d) return "";
+  let html = `<h2>Python / Rust benchmarks — Linux</h2><p class="note">Python stdlib <code>logging</code> vs <code>fastlogging</code> Python bindings (single- and multi-threaded) vs the raw <code>fastlogging-rs</code> Rust core. Values in seconds, lower is better.</p>`;
+
+  for (const size of ["short", "long"]) {
+    for (const exc of ["noexc", "exc"]) {
+      html += `<h3>${SIZE_LABEL[size]} — ${EXC_LABEL[exc]}</h3><div class="grid">`;
+      for (const writer of ["nolog", "file", "rotate"]) {
+        const w = d?.[size]?.[exc]?.[writer] || {};
+        const levelList = LEVELS.filter((l) => w[l]);
+        const frameworks = new Set();
+        for (const l of levelList) Object.keys(w[l]).forEach((f) => frameworks.add(f));
+        const datasets = [...frameworks].map((f) => ({
+          label: f,
+          data: levelList.map((l) => w[l]?.[f]),
+          backgroundColor: colorFor(f),
+        }));
+        const cardId = "py-" + size + "-" + exc + "-" + writer;
+        html += `<div class="card"><h4>${WRITER_LABEL[writer]}</h4><canvas id="${cardId}"></canvas></div>`;
+        chartsToCreate.push({
+          id: cardId,
+          type: "bar",
+          labels: levelList,
+          datasets,
+        });
+      }
+      html += `</div>`;
+    }
+  }
+  return html;
+}
+
+/* ------------------------------------------------------------------ *
+ *  Tables — Java
+ * ------------------------------------------------------------------ */
+
+function javaTable(osName) {
+  const files = {
+    jfastlogging: (osName === "Linux" ? "linux_jfastlogging" : "windows_jfastlogging"),
+    log4j:        (osName === "Linux" ? "linux_log4j"        : "windows_log4j"),
+    log4j2:       (osName === "Linux" ? null                  : "windows_log4j2"),
+  };
+  const sets = {};
+  for (const [name, file] of Object.entries(files)) {
+    if (!file || !BENCH_DATA[file]) continue;
+    sets[name] = BENCH_DATA[file][osName];
+  }
+  if (Object.keys(sets).length === 0) return "";
+  const names = Object.keys(sets);
+  let html = `<h2>Java benchmark tables — ${esc(osName)}</h2><p class="note">Values in seconds (lower is better). The <span class="speedup">green</span> column is the speedup of jfastlogging over the best competing framework (≥ 1 means faster).</p>`;
+  for (const size of ["short", "long"]) {
+    for (const exc of ["exc", "noexc"]) {
+      for (const writer of ["nolog", "file", "rotate"]) {
+        const w = {};
+        for (const n of names) w[n] = sets[n]?.[size]?.[exc]?.[writer] || {};
+        const levelList = LEVELS.filter((l) => names.some((n) => w[n][l] !== undefined));
+        html += `<details open><summary>${SIZE_LABEL[size]} — ${EXC_LABEL[exc]} — ${WRITER_LABEL[writer]}</summary>`;
+        html += `<table><thead><tr><th>Level</th>`;
+        for (const n of names) html += `<th>${esc(n)} (s)</th>`;
+        html += `<th>⏱ speedup</th></tr></thead><tbody>`;
+        for (const l of levelList) {
+          const jf = w.jfastlogging?.[l];
+          const best = Math.min(...names.filter((n) => n !== "jfastlogging").map((n) => w[n][l]).filter((v) => v !== undefined));
+          const sp = ratio(jf, best);
+          html += `<tr><td>${esc(l)}</td>`;
+          for (const n of names) html += `<td>${fmt(w[n][l])}</td>`;
+          html += `<td class="${sp !== null && sp >= 1 ? "speedup" : "slow"}">${sp !== null ? "×" + sp.toFixed(1) : "—"}</td></tr>`;
+        }
+        html += `</tbody></table></details>`;
+      }
+    }
+  }
+  return html;
+}
+
+/* ------------------------------------------------------------------ *
+ *  Tables — Python
+ * ------------------------------------------------------------------ */
+
+function pythonTable() {
+  const d = BENCH_DATA["linux_pybenchmarks"];
+  if (!d) return "";
+  let html = `<h2>Python / Rust benchmark tables — Linux</h2><p class="note">Values in seconds (lower is better). The <span class="speedup">green</span> column is the speedup of <code>fastlogging-rs</code> over Python stdlib <code>logging</code>.</p>`;
+  for (const size of ["short", "long"]) {
+    for (const exc of ["noexc", "exc"]) {
+      for (const writer of ["nolog", "file", "rotate"]) {
+        const w = d?.[size]?.[exc]?.[writer] || {};
+        const levelList = LEVELS.filter((l) => w[l]);
+        html += `<details open><summary>${SIZE_LABEL[size]} — ${EXC_LABEL[exc]} — ${WRITER_LABEL[writer]}</summary>`;
+        html += `<table><thead><tr><th>Level</th><th>logging (s)</th><th>fastlogging (s)</th><th>fastlogging-threads (s)</th><th>fastlogging-rs (s)</th><th>fastlogging-rs-default (s)</th><th>⏱ speedup rs vs logging</th></tr></thead><tbody>`;
+        for (const l of levelList) {
+          const cell = w[l] || {};
+          const sp = ratio(cell["fastlogging-rs"], cell["logging"]);
+          html += `<tr><td>${esc(l)}</td>`;
+          for (const k of ["logging", "fastlogging", "fastlogging-threads", "fastlogging-rs", "fastlogging-rs-default"]) {
+            html += `<td>${fmt(cell[k])}</td>`;
+          }
+          html += `<td class="${sp !== null && sp >= 1 ? "speedup" : "slow"}">${sp !== null ? "×" + sp.toFixed(1) : "—"}</td></tr>`;
+        }
+        html += `</tbody></table></details>`;
+      }
+    }
+  }
+  return html;
+}
+
+/* ------------------------------------------------------------------ *
+ *  Boot
+ * ------------------------------------------------------------------ */
+
+const COLORS = {"logging": "#e4572e", "fastlogging": "#2e9e46", "fastlogging-threads": "#2e86c1", "fastlogging-rs": "#8e44ad", "fastlogging-rs-default": "#95a5a6", "jfastlogging": "#2e9e46", "log4j": "#e67e22", "log4j2": "#e74c3c"};
+const chartsToCreate = [];
+const content = document.getElementById("content");
+
+let html = `<h2>Overview</h2><p class="note">The raw data was measured by the benchmark suites in this repository and stored as JSON in <code>doc/benchmarks/</code>. Charts below are grouped by platform, message size, exception usage and writer type.</p>`;
+
+html += pythonCharts();
+html += javaCharts("Linux");
+html += javaCharts("Windows 10");
+html += pythonTable();
+html += javaTable("Linux");
+html += javaTable("Windows 10");
+
+content.innerHTML = html;
+
+for (const c of chartsToCreate) {
+  const ctx = document.getElementById(c.id);
+  if (!ctx) continue;
+  new Chart(ctx, {
+    type: c.type,
+    data: { labels: c.labels, datasets: c.datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: "#e6ebf5" } },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => ctx.dataset.label + ": " + Number(ctx.raw).toFixed(3) + " s",
+          },
+        },
+      },
+      scales: {
+        x: { ticks: { color: "#93a1b8" }, grid: { color: "#2c3a55" } },
+        y: { beginAtZero: true, ticks: { color: "#93a1b8" }, grid: { color: "#2c3a55" }, title: { display: true, text: "seconds (lower is better)", color: "#93a1b8" } },
+      },
+    },
+  });
+}
+</script>
+</body>
+</html>
