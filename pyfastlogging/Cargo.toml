@@ -5,8 +5,7 @@ edition = "2024"
 authors = ["Martin Bammer <mrbm74@gmail.com>"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/brmmm3/fastlogging-rs"
-homepage = "https://github.com/brmmm3/fastlogging-rs"
-readme = "README.md"
+homepage = "https://github.com/brmmm3/fastlogging-rs/pyfastlogging"
 keywords = ["logging"]
 include = [
     "Cargo.toml",
@@ -20,10 +19,13 @@ include = [
 
 [lib]
 name = "pyfastlogging"
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 once_cell = "1.21"
 parking_lot = "0.12"
 pyo3 = { version = "0.29", features = ["extension-module"] }
 fastlogging = { path = "../fastlogging", version = "0.8.0" }
+
+[dev-dependencies]
+pyo3 = { version = "0.29", features = ["auto-initialize"] }
