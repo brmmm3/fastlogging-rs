@@ -1,13 +1,19 @@
 package org.logging;
 
+import java.lang.foreign.MemorySegment;
+import java.nio.charset.StandardCharsets;
+
 import org.logging.FastLogging.CallbackWriterConfig;
 import org.logging.FastLogging.CallbackWriterConfigLog;
 import org.logging.FastLogging.Logging;
 import org.logging.FastLogging.WriterTypeEnum;
 
 class CallbackExample implements CallbackWriterConfigLog {
-  public void log(int level, String domain, String message) {
-    System.out.println(String.format("Java-CB: %d %s: %s", level, domain, message));
+  @Override
+  public void invoke(int level, MemorySegment domain, long domainLen, MemorySegment message, long messageLen) {
+    String domainStr = (domain == null || domainLen <= 0) ? "" : domain.getString(0, StandardCharsets.UTF_8);
+    String messageStr = (message == null || messageLen <= 0) ? "" : message.getString(0, StandardCharsets.UTF_8);
+    System.out.println(String.format("Java-CB: %d %s: %s", level, domainStr, messageStr));
   }
 
   void doLogging() {

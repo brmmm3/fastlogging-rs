@@ -2,7 +2,6 @@ package org.logging;
 
 import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
-import java.lang.foreign.SegmentAllocator;
 import java.lang.foreign.SymbolLookup;
 
 public class FastLogging {
@@ -10,8 +9,7 @@ public class FastLogging {
 	static {
 		System.loadLibrary("jfastlogging");
 		Linker linker = Linker.nativeLinker();
-		SymbolLookup lookup = linker.defaultLookup()
-				.or(SymbolLookup.libraryLookup("jfastlogging", SegmentAllocator.nativeAllocator(1)));
+		SymbolLookup lookup = linker.defaultLookup().or(SymbolLookup.loaderLookup());
 	}
 
 	// Log levels
@@ -44,26 +42,26 @@ public class FastLogging {
 
 	static public String Level2Sym(int level) {
 		switch (level) {
-			case NOLOG:
-				return "NOLOG";
-			case EXCEPTION:
-				return "EXCEPTION";
-			case CRITICAL:
-				return "CRITICAL";
-			case ERROR:
-				return "ERROR";
-			case WARNING:
-				return "WARNING";
-			case SUCCESS:
-				return "SUCCESS";
-			case INFO:
-				return "INFO";
-			case DEBUG:
-				return "DEBUG";
-			case TRACE:
-				return "TRACE";
-			case NOTSET:
-				return "NOTSET";
+		case NOLOG:
+			return "NOLOG";
+		case EXCEPTION:
+			return "EXCEPTION";
+		case CRITICAL:
+			return "CRITICAL";
+		case ERROR:
+			return "ERROR";
+		case WARNING:
+			return "WARNING";
+		case SUCCESS:
+			return "SUCCESS";
+		case INFO:
+			return "INFO";
+		case DEBUG:
+			return "DEBUG";
+		case TRACE:
+			return "TRACE";
+		case NOTSET:
+			return "NOTSET";
 		}
 		return "?";
 	}
