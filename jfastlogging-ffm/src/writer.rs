@@ -43,7 +43,7 @@ pub unsafe extern "C" fn fileWriterConfigNew(
     if path_ptr.is_null() || path_len == 0 {
         return std::ptr::null_mut();
     }
-    let path = match get_option_str(path_ptr, path_len) {
+    let path = match unsafe { get_option_str(path_ptr, path_len) } {
         Some(s) => s,
         None => return std::ptr::null_mut(),
     };
@@ -96,7 +96,7 @@ pub unsafe extern "C" fn clientWriterConfigNew(
     if address_ptr.is_null() || address_len == 0 {
         return std::ptr::null_mut();
     }
-    let address = match get_option_str(address_ptr, address_len) {
+    let address = match unsafe { get_option_str(address_ptr, address_len) } {
         Some(s) => s,
         None => return std::ptr::null_mut(),
     };
@@ -132,7 +132,7 @@ pub unsafe extern "C" fn serverConfigNew(
     if address_ptr.is_null() || address_len == 0 {
         return std::ptr::null_mut();
     }
-    let address = match get_option_str(address_ptr, address_len) {
+    let address = match unsafe { get_option_str(address_ptr, address_len) } {
         Some(s) => s,
         None => return std::ptr::null_mut(),
     };
@@ -166,7 +166,7 @@ pub unsafe extern "C" fn syslogWriterConfigNew(
     pid: u32,
 ) -> *mut WriterConfigEnum {
     let hostname = if !hostname_ptr.is_null() && hostname_len > 0 {
-        match get_option_str(hostname_ptr, hostname_len) {
+        match unsafe { get_option_str(hostname_ptr, hostname_len) } {
             Some(s) => Some(s.to_string()),
             None => return std::ptr::null_mut(),
         }
@@ -176,7 +176,7 @@ pub unsafe extern "C" fn syslogWriterConfigNew(
     if pname_ptr.is_null() || pname_len == 0 {
         return std::ptr::null_mut();
     }
-    let pname = match get_option_str(pname_ptr, pname_len) {
+    let pname = match unsafe { get_option_str(pname_ptr, pname_len) } {
         Some(s) => s,
         None => return std::ptr::null_mut(),
     };

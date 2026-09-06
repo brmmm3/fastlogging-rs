@@ -5,8 +5,10 @@ macro_rules! log_message {
             return -1;
         }
         let logger = unsafe { &mut *$logger };
-        let msg = get_option_str($msg_ptr, $msg_len).unwrap_or("");
-        logger.$method(msg);
+        let msg = unsafe { get_option_str($msg_ptr, $msg_len) }.unwrap_or("");
+        if logger.$method(msg).is_err() {
+            return -1;
+        }
         0
     }};
 }

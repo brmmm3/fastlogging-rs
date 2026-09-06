@@ -71,7 +71,7 @@ pub unsafe extern "C" fn loggerSetDomain(
 ) -> i32 {
     if let Some(logger) = unsafe { logger.as_mut() } {
         let domain = if !domain_ptr.is_null() && domain_len > 0 {
-            match get_option_str(domain_ptr, domain_len) {
+            match unsafe { get_option_str(domain_ptr, domain_len) } {
                 Some(s) => s,
                 None => return -1,
             }

@@ -32,7 +32,7 @@ pub unsafe extern "C" fn loggingNew(
     let domain = if domain_ptr.is_null() {
         "root"
     } else {
-        get_option_str(domain_ptr, domain_len).unwrap_or("root")
+        unsafe { get_option_str(domain_ptr, domain_len) }.unwrap_or("root")
     };
     let configs = if !configs_ptr.is_null() && configs_len > 0 {
         let slice = unsafe { std::slice::from_raw_parts(configs_ptr, configs_len) };
@@ -49,7 +49,7 @@ pub unsafe extern "C" fn loggingNew(
         Some(*unsafe { Box::from_raw(ext_config) })
     };
     let config_path = if !config_path_ptr.is_null() && config_path_len > 0 {
-        get_option_str(config_path_ptr, config_path_len).map(PathBuf::from)
+        unsafe { get_option_str(config_path_ptr, config_path_len) }.map(PathBuf::from)
     } else {
         None
     };
@@ -96,7 +96,7 @@ pub unsafe extern "C" fn loggingSetDomain(
         return -1;
     }
     let logging = unsafe { &mut *logging };
-    if let Some(domain) = get_option_str(domain_ptr, domain_len) {
+    if let Some(domain) = unsafe { get_option_str(domain_ptr, domain_len) } {
         logging.set_domain(domain);
         0
     } else {
@@ -291,7 +291,7 @@ pub unsafe extern "C" fn loggingRotate(
     }
     let logging = unsafe { &mut *logging };
     let path = if !path_ptr.is_null() && path_len > 0 {
-        get_option_str(path_ptr, path_len).map(PathBuf::from)
+        unsafe { get_option_str(path_ptr, path_len) }.map(PathBuf::from)
     } else {
         None
     };
@@ -444,7 +444,7 @@ pub unsafe extern "C" fn loggingSaveConfig(
         return std::ptr::null_mut();
     }
     let logging = unsafe { &mut *logging };
-    let path = get_option_str(path_ptr, path_len).map(Path::new);
+    let path = unsafe { get_option_str(path_ptr, path_len) }.map(Path::new);
     let result = logging.save_config(path);
     Box::into_raw(Box::new(result)) as *mut std::ffi::c_void
 }
