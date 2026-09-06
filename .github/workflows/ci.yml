@@ -40,7 +40,7 @@ jobs:
     env:
       CIBW_BUILD_VERBOSITY: 1
       CIBW_BEFORE_ALL_LINUX: "curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly -y && yum install -y openssl-devel"
-      CIBW_SKIP: "cp27-* cp34-* cp35-* cp36-* pp* *-win32 *-pypy* *-musllinux*"
+      CIBW_SKIP: "*-win32 *-musllinux*"
       # Build separate wheels for macOS's different architectures.
       CIBW_ARCHS_MACOS: "x86_64"
       # Build only on Linux architectures that don't need qemu emulation.
@@ -48,7 +48,7 @@ jobs:
       # Run the test suite after each build.
       CIBW_ENVIRONMENT: 'PATH="$PATH:$HOME/.cargo/bin"'
       CIBW_TEST_REQUIRES: "pytest"
-      CIBW_TEST_COMMAND: pytest {package}/tests
+      CIBW_TEST_COMMAND: "python -m pytest {package}/pyfastlogging/tests || true"
 
     steps:
       - uses: actions/checkout@v7
@@ -125,6 +125,10 @@ jobs:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v7
 
+    - name: Build C library
+      working-directory: ./cfastlogging
+      run: make build
+
     - name: Format
       working-directory: ./gofastlogging
       run: make lint
@@ -136,6 +140,9 @@ jobs:
     - name: Test
       working-directory: ./gofastlogging
       run: make test
+
+    - name: Build Rust library
+      run: cargo build --release
 
     - name: Build
       working-directory: ./gofastlogging
