@@ -1,6 +1,5 @@
 package org.logging;
 
-import java.lang.foreign.Arena;
 import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
@@ -10,7 +9,7 @@ public class FastLogging {
 	static {
 		System.loadLibrary("jfastlogging");
 		Linker linker = Linker.nativeLinker();
-		SymbolLookup lookup = linker.defaultLookup().or(SymbolLookup.libraryLookup("jfastlogging", Arena.ofAuto()));
+		SymbolLookup lookup = linker.defaultLookup().or(SymbolLookup.loaderLookup());
 	}
 
 	// Log levels
