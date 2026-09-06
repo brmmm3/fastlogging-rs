@@ -1,4 +1,6 @@
-# `pyfastlogging`
+# pyfastlogging
+
+Python wrapper for [fastlogging](https://github.com/brmmm3/fastlogging-rs/tree/master/fastlogging).
 
 ## Building the wheels
 
