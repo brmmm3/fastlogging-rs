@@ -24,7 +24,7 @@ jobs:
         with:
           toolchain: nightly
           components: clippy
-      - uses: auguwu/clippy-action@1.5.0
+      - uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           args: --all-features --all-targets -- -A clippy::unnecessary_wraps
