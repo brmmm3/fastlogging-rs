@@ -187,7 +187,7 @@ impl Logging {
             )
             .into());
         };
-        Ok(self.instance.add_writer_config(&config.into())?)
+        Ok(self.instance.add_writer_config(&config)?)
     }
 
     pub fn remove_writer(&mut self, wid: usize) -> Option<WriterConfigEnum> {

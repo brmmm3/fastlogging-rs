@@ -22,12 +22,10 @@ static LEVEL: AtomicU8 = AtomicU8::new(NOTSET);
 static FORMAT_EXC: OnceCell<Py<PyAny>> = OnceCell::new();
 
 pub fn get_format_exc(py: Python) -> PyResult<&'static Py<PyAny>> {
-    FORMAT_EXC
-        .get_or_try_init(|| {
-            let traceback = py.import("traceback")?;
-            traceback.getattr("format_exc").map(|f| f.into())
-        })
-        .map(|f| f.as_ref())
+    FORMAT_EXC.get_or_try_init(|| {
+        let traceback = py.import("traceback")?;
+        traceback.getattr("format_exc").map(|f| f.into())
+    })
 }
 
 /// Python layer for fastlogging.
