@@ -29,7 +29,7 @@ fn main() {
             if let Some(path) = flag.strip_prefix("-L") {
                 println!("cargo:rustc-link-search={}", path);
             } else if let Some(lib) = flag.strip_prefix("-l") {
-                println!("cargo:rustc-lib={}", lib);
+                println!("cargo:rustc-link-lib={}", lib);
             }
         }
     }
