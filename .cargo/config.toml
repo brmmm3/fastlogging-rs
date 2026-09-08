@@ -7,3 +7,7 @@ rustflags = ["-C", "target-cpu=x86-64-v3"]
 [target.x86_64-pc-windows-msvc]
 rustflags = ["-C", "target-cpu=x86-64-v3"]
 linker = "rust-lld.exe"
+
+# Disable the new solver in nightly to avoid high RAM usage.
+[build]
+rustflags = ["-Znext-solver=coherence"]
