@@ -11,3 +11,4 @@ jfastlogging/examples/BenchmarksLog4j2/target/
 *.so
 *.dll
 *.dylib
+**/generated/
