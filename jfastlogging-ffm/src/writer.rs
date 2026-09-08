@@ -185,6 +185,7 @@ pub unsafe extern "C" fn syslogWriterConfigNew(
     ))))
 }
 
+#[allow(clippy::type_complexity)]
 pub static CALLBACK_JAVA_FUNC: Lazy<
     RwLock<Option<extern "C" fn(i32, *const u8, usize, *const u8, usize)>>,
 > = Lazy::new(|| RwLock::new(None));

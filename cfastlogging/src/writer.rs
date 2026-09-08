@@ -193,6 +193,7 @@ pub unsafe extern "C" fn callback_writer_config_new(
     level: c_uchar,
     callback: extern "C" fn(c_uchar, *const c_char, *const c_char),
 ) -> *mut fastlogging::WriterConfigEnum {
+    #[allow(clippy::cmp_null)]
     if callback as *mut c_ulong != ptr::null_mut() {
         *CALLBACK_C_FUNC.write() = Some(callback);
     } else {

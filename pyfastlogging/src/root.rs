@@ -28,7 +28,7 @@ pub fn get_format_exc(py: Python) -> PyResult<&'static Py<PyAny>> {
     })
 }
 
-/// Python layer for fastlogging.
+// Python layer for fastlogging.
 
 fn extract_writer_config_enum(
     config: Py<PyAny>,

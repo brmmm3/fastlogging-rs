@@ -179,6 +179,7 @@ impl Logging {
     }
 
     /// Set the root writer. Only `Client` or `Server` writer configs are allowed.
+    #[allow(clippy::boxed_local)]
     pub fn set_root_writer_config(
         &mut self,
         config: Box<WriterConfig>,
@@ -188,6 +189,7 @@ impl Logging {
     }
 
     /// Add a new writer and return its writer id.
+    #[allow(clippy::boxed_local)]
     pub fn add_writer_config(&mut self, config: Box<WriterConfig>) -> Result<u64, LoggingError> {
         let WriterConfig(cfg) = *config;
         Ok(self.0.add_writer_config(&cfg)? as u64)
@@ -519,6 +521,7 @@ fn root_remove_logger(logger: &mut Logger) {
     fastlogging::root::remove_logger(&mut logger.0)
 }
 
+#[allow(clippy::boxed_local)]
 fn root_add_writer_config(config: Box<WriterConfig>) -> Result<u64, LoggingError> {
     let WriterConfig(cfg) = *config;
     Ok(fastlogging::root::add_writer_config(&cfg)? as u64)
@@ -833,6 +836,7 @@ pub mod ffi {
         #[Self = "Logging"]
         fn new_default() -> Result<Box<Logging>>;
         #[Self = "Logging"]
+        #[allow(clippy::vec_box)]
         fn create(level: u8, domain: &str, configs: Vec<Box<WriterConfig>>)
         -> Result<Box<Logging>>;
 
@@ -847,6 +851,7 @@ pub mod ffi {
         fn remove_logger(self: &mut Logging, logger: &mut Logger);
         fn set_root_writer_config(self: &mut Logging, config: Box<WriterConfig>) -> Result<()>;
         fn add_writer_config(self: &mut Logging, config: Box<WriterConfig>) -> Result<u64>;
+        #[allow(clippy::vec_box)]
         fn add_writer_configs(
             self: &mut Logging,
             configs: Vec<Box<WriterConfig>>,

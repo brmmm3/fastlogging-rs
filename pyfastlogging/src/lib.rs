@@ -11,7 +11,7 @@ mod logger;
 mod logging;
 pub mod root;
 
-/// Python layer for fastlogging.
+// Python layer for fastlogging.
 
 /// This function is called when Python interpreter exits. The fastlogging module is shutdown.
 #[pyfunction]
