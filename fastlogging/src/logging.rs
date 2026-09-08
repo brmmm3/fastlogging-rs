@@ -688,33 +688,39 @@ impl Logging {
     }
 
     pub fn enable_type(&self, typ: WriterTypeEnum) -> Result<(), LoggingError> {
-        let instance = self.instance.read();
-        let wids = match instance.typ2wids.get(&typ) {
-            Some(w) => w,
-            None => {
-                return Err(LoggingError::InvalidValue(format!(
-                    "Writer type {typ:?} does not exist"
-                )));
-            }
-        };
+        let wids;
+        {
+            let instance = self.instance.read();
+            wids = match instance.typ2wids.get(&typ) {
+                Some(w) => w.clone(),
+                None => {
+                    return Err(LoggingError::InvalidValue(format!(
+                        "Writer type {typ:?} does not exist"
+                    )));
+                }
+            };
+        }
         for wid in wids {
-            self.enable(*wid)?;
+            self.enable(wid)?;
         }
         Ok(())
     }
 
     pub fn disable_type(&self, typ: WriterTypeEnum) -> Result<(), LoggingError> {
-        let instance = self.instance.read();
-        let wids = match instance.typ2wids.get(&typ) {
-            Some(w) => w,
-            None => {
-                return Err(LoggingError::InvalidValue(format!(
-                    "Writer type {typ:?} does not exist"
-                )));
-            }
-        };
+        let wids;
+        {
+            let instance = self.instance.read();
+            wids = match instance.typ2wids.get(&typ) {
+                Some(w) => w.clone(),
+                None => {
+                    return Err(LoggingError::InvalidValue(format!(
+                        "Writer type {typ:?} does not exist"
+                    )));
+                }
+            };
+        }
         for wid in wids {
-            self.disable(*wid)?;
+            self.disable(wid)?;
         }
         Ok(())
     }
