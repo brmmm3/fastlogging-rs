@@ -1,4 +1,12 @@
 {
+  "lldb.showDisassembly": "auto",
+  "lldb.launch.sourceLanguages": [
+    "rust"
+  ],
+  "lldb.launch.relativePathBase": "${workspaceFolder}",
+  "debug.allowBreakpointsEverywhere": true,
+  "rust-analyzer.cargo.buildScripts.enable": true,
+  "rust-analyzer.checkOnSave.enable": true,
   "editor.formatOnSave": true,
   "[markdown]": {
     "editor.formatOnSave": false

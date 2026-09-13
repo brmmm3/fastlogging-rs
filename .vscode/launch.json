@@ -2,6 +2,76 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug test file_writer_rotation (integration)",
+      "cargo": {
+        "args": [
+          "test",
+          "--package=fastlogging",
+          "--test=integration",
+          "--no-run"
+        ]
+      },
+      "args": [
+        "file_writer_rotation",
+        "--exact",
+        "--nocapture",
+        "--include-ignored"
+      ],
+      "env": {
+        "RUST_BACKTRACE": "1"
+      },
+      "cwd": "${workspaceFolder}",
+      "sourceMap": {
+        "/proc/self/cwd": "${workspaceFolder}"
+      },
+      "sourceLanguages": [
+        "rust"
+      ],
+      "breakpointMode": "file",
+      "initCommands": [
+        "command script import /home/martin/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/etc/lldb_lookup.py"
+      ]
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug Rust tests (fastlogging)",
+      "cargo": {
+        "args": [
+          "test",
+          "--package=fastlogging",
+          "--no-run"
+        ]
+      },
+      "args": [
+        "--nocapture"
+      ],
+      "env": {
+        "RUST_BACKTRACE": "1"
+      },
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug Rust tests (all crates)",
+      "cargo": {
+        "args": [
+          "test",
+          "--no-run"
+        ]
+      },
+      "args": [
+        "--nocapture"
+      ],
+      "env": {
+        "RUST_BACKTRACE": "1"
+      },
+      "cwd": "${workspaceFolder}"
+    },
+    {
       "type": "java",
       "name": "ConsoleExample",
       "request": "launch",
