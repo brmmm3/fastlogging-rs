@@ -58,7 +58,7 @@ pub fn new<S: Into<String>>(
 ```
 
 | Field | Description |
-|---|---|
+| ----- | ----------- |
 | `level` | Minimum message level forwarded from clients |
 | `address` | Bind address.  Omit port for OS-assigned. |
 | `port` | Parsed from `address`; 0 means OS-assigned |

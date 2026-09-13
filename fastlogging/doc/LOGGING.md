@@ -21,7 +21,7 @@ pub fn new<S: Into<String>>(
 ```
 
 | Parameter | Description |
-|---|---|
+| --------- | ----------- |
 | `level` | Global filter level.  Messages below this are dropped before they enter the channel. |
 | `domain` | String prepended to every log message, e.g. `"myapp"` or `"server"`. |
 | `configs` | Zero or more writer configurations.  Pass `None` for no writers. |
@@ -193,7 +193,7 @@ All fallible methods return `Result<_, LoggingError>`.
 The variants are:
 
 | Variant | Meaning |
-|---|---|
+| ------- | ------- |
 | `Io` | Underlying I/O failure |
 | `Utf8Error` | Invalid UTF-8 string |
 | `SyslogError` | Syslog connection problem |
