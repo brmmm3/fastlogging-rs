@@ -1,15 +1,24 @@
 package org.logging;
 
+import java.lang.foreign.Arena;
+import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
+import java.lang.foreign.ValueLayout;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
+import java.nio.charset.StandardCharsets;
 
 public class FastLogging {
 
+	private static final Linker LINKER = Linker.nativeLinker();
+	private static final SymbolLookup LOOKUP;
+
 	static {
 		System.loadLibrary("jfastlogging");
-		Linker linker = Linker.nativeLinker();
-		SymbolLookup lookup = linker.defaultLookup().or(SymbolLookup.loaderLookup());
+		LOOKUP = SymbolLookup.loaderLookup();
 	}
 
 	// Log levels
@@ -26,7 +35,7 @@ public class FastLogging {
 	public static final int TRACE = 5;
 	public static final int NOTSET = 0;
 
-	enum LevelSyms {
+	public enum LevelSyms {
 		Sym(0), Short(1), Str(2);
 
 		private final int value;
@@ -38,32 +47,6 @@ public class FastLogging {
 		public int getValue() {
 			return value;
 		}
-	}
-
-	static public String Level2Sym(int level) {
-		switch (level) {
-		case NOLOG:
-			return "NOLOG";
-		case EXCEPTION:
-			return "EXCEPTION";
-		case CRITICAL:
-			return "CRITICAL";
-		case ERROR:
-			return "ERROR";
-		case WARNING:
-			return "WARNING";
-		case SUCCESS:
-			return "SUCCESS";
-		case INFO:
-			return "INFO";
-		case DEBUG:
-			return "DEBUG";
-		case TRACE:
-			return "TRACE";
-		case NOTSET:
-			return "NOTSET";
-		}
-		return "?";
 	}
 
 	public enum MessageStructEnum {
@@ -84,24 +67,13 @@ public class FastLogging {
 		Root(0), Console(1), File(2), Files(3), Client(4), Clients(5), Server(6), Servers(7), Callback(8), Syslog(9);
 
 		private final int value;
-		private final String string;
 
 		private WriterTypeEnum(int value) {
 			this.value = value;
-			this.string = "";
-		}
-
-		private WriterTypeEnum(int value, String string) {
-			this.value = value;
-			this.string = string;
 		}
 
 		public int getValue() {
 			return value;
-		}
-
-		public String getString() {
-			return string;
 		}
 	}
 
@@ -133,73 +105,155 @@ public class FastLogging {
 		}
 	}
 
-	public static native long extConfigNew(int structured, boolean hostname, boolean pname, boolean pid, boolean tname,
-			boolean tid);
+	// ------------------------------------------------------------------
+	// FFM helper methods
+	// ------------------------------------------------------------------
 
-	static public class ExtConfig {
+	private static MethodHandle lookup(String name, FunctionDescriptor desc) {
+		return LOOKUP.find(name).map(addr -> LINKER.downcallHandle(addr, desc))
+				.orElseThrow(() -> new UnsatisfiedLinkError("Symbol not found: " + name));
+	}
+
+	private static MemorySegment allocStr(Arena arena, String s) {
+		if (s == null) {
+			return MemorySegment.NULL;
+		}
+		byte[] bytes = s.getBytes(StandardCharsets.UTF_8);
+		MemorySegment seg = arena.allocate(bytes.length + 1);
+		seg.copyFrom(MemorySegment.ofArray(bytes));
+		seg.set(ValueLayout.JAVA_BYTE, bytes.length, (byte) 0);
+		return seg;
+	}
+
+	private static long strLen(String s) {
+		return s == null ? 0L : (long) s.getBytes(StandardCharsets.UTF_8).length;
+	}
+
+	// ------------------------------------------------------------------
+	// Config constructors
+	// ------------------------------------------------------------------
+
+	public static class ExtConfig {
 		long instance_ptr = 0;
 
 		public ExtConfig(MessageStructEnum structured, boolean hostname, boolean pname, boolean pid, boolean tname,
 				boolean tid) {
-			instance_ptr = extConfigNew(structured.getValue(), hostname, pname, pid, tname, tid);
+			try {
+				MethodHandle mh = lookup("extConfigNew",
+						FunctionDescriptor.of(ValueLayout.JAVA_LONG,
+								ValueLayout.JAVA_INT,
+								ValueLayout.JAVA_BOOLEAN,
+								ValueLayout.JAVA_BOOLEAN,
+								ValueLayout.JAVA_BOOLEAN,
+								ValueLayout.JAVA_BOOLEAN,
+								ValueLayout.JAVA_BOOLEAN));
+				instance_ptr = (long) mh.invoke(structured.getValue(), hostname, pname, pid, tname, tid);
+			} catch (Throwable e) {
+				throw new RuntimeException(e);
+			}
 		}
 	}
 
-	public static native long consoleWriterConfigNew(int level, boolean colors);
-
-	static public class ConsoleWriterConfig {
+	public static class ConsoleWriterConfig {
 		long instance_ptr = 0;
 
 		public ConsoleWriterConfig(int level) {
-			instance_ptr = consoleWriterConfigNew(level, false);
+			this(level, false);
 		}
 
 		public ConsoleWriterConfig(int level, boolean colors) {
-			instance_ptr = consoleWriterConfigNew(level, colors);
+			try {
+				MethodHandle mh = lookup("consoleWriterConfigNew",
+						FunctionDescriptor.of(ValueLayout.JAVA_LONG,
+								ValueLayout.JAVA_BYTE,
+								ValueLayout.JAVA_BOOLEAN));
+				instance_ptr = (long) mh.invoke((byte) level, colors);
+			} catch (Throwable e) {
+				throw new RuntimeException(e);
+			}
 		}
 	}
 
-	public static native long fileWriterConfigNew(int level, String path, int size, int backlog, long timeout,
-			long time, int compression);
-
-	static public class FileWriterConfig {
+	public static class FileWriterConfig {
 		long instance_ptr = 0;
 
 		public FileWriterConfig(int level, String path) {
-			instance_ptr = fileWriterConfigNew(level, path, 0, 0, 0, 0, 0);
+			this(level, path, 0, 0, 0, 0, CompressionMethodEnum.Store);
 		}
 
 		public FileWriterConfig(int level, String path, int size, int backlog, long timeout, long time,
 				CompressionMethodEnum compression) {
-			instance_ptr = fileWriterConfigNew(level, path, size, backlog, timeout, time, compression.getValue());
+			try (Arena arena = Arena.ofConfined()) {
+				MemorySegment pathSeg = allocStr(arena, path);
+				MethodHandle mh = lookup("fileWriterConfigNew",
+						FunctionDescriptor.of(ValueLayout.JAVA_LONG,
+								ValueLayout.JAVA_BYTE,
+								ValueLayout.ADDRESS,
+								ValueLayout.JAVA_LONG,
+								ValueLayout.JAVA_LONG,
+								ValueLayout.JAVA_LONG,
+								ValueLayout.JAVA_LONG,
+								ValueLayout.JAVA_LONG,
+								ValueLayout.JAVA_BYTE));
+				instance_ptr = (long) mh.invoke((byte) level, pathSeg, strLen(path),
+						(long) size, (long) backlog, timeout, time, (byte) compression.getValue());
+			} catch (Throwable e) {
+				throw new RuntimeException(e);
+			}
 		}
 	}
 
-	public static native long clientWriterConfigNew(int level, String address, int port, int method, String key);
-
-	static public class ClientWriterConfig {
+	public static class ClientWriterConfig {
 		long instance_ptr = 0;
 
 		public ClientWriterConfig(int level, String address, int port) {
-			instance_ptr = clientWriterConfigNew(level, address, port, 0, null);
+			this(level, address, port, EncryptionMethod.NONE, null);
 		}
 
 		public ClientWriterConfig(int level, String address, int port, EncryptionMethod method, String key) {
-			instance_ptr = clientWriterConfigNew(level, address, port, method.getValue(), key);
+			try (Arena arena = Arena.ofConfined()) {
+				MemorySegment addrSeg = allocStr(arena, address);
+				MemorySegment keySeg = allocStr(arena, key);
+				MethodHandle mh = lookup("clientWriterConfigNew",
+						FunctionDescriptor.of(ValueLayout.JAVA_LONG,
+								ValueLayout.JAVA_BYTE,
+								ValueLayout.ADDRESS,
+								ValueLayout.JAVA_LONG,
+								ValueLayout.JAVA_BYTE,
+								ValueLayout.ADDRESS,
+								ValueLayout.JAVA_LONG));
+				instance_ptr = (long) mh.invoke((byte) level, addrSeg, strLen(address),
+						(byte) method.getValue(), keySeg, strLen(key));
+			} catch (Throwable e) {
+				throw new RuntimeException(e);
+			}
 		}
 	}
 
-	public static native long serverConfigNew(int level, String address, int port, int method, String key);
-
-	static public class ServerConfig {
+	public static class ServerConfig {
 		long instance_ptr = 0;
 
 		public ServerConfig(int level, String address, int port) {
-			instance_ptr = serverConfigNew(level, address, port, 0, null);
+			this(level, address, port, EncryptionMethod.NONE, null);
 		}
 
 		public ServerConfig(int level, String address, int port, EncryptionMethod method, String key) {
-			instance_ptr = serverConfigNew(level, address, port, method.getValue(), key);
+			try (Arena arena = Arena.ofConfined()) {
+				MemorySegment addrSeg = allocStr(arena, address);
+				MemorySegment keySeg = allocStr(arena, key);
+				MethodHandle mh = lookup("serverConfigNew",
+						FunctionDescriptor.of(ValueLayout.JAVA_LONG,
+								ValueLayout.JAVA_BYTE,
+								ValueLayout.ADDRESS,
+								ValueLayout.JAVA_LONG,
+								ValueLayout.JAVA_BYTE,
+								ValueLayout.ADDRESS,
+								ValueLayout.JAVA_LONG));
+				instance_ptr = (long) mh.invoke((byte) level, addrSeg, strLen(address),
+						(byte) method.getValue(), keySeg, strLen(key));
+			} catch (Throwable e) {
+				throw new RuntimeException(e);
+			}
 		}
 	}
 
@@ -208,84 +262,41 @@ public class FastLogging {
 		void invoke(int level, MemorySegment domain, long domainLen, MemorySegment message, long messageLen);
 	}
 
-	public static native long callbackWriterConfigNew(int level, CallbackWriterConfigLog callback);
-
-	static public class CallbackWriterConfig {
+	public static class CallbackWriterConfig {
 		long instance_ptr = 0;
+		private Arena arena;
 
 		public CallbackWriterConfig(int level, CallbackWriterConfigLog callback) {
-			instance_ptr = callbackWriterConfigNew(level, callback);
+			this.arena = Arena.ofShared();
+			try {
+				MethodHandle targetMh = MethodHandles.lookup().findVirtual(
+						CallbackWriterConfigLog.class, "invoke",
+						MethodType.methodType(void.class, int.class,
+								MemorySegment.class, long.class, MemorySegment.class, long.class));
+				MethodHandle boundMh = targetMh.bindTo(callback);
+				MemorySegment cbStub = LINKER.upcallStub(boundMh,
+						FunctionDescriptor.ofVoid(
+								ValueLayout.JAVA_INT,
+								ValueLayout.ADDRESS,
+								ValueLayout.JAVA_LONG,
+								ValueLayout.ADDRESS,
+								ValueLayout.JAVA_LONG),
+						arena);
+				MethodHandle mh = lookup("callbackWriterConfigNew",
+						FunctionDescriptor.of(ValueLayout.JAVA_LONG,
+								ValueLayout.ADDRESS,
+								ValueLayout.JAVA_BYTE));
+				instance_ptr = (long) mh.invoke(cbStub, (byte) level);
+			} catch (Throwable e) {
+				arena.close();
+				throw new RuntimeException(e);
+			}
 		}
 	}
 
+	// ------------------------------------------------------------------
 	// Logging class
-
-	public static native long loggingNew(int level, String domain, long extConfig, long console, long file, long server,
-			long client, int syslog, String config);
-
-	private static native void loggingShutdown(long instance_ptr, boolean now);
-
-	public static native void loggingSetLevel(long instance_ptr, int writer, String key, int level);
-
-	public static native void loggingSetDomain(long instance_ptr, String domain);
-
-	public static native void loggingSetLevel2Sym(long instance_ptr, int level2sym);
-
-	public static native void loggingSetExtConfig(long instance_ptr, long extConfig);
-
-	private static native void loggingAddLogger(long instance_ptr, long logger_ptr);
-
-	private static native void loggingRemoveLogger(long instance_ptr, long logger_ptr);
-
-	private static native void loggingAddWriter(long instance_ptr, long writer_ptr);
-
-	private static native void loggingRemoveWriter(long instance_ptr, int writer, String key);
-
-	public static native void loggingSync(long instance_ptr, long types_ptr, double timeout);
-
-	public static native void loggingSyncAll(long instance_ptr, double timeout);
-
-	// File logger
-
-	public static native void loggingRotate(long instance_ptr, String path);
-
-	// Network
-
-	public static native void loggingSetEncryption(long instance_ptr, String address, int method, String key);
-
-	// Config
-
-	private static native String loggingGetConfig(long instance_ptr, int writer, String key);
-
-	private static native ServerConfig loggingGetServerConfig(long instance_ptr);
-
-	private static native String loggingGetServerAddress(long instance_ptr);
-
-	private static native String loggingGetServerAuthKey(long instance_ptr);
-
-	private static native String loggingGetConfigString(long instance_ptr);
-
-	private static native void loggingSaveConfig(long instance_ptr, String path);
-
-	// Logging methods
-
-	private static native void loggingTrace(long instance_ptr, String message);
-
-	private static native void loggingDebug(long instance_ptr, String message);
-
-	private static native void loggingInfo(long instance_ptr, String message);
-
-	private static native void loggingSuccess(long instance_ptr, String message);
-
-	private static native void loggingWarning(long instance_ptr, String message);
-
-	private static native void loggingError(long instance_ptr, String message);
-
-	private static native void loggingCritical(long instance_ptr, String message);
-
-	private static native void loggingFatal(long instance_ptr, String message);
-
-	private static native void loggingException(long instance_ptr, String message);
+	// ------------------------------------------------------------------
 
 	static public class Logging {
 
@@ -293,473 +304,449 @@ public class FastLogging {
 		int instance_level = NOTSET;
 
 		public Logging() {
-			instance_ptr = loggingNew(NOTSET, "root", 0, 0, 0, 0, 0, -1, null);
-			instance_level = NOTSET;
+			this(NOTSET, "root");
 		}
 
 		public Logging(int level) {
-			instance_ptr = loggingNew(level, "root", 0, 0, 0, 0, 0, -1, null);
-			instance_level = level;
+			this(level, "root");
 		}
 
 		public Logging(int level, String domain) {
-			instance_ptr = loggingNew(level, domain, 0, 0, 0, 0, 0, -1, null);
+			try (Arena arena = Arena.ofConfined()) {
+				MemorySegment domainSeg = allocStr(arena, domain);
+				MethodHandle mh = lookup("loggingNew",
+						FunctionDescriptor.of(ValueLayout.JAVA_LONG,
+								ValueLayout.JAVA_INT,
+								ValueLayout.ADDRESS,
+								ValueLayout.JAVA_LONG,
+								ValueLayout.ADDRESS,
+								ValueLayout.JAVA_LONG,
+								ValueLayout.ADDRESS,
+								ValueLayout.ADDRESS,
+								ValueLayout.JAVA_LONG));
+				instance_ptr = (long) mh.invoke(level, domainSeg, strLen(domain),
+						MemorySegment.NULL, 0L, MemorySegment.NULL, MemorySegment.NULL, 0L);
+			} catch (Throwable e) {
+				throw new RuntimeException(e);
+			}
 			instance_level = level;
 		}
 
 		public Logging(int level, String domain, ExtConfig extConfig) {
-			long extConfig_ptr = 0;
+			this(level, domain);
 			if (extConfig != null) {
-				extConfig_ptr = extConfig.instance_ptr;
+				setExtConfig(extConfig);
 			}
-			instance_ptr = loggingNew(level, domain, extConfig_ptr, 0, 0, 0, 0, -1, null);
-			instance_level = level;
 		}
 
 		public Logging(int level, String domain, ConsoleWriterConfig console) {
-			long console_ptr = 0;
+			this(level, domain);
 			if (console != null) {
-				console_ptr = console.instance_ptr;
+				addWriter(console.instance_ptr);
 			}
-			instance_ptr = loggingNew(level, domain, 0, console_ptr, 0, 0, 0, -1, null);
-			instance_level = level;
 		}
 
 		public Logging(int level, String domain, FileWriterConfig file) {
-			long file_ptr = 0;
+			this(level, domain);
 			if (file != null) {
-				file_ptr = file.instance_ptr;
+				addWriter(file.instance_ptr);
 			}
-			instance_ptr = loggingNew(level, domain, 0, 0, file_ptr, 0, 0, -1, null);
-			instance_level = level;
 		}
 
 		public Logging(int level, String domain, CallbackWriterConfig callback) {
-			long callback_ptr = 0;
+			this(level, domain);
 			if (callback != null) {
-				callback_ptr = callback.instance_ptr;
+				addWriter(callback.instance_ptr);
 			}
-			instance_ptr = loggingNew(level, domain, 0, 0, 0, 0, 0, -1, null);
-			loggingAddWriter(instance_ptr, callback_ptr);
-			instance_level = level;
-		}
-
-		public Logging(int level, String domain, ConsoleWriterConfig console, FileWriterConfig file) {
-			long console_ptr = 0;
-			if (console != null) {
-				console_ptr = console.instance_ptr;
-			}
-			long file_ptr = 0;
-			if (file != null) {
-				file_ptr = file.instance_ptr;
-			}
-			instance_ptr = loggingNew(level, domain, 0, console_ptr, file_ptr, 0, 0, -1, null);
-			instance_level = level;
-		}
-
-		public Logging(int level, String domain, FileWriterConfig file, ServerConfig server) {
-			long file_ptr = 0;
-			if (file != null) {
-				file_ptr = file.instance_ptr;
-			}
-			long server_ptr = 0;
-			if (server != null) {
-				server_ptr = server.instance_ptr;
-			}
-			instance_ptr = loggingNew(level, domain, 0, 0, file_ptr, server_ptr, 0, -1, null);
-			instance_level = level;
-		}
-
-		public Logging(int level, String domain, FileWriterConfig file, ClientWriterConfig client) {
-			long file_ptr = 0;
-			if (file != null) {
-				file_ptr = file.instance_ptr;
-			}
-			long client_ptr = 0;
-			if (client != null) {
-				client_ptr = client.instance_ptr;
-			}
-			instance_ptr = loggingNew(level, domain, 0, 0, file_ptr, 0, client_ptr, -1, null);
-			instance_level = level;
-		}
-
-		public Logging(int level, String domain, FileWriterConfig file, CallbackWriterConfig callback) {
-			long file_ptr = 0;
-			if (file != null) {
-				file_ptr = file.instance_ptr;
-			}
-			long callback_ptr = 0;
-			if (callback != null) {
-				callback_ptr = callback.instance_ptr;
-			}
-			instance_ptr = loggingNew(level, domain, 0, 0, file_ptr, 0, 0, -1, null);
-			loggingAddWriter(instance_ptr, callback_ptr);
-			instance_level = level;
-		}
-
-		public Logging(int level, String domain, ConsoleWriterConfig console, ClientWriterConfig client) {
-			long console_ptr = 0;
-			if (console != null) {
-				console_ptr = console.instance_ptr;
-			}
-			long client_ptr = 0;
-			if (client != null) {
-				client_ptr = client.instance_ptr;
-			}
-			instance_ptr = loggingNew(level, domain, 0, console_ptr, 0, 0, client_ptr, -1, null);
-		}
-
-		public Logging(int level, String domain, ConsoleWriterConfig console, FileWriterConfig file,
-				ClientWriterConfig client) {
-			long console_ptr = 0;
-			if (console != null) {
-				console_ptr = console.instance_ptr;
-			}
-			long file_ptr = 0;
-			if (file != null) {
-				file_ptr = file.instance_ptr;
-			}
-			long client_ptr = 0;
-			if (client != null) {
-				client_ptr = client.instance_ptr;
-			}
-			instance_ptr = loggingNew(level, domain, 0, console_ptr, file_ptr, 0, client_ptr, -1, null);
-			instance_level = level;
-		}
-
-		public Logging(int level, String domain, ConsoleWriterConfig console, FileWriterConfig file,
-				ServerConfig server) {
-			long console_ptr = 0;
-			if (console != null) {
-				console_ptr = console.instance_ptr;
-			}
-			long file_ptr = 0;
-			if (file != null) {
-				file_ptr = file.instance_ptr;
-			}
-			long server_ptr = 0;
-			if (server != null) {
-				server_ptr = server.instance_ptr;
-			}
-			instance_ptr = loggingNew(level, domain, 0, console_ptr, file_ptr, server_ptr, 0, -1, null);
-			instance_level = level;
-		}
-
-		public Logging(int level, String domain, ClientWriterConfig client) {
-			long client_ptr = 0;
-			if (client != null) {
-				client_ptr = client.instance_ptr;
-			}
-			instance_ptr = loggingNew(level, domain, 0, 0, 0, 0, client_ptr, -1, null);
-			instance_level = level;
-		}
-
-		public Logging(int level, String domain, int syslog) {
-			instance_ptr = loggingNew(level, domain, 0, 0, 0, 0, 0, syslog, null);
-			instance_level = level;
-		}
-
-		public Logging(int level, String domain, ExtConfig extConfig, ConsoleWriterConfig console,
-				FileWriterConfig file, ClientWriterConfig client, int syslog) {
-			long extConfig_ptr = 0;
-			if (extConfig != null) {
-				extConfig_ptr = extConfig.instance_ptr;
-			}
-			long console_ptr = 0;
-			if (console != null) {
-				console_ptr = console.instance_ptr;
-			}
-			long file_ptr = 0;
-			if (file != null) {
-				file_ptr = file.instance_ptr;
-			}
-			long client_ptr = 0;
-			if (client != null) {
-				client_ptr = client.instance_ptr;
-			}
-			instance_ptr = loggingNew(level, domain, extConfig_ptr, console_ptr, file_ptr, 0, client_ptr, syslog, null);
-			instance_level = level;
-		}
-
-		public Logging(String path) {
-			instance_ptr = loggingNew(NOTSET, null, 0, 0, 0, 0, 0, -1, path);
 		}
 
 		public void shutdown() {
-			loggingShutdown(instance_ptr, false);
-			instance_ptr = 0L;
+			shutdown(false);
 		}
 
 		public void shutdown(boolean now) {
-			loggingShutdown(instance_ptr, now);
+			if (instance_ptr == null || instance_ptr == 0) {
+				return;
+			}
+			try {
+				MethodHandle mh = lookup("loggingShutdown",
+						FunctionDescriptor.ofVoid(
+								ValueLayout.JAVA_LONG,
+								ValueLayout.JAVA_INT));
+				mh.invoke(instance_ptr, now ? 1 : 0);
+			} catch (Throwable e) {
+				throw new RuntimeException(e);
+			}
 			instance_ptr = 0L;
 		}
 
 		public void setLevel(WriterTypeEnum writer, int level) {
-			loggingSetLevel(instance_ptr, writer.getValue(), "", level);
-			instance_level = level;
+			setLevel(writer, "", level);
 		}
 
 		public void setLevel(WriterTypeEnum writer, String key, int level) {
-			loggingSetLevel(instance_ptr, writer.getValue(), key, level);
+			try (Arena arena = Arena.ofConfined()) {
+				MemorySegment keySeg = allocStr(arena, key);
+				MethodHandle mh = lookup("loggingSetLevel",
+						FunctionDescriptor.of(ValueLayout.JAVA_INT,
+								ValueLayout.JAVA_LONG,
+								ValueLayout.JAVA_LONG,
+								ValueLayout.ADDRESS,
+								ValueLayout.JAVA_LONG,
+								ValueLayout.JAVA_BYTE));
+				mh.invoke(instance_ptr, (long) writer.getValue(), keySeg, strLen(key), (byte) level);
+			} catch (Throwable e) {
+				throw new RuntimeException(e);
+			}
 			instance_level = level;
 		}
 
 		public void setDomain(String domain) {
-			loggingSetDomain(instance_ptr, domain);
+			try (Arena arena = Arena.ofConfined()) {
+				MemorySegment domainSeg = allocStr(arena, domain);
+				MethodHandle mh = lookup("loggingSetDomain",
+						FunctionDescriptor.of(ValueLayout.JAVA_INT,
+								ValueLayout.JAVA_LONG,
+								ValueLayout.ADDRESS,
+								ValueLayout.JAVA_LONG));
+				mh.invoke(instance_ptr, domainSeg, strLen(domain));
+			} catch (Throwable e) {
+				throw new RuntimeException(e);
+			}
 		}
 
 		public void setLevel2Sym(LevelSyms level2sym) {
-			loggingSetLevel2Sym(instance_ptr, level2sym.getValue());
+			try {
+				MethodHandle mh = lookup("loggingSetLevel2Sym",
+						FunctionDescriptor.of(ValueLayout.JAVA_INT,
+								ValueLayout.JAVA_LONG,
+								ValueLayout.JAVA_INT));
+				mh.invoke(instance_ptr, level2sym.getValue());
+			} catch (Throwable e) {
+				throw new RuntimeException(e);
+			}
 		}
 
 		public void setExtConfig(ExtConfig extConfig) {
-			loggingSetExtConfig(instance_ptr, extConfig.instance_ptr);
+			try {
+				MethodHandle mh = lookup("loggingSetExtConfig",
+						FunctionDescriptor.of(ValueLayout.JAVA_INT,
+								ValueLayout.JAVA_LONG,
+								ValueLayout.JAVA_LONG));
+				mh.invoke(instance_ptr, extConfig.instance_ptr);
+			} catch (Throwable e) {
+				throw new RuntimeException(e);
+			}
 		}
 
 		public void addLogger(long logger_ptr) {
-			loggingAddLogger(instance_ptr, logger_ptr);
+			try {
+				MethodHandle mh = lookup("loggingAddLogger",
+						FunctionDescriptor.of(ValueLayout.JAVA_INT,
+								ValueLayout.JAVA_LONG,
+								ValueLayout.JAVA_LONG));
+				mh.invoke(instance_ptr, logger_ptr);
+			} catch (Throwable e) {
+				throw new RuntimeException(e);
+			}
 		}
 
 		public void removeLogger(long logger_ptr) {
-			loggingRemoveLogger(instance_ptr, logger_ptr);
+			try {
+				MethodHandle mh = lookup("loggingRemoveLogger",
+						FunctionDescriptor.of(ValueLayout.JAVA_INT,
+								ValueLayout.JAVA_LONG,
+								ValueLayout.JAVA_LONG));
+				mh.invoke(instance_ptr, logger_ptr);
+			} catch (Throwable e) {
+				throw new RuntimeException(e);
+			}
 		}
 
 		public void addWriter(long writer_ptr) {
-			loggingAddWriter(instance_ptr, writer_ptr);
+			try {
+				MethodHandle mh = lookup("loggingAddWriterConfig",
+						FunctionDescriptor.of(ValueLayout.JAVA_INT,
+								ValueLayout.JAVA_LONG,
+								ValueLayout.JAVA_LONG));
+				mh.invoke(instance_ptr, writer_ptr);
+			} catch (Throwable e) {
+				throw new RuntimeException(e);
+			}
 		}
 
 		public void removeWriter(WriterTypeEnum writer) {
-			loggingRemoveWriter(instance_ptr, writer.getValue(), "");
+			removeWriter(writer, "");
 		}
 
 		public void removeWriter(WriterTypeEnum writer, String key) {
-			loggingRemoveWriter(instance_ptr, writer.getValue(), key);
-		}
-
-		public void sync(long types_ptr, double timeout) {
-			loggingSync(instance_ptr, types_ptr, timeout);
+			try {
+				MethodHandle mh = lookup("loggingRemoveWriter",
+						FunctionDescriptor.of(ValueLayout.JAVA_INT,
+								ValueLayout.JAVA_LONG,
+								ValueLayout.JAVA_LONG));
+				mh.invoke(instance_ptr, (long) writer.getValue());
+			} catch (Throwable e) {
+				throw new RuntimeException(e);
+			}
 		}
 
 		public void syncAll(double timeout) {
-			loggingSyncAll(instance_ptr, timeout);
+			try {
+				MethodHandle mh = lookup("loggingSyncAll",
+						FunctionDescriptor.of(ValueLayout.JAVA_INT,
+								ValueLayout.JAVA_LONG,
+								ValueLayout.JAVA_DOUBLE));
+				mh.invoke(instance_ptr, timeout);
+			} catch (Throwable e) {
+				throw new RuntimeException(e);
+			}
 		}
-
-		// File logger
 
 		public void rotate(String path) {
-			loggingRotate(instance_ptr, path);
-		}
-
-		// Network
-
-		public void setEncryption(EncryptionMethod method, String key) {
-			loggingSetEncryption(instance_ptr, null, method.getValue(), key);
-		}
-
-		public void setEncryption(String address, EncryptionMethod method, String key) {
-			loggingSetEncryption(instance_ptr, address, method.getValue(), key);
-		}
-
-		// Config
-
-		public String getConfig(WriterTypeEnum writer, String key) {
-			return loggingGetConfig(instance_ptr, writer.getValue(), key);
-		}
-
-		public ServerConfig getServerConfig() {
-			return loggingGetServerConfig(instance_ptr);
-		}
-
-		public String getServerAddress() {
-			return loggingGetServerAddress(instance_ptr);
-		}
-
-		public String getServerAuthKey() {
-			return loggingGetServerAuthKey(instance_ptr);
+			try (Arena arena = Arena.ofConfined()) {
+				MemorySegment pathSeg = allocStr(arena, path);
+				MethodHandle mh = lookup("loggingRotate",
+						FunctionDescriptor.of(ValueLayout.JAVA_INT,
+								ValueLayout.JAVA_LONG,
+								ValueLayout.ADDRESS,
+								ValueLayout.JAVA_LONG));
+				mh.invoke(instance_ptr, pathSeg, strLen(path));
+			} catch (Throwable e) {
+				throw new RuntimeException(e);
+			}
 		}
 
 		public String getConfigString() {
-			return loggingGetConfigString(instance_ptr);
+			try {
+				MethodHandle mh = lookup("loggingGetConfigString",
+						FunctionDescriptor.of(ValueLayout.ADDRESS,
+								ValueLayout.JAVA_LONG));
+				MemorySegment ptr = (MemorySegment) mh.invoke(instance_ptr);
+				if (ptr == null || ptr.address() == 0) {
+					return null;
+				}
+				// Reinterpret with a large size so getUtf8String can read the C string
+				MemorySegment strSeg = ptr.reinterpret(Integer.MAX_VALUE);
+				return strSeg.getUtf8String(0);
+			} catch (Throwable e) {
+				throw new RuntimeException(e);
+			}
 		}
 
 		public void getSaveConfig(String path) {
-			loggingSaveConfig(instance_ptr, path);
+			try (Arena arena = Arena.ofConfined()) {
+				MemorySegment pathSeg = allocStr(arena, path);
+				MethodHandle mh = lookup("loggingSaveConfig",
+						FunctionDescriptor.of(ValueLayout.JAVA_LONG,
+								ValueLayout.JAVA_LONG,
+								ValueLayout.ADDRESS,
+								ValueLayout.JAVA_LONG));
+				mh.invoke(instance_ptr, pathSeg, strLen(path));
+			} catch (Throwable e) {
+				throw new RuntimeException(e);
+			}
 		}
 
 		// Logging methods
 
 		public void trace(String message) {
 			if (instance_level <= TRACE) {
-				loggingTrace(instance_ptr, message);
+				logMessage("loggingTrace", message);
 			}
 		}
 
 		public void debug(String message) {
 			if (instance_level <= DEBUG) {
-				loggingDebug(instance_ptr, message);
+				logMessage("loggingDebug", message);
 			}
 		}
 
 		public void info(String message) {
 			if (instance_level <= INFO) {
-				loggingInfo(instance_ptr, message);
+				logMessage("loggingInfo", message);
 			}
 		}
 
 		public void success(String message) {
 			if (instance_level <= SUCCESS) {
-				loggingSuccess(instance_ptr, message);
+				logMessage("loggingSuccess", message);
 			}
 		}
 
 		public void warning(String message) {
 			if (instance_level <= WARN) {
-				loggingWarning(instance_ptr, message);
+				logMessage("loggingWarning", message);
 			}
 		}
 
 		public void error(String message) {
 			if (instance_level <= ERROR) {
-				loggingError(instance_ptr, message);
+				logMessage("loggingError", message);
 			}
 		}
 
 		public void critical(String message) {
 			if (instance_level <= CRITICAL) {
-				loggingCritical(instance_ptr, message);
+				logMessage("loggingCritical", message);
 			}
 		}
 
 		public void fatal(String message) {
 			if (instance_level <= FATAL) {
-				loggingFatal(instance_ptr, message);
+				logMessage("loggingFatal", message);
 			}
 		}
 
 		public void exception(String message) {
 			if (instance_level <= EXCEPTION) {
-				loggingException(instance_ptr, message);
+				logMessage("loggingException", message);
+			}
+		}
+
+		private void logMessage(String funcName, String message) {
+			try (Arena arena = Arena.ofConfined()) {
+				MemorySegment msgSeg = allocStr(arena, message);
+				MethodHandle mh = lookup(funcName,
+						FunctionDescriptor.of(ValueLayout.JAVA_INT,
+								ValueLayout.JAVA_LONG,
+								ValueLayout.ADDRESS,
+								ValueLayout.JAVA_LONG));
+				mh.invoke(instance_ptr, msgSeg, strLen(message));
+			} catch (Throwable e) {
+				throw new RuntimeException(e);
 			}
 		}
 	}
 
+	// ------------------------------------------------------------------
 	// Logger class
+	// ------------------------------------------------------------------
 
-	private static native long loggerNew(int level, String domain);
-
-	private static native long loggerNewExt(int level, String domain, boolean tname, boolean tid);
-
-	public static native void loggerSetLevel(long instance_ptr, int level);
-
-	public static native void loggerSetDomain(long instance_ptr, String domain);
-
-	private static native void loggerTrace(long instance_ptr, String message);
-
-	private static native void loggerDebug(long instance_ptr, String message);
-
-	private static native void loggerInfo(long instance_ptr, String message);
-
-	private static native void loggerSuccess(long instance_ptr, String message);
-
-	private static native void loggerWarning(long instance_ptr, String message);
-
-	private static native void loggerError(long instance_ptr, String message);
-
-	private static native void loggerCritical(long instance_ptr, String message);
-
-	private static native void loggerFatal(long instance_ptr, String message);
-
-	private static native void loggerException(long instance_ptr, String message);
-
-	public class Logger {
+	public static class Logger {
 
 		Long instance_ptr = null;
 		int instance_level = NOTSET;
 
 		public Logger() {
-			instance_ptr = loggerNew(NOTSET, null);
+			this(NOTSET, null);
 		}
 
 		public Logger(int level) {
-			instance_ptr = loggerNew(level, null);
-			instance_level = level;
+			this(level, null);
 		}
 
 		public Logger(String domain) {
-			instance_ptr = loggerNew(0, domain);
+			this(0, domain);
 		}
 
 		public Logger(int level, String domain) {
-			instance_ptr = loggerNew(level, domain);
-			instance_level = level;
-		}
-
-		public Logger(int level, String domain, boolean tname, boolean tid) {
-			instance_ptr = loggerNewExt(level, domain, tname, tid);
+			try (Arena arena = Arena.ofConfined()) {
+				MemorySegment domainSeg = allocStr(arena, domain);
+				MethodHandle mh = lookup("loggerNew",
+						FunctionDescriptor.of(ValueLayout.JAVA_LONG,
+								ValueLayout.JAVA_INT,
+								ValueLayout.ADDRESS,
+								ValueLayout.JAVA_LONG));
+				instance_ptr = (long) mh.invoke(level, domainSeg, strLen(domain));
+			} catch (Throwable e) {
+				throw new RuntimeException(e);
+			}
 			instance_level = level;
 		}
 
 		public void setLevel(int level) {
-			loggerSetLevel(instance_ptr, level);
+			try {
+				MethodHandle mh = lookup("loggerSetLevel",
+						FunctionDescriptor.ofVoid(
+								ValueLayout.JAVA_LONG,
+								ValueLayout.JAVA_INT));
+				mh.invoke(instance_ptr, level);
+			} catch (Throwable e) {
+				throw new RuntimeException(e);
+			}
 			instance_level = level;
 		}
 
 		public void setDomain(String domain) {
-			loggerSetDomain(instance_ptr, domain);
+			try (Arena arena = Arena.ofConfined()) {
+				MemorySegment domainSeg = allocStr(arena, domain);
+				MethodHandle mh = lookup("loggerSetDomain",
+						FunctionDescriptor.of(ValueLayout.JAVA_INT,
+								ValueLayout.JAVA_LONG,
+								ValueLayout.ADDRESS,
+								ValueLayout.JAVA_LONG));
+				mh.invoke(instance_ptr, domainSeg, strLen(domain));
+			} catch (Throwable e) {
+				throw new RuntimeException(e);
+			}
 		}
 
 		public void trace(String message) {
 			if (instance_level <= TRACE) {
-				loggerTrace(instance_ptr, message);
+				logMessage("loggerTrace", message);
 			}
 		}
 
 		public void debug(String message) {
 			if (instance_level <= DEBUG) {
-				loggerDebug(instance_ptr, message);
+				logMessage("loggerDebug", message);
 			}
 		}
 
 		public void info(String message) {
 			if (instance_level <= INFO) {
-				loggerInfo(instance_ptr, message);
+				logMessage("loggerInfo", message);
 			}
 		}
 
 		public void success(String message) {
 			if (instance_level <= SUCCESS) {
-				loggerSuccess(instance_ptr, message);
+				logMessage("loggerSuccess", message);
 			}
 		}
 
 		public void warning(String message) {
 			if (instance_level <= WARN) {
-				loggerWarning(instance_ptr, message);
+				logMessage("loggerWarning", message);
 			}
 		}
 
 		public void error(String message) {
 			if (instance_level <= ERROR) {
-				loggerError(instance_ptr, message);
+				logMessage("loggerError", message);
 			}
 		}
 
 		public void critical(String message) {
 			if (instance_level <= CRITICAL) {
-				loggerCritical(instance_ptr, message);
+				logMessage("loggerCritical", message);
 			}
 		}
 
 		public void fatal(String message) {
 			if (instance_level <= FATAL) {
-				loggerFatal(instance_ptr, message);
+				logMessage("loggerFatal", message);
 			}
 		}
 
 		public void exception(String message) {
 			if (instance_level <= EXCEPTION) {
-				loggerException(instance_ptr, message);
+				logMessage("loggerException", message);
+			}
+		}
+
+		private void logMessage(String funcName, String message) {
+			try (Arena arena = Arena.ofConfined()) {
+				MemorySegment msgSeg = allocStr(arena, message);
+				MethodHandle mh = lookup(funcName,
+						FunctionDescriptor.of(ValueLayout.JAVA_INT,
+								ValueLayout.JAVA_LONG,
+								ValueLayout.ADDRESS,
+								ValueLayout.JAVA_LONG));
+				mh.invoke(instance_ptr, msgSeg, strLen(message));
+			} catch (Throwable e) {
+				throw new RuntimeException(e);
 			}
 		}
 	}

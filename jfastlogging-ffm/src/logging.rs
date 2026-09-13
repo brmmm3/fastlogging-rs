@@ -72,11 +72,18 @@ pub unsafe extern "C" fn loggingShutdown(logging: *mut Logging, now: i32) {
 ///
 /// Set log level (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn loggingSetLevel(logging: *mut Logging, wid: usize, level: u8) -> i32 {
+pub unsafe extern "C" fn loggingSetLevel(
+    logging: *mut Logging,
+    wid: usize,
+    key_ptr: *const u8,
+    key_len: usize,
+    level: u8,
+) -> i32 {
     if logging.is_null() {
         return -1;
     }
     let logging = unsafe { &mut *logging };
+    let _ = unsafe { get_option_str(key_ptr, key_len) };
     match logging.set_level(wid, level) {
         Ok(_) => 0,
         Err(_) => -1,
@@ -108,16 +115,18 @@ pub unsafe extern "C" fn loggingSetDomain(
 ///
 /// Set log level symbols (FFM).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn loggingSetLevel2Sym(
-    logging: *mut Logging,
-    level2sym: *mut LevelSyms,
-) -> i32 {
-    if logging.is_null() || level2sym.is_null() {
+pub unsafe extern "C" fn loggingSetLevel2Sym(logging: *mut Logging, level2sym: i32) -> i32 {
+    if logging.is_null() {
         return -1;
     }
     let logging = unsafe { &mut *logging };
-    let level2sym = unsafe { &mut *level2sym };
-    logging.set_level2sym(level2sym);
+    let level2sym = match level2sym {
+        0 => LevelSyms::Sym,
+        1 => LevelSyms::Short,
+        2 => LevelSyms::Str,
+        _ => return -1,
+    };
+    logging.set_level2sym(&level2sym);
     0
 }
 
@@ -420,15 +429,29 @@ pub unsafe extern "C" fn loggingGetServerAuthKey(logging: *mut Logging) -> *mut 
 
 /// # Safety
 ///
-/// Get config string (FFM).
+/// Get config string (FFM).  Returns a null-terminated C string allocated with
+/// libc malloc; the caller must free it with `freeString`.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn loggingGetConfigString(logging: *mut Logging) -> *mut std::ffi::c_void {
+pub unsafe extern "C" fn loggingGetConfigString(logging: *mut Logging) -> *mut std::ffi::c_char {
     if logging.is_null() {
         return std::ptr::null_mut();
     }
     let logging = unsafe { &mut *logging };
     let config_str = logging.get_config_string();
-    Box::into_raw(Box::new(config_str)) as *mut std::ffi::c_void
+    let c_str = std::ffi::CString::new(config_str).unwrap_or_default();
+    c_str.into_raw()
+}
+
+/// # Safety
+///
+/// Free a string returned by loggingGetConfigString.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn freeString(ptr: *mut std::ffi::c_char) {
+    if !ptr.is_null() {
+        unsafe {
+            let _ = std::ffi::CString::from_raw(ptr);
+        }
+    }
 }
 
 /// # Safety
