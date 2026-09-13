@@ -1,28 +1,28 @@
 #[macro_use]
 extern crate serde_derive;
 
-mod def;
+pub mod def;
 
 pub use def::*;
 mod config;
-mod error;
+pub mod error;
 pub use config::{ExtConfig, LoggingConfig};
 pub use error::LoggingError;
-mod file;
+pub mod file;
 pub use file::{CompressionMethodEnum, FileWriter, FileWriterConfig};
-mod net;
+pub mod net;
 pub use net::{
     ClientTypeEnum, ClientWriter, ClientWriterConfig, EncryptionMethod, LoggingServer, ServerConfig,
 };
-mod console;
+pub mod console;
 pub use console::{ConsoleWriter, ConsoleWriterConfig};
-mod callback;
+pub mod callback;
 pub use callback::{CallbackWriter, CallbackWriterConfig};
-mod logging;
+pub mod logging;
 pub mod root;
 pub use logging::Logging;
 pub use root::ROOT_LOGGER;
-mod logger;
+pub mod logger;
 pub use logger::Logger;
 #[cfg(target_family = "unix")]
 mod syslog;
