@@ -135,18 +135,18 @@ fn rotate_do(
 ) -> Result<(), LoggingError> {
     for num in 1..backlog {
         let mut backlog_path_old = path.to_path_buf();
-        backlog_path_old.set_extension(format!(".log.{}", backlog - num - 1));
+        backlog_path_old.set_extension(format!("log.{}", backlog - num - 1));
         if backlog_path_old.exists() {
             let mut backlog_path_new = path.to_path_buf();
-            backlog_path_new.set_extension(format!(".log.{}", backlog - num));
+            backlog_path_new.set_extension(format!("log.{}", backlog - num));
             rename(backlog_path_old, backlog_path_new)?;
         }
     }
     let mut backlog_path = path.to_path_buf();
     if compression == CompressionMethodEnum::Store {
-        backlog_path.set_extension(".log.1");
+        backlog_path.set_extension("log.1");
     } else {
-        backlog_path.set_extension(".log.1.gz");
+        backlog_path.set_extension("log.1.gz");
     }
     // Compress current log file
     let file = File::open(path)?;
