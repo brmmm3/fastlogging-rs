@@ -41,6 +41,7 @@ func ConsoleWriterConfigNew(level uint8, colors bool) *fl.WriterConfigEnum {
 func FileWriterConfigNew(level uint8, path string, size uint32, backlog uint32, timeout int32, time int64, compression fl.CompressionMethod) *fl.WriterConfigEnum {
 	cpath := C.CString(path)
 	defer C.free(unsafe.Pointer(cpath))
+	cCompression := C.CCompressionMethodEnum(compression.Into())
 	config := C.file_writer_config_new(
 		C.uint8_t(level),
 		cpath,
@@ -48,7 +49,7 @@ func FileWriterConfigNew(level uint8, path string, size uint32, backlog uint32, 
 		C.uint32_t(backlog),
 		C.int32_t(timeout),
 		C.int64_t(time),
-		C.CCompressionMethodEnum(compression.Into()))
+		&cCompression)
 	if config == nil {
 		return nil
 	}

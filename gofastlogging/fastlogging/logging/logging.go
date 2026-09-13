@@ -142,12 +142,12 @@ func (l *Logging) Disable(wid uint32) error {
 }
 
 func (l *Logging) EnableType(typ fl.WriterTypeEnum) error {
-	code := int(C.logging_enable_type(l.Logging, C.CWriterTypeEnum(typ.Typ)))
+	code := int(C.logging_enable_type(l.Logging, C.uint32_t(typ.Typ)))
 	return wrapCError(code)
 }
 
 func (l *Logging) DisableType(typ fl.WriterTypeEnum) error {
-	code := int(C.logging_disable_type(l.Logging, C.CWriterTypeEnum(typ.Typ)))
+	code := int(C.logging_disable_type(l.Logging, C.uint32_t(typ.Typ)))
 	return wrapCError(code)
 }
 
@@ -199,15 +199,21 @@ func (l *Logging) AddWriterConfigs(configs []fl.WriterConfigEnum) error {
 	if len(configs) == 0 {
 		return nil
 	}
-	c_configs_arr := make([]C.WriterConfigEnum, len(configs))
+	// Allocate the values array in C memory to avoid Go pointer to Go pointer issues
+	c_values := (*C.WriterConfigEnum)(C.malloc(C.size_t(len(configs)) * C.sizeof_WriterConfigEnum))
+	if c_values == nil {
+		return fmt.Errorf("failed to allocate memory for writer configs")
+	}
+	defer C.free(unsafe.Pointer(c_values))
 	for i, value := range configs {
-		c_configs_arr[i] = C.WriterConfigEnum(value.Config)
+		ptr := (*C.WriterConfigEnum)(unsafe.Pointer(uintptr(unsafe.Pointer(c_values)) + uintptr(i)*unsafe.Sizeof(*c_values)))
+		*ptr = C.WriterConfigEnum(value.Config)
 	}
 	c_configs := C.WriterConfigEnums{
 		cnt:    C.uint32_t(len(configs)),
-		values: (*C.WriterConfigEnum)(unsafe.Pointer(&c_configs_arr[0])),
+		values: c_values,
 	}
-	code := int(C.logging_add_writer_configs(l.Logging, &c_configs, C.uint32_t(len(configs))))
+	code := int(C.logging_add_writer_configs(l.Logging, &c_configs))
 	return wrapCError(code)
 }
 
@@ -215,15 +221,21 @@ func (l *Logging) AddWriters(writers []fl.WriterEnum) error {
 	if len(writers) == 0 {
 		return nil
 	}
-	c_writers_arr := make([]C.CWriterEnum, len(writers))
+	// Allocate the values array in C memory to avoid Go pointer to Go pointer issues
+	c_values := (*C.CWriterEnum)(C.malloc(C.size_t(len(writers)) * C.sizeof_CWriterEnum))
+	if c_values == nil {
+		return fmt.Errorf("failed to allocate memory for writers")
+	}
+	defer C.free(unsafe.Pointer(c_values))
 	for i, value := range writers {
-		c_writers_arr[i] = C.CWriterEnum(value.Writer)
+		ptr := (*C.CWriterEnum)(unsafe.Pointer(uintptr(unsafe.Pointer(c_values)) + uintptr(i)*unsafe.Sizeof(*c_values)))
+		*ptr = C.CWriterEnum(value.Writer)
 	}
 	c_writers := C.CWriterEnums{
 		cnt:    C.uint32_t(len(writers)),
-		values: (*C.CWriterEnum)(unsafe.Pointer(&c_writers_arr[0])),
+		values: c_values,
 	}
-	code := int(C.logging_add_writers(l.Logging, &c_writers, C.uint32_t(len(writers))))
+	code := int(C.logging_add_writers(l.Logging, &c_writers))
 	return wrapCError(code)
 }
 
@@ -391,7 +403,8 @@ func ConsoleWriterConfigHelper(level uint8, color bool) fl.WriterConfigEnum {
 func FileWriterConfigHelper(filepath string, compression uint32) fl.WriterConfigEnum {
 	cpath := C.CString(filepath)
 	defer C.free(unsafe.Pointer(cpath))
-	cfg := C.file_writer_config_new(C.uint8_t(1), cpath, 1024*1024*10, 5, 0, 0, C.CCompressionMethodEnum(compression))
+	cCompression := C.CCompressionMethodEnum(compression)
+	cfg := C.file_writer_config_new(C.uint8_t(1), cpath, 1024*1024*10, 5, 0, 0, &cCompression)
 	return fl.WriterConfigEnum{Config: unsafe.Pointer(cfg)}
 }
 
