@@ -43,11 +43,9 @@ int logging_add_writer(Logging logging, WriterEnum config);
 
 int logging_remove_writer(Logging logging, uint32_t wid);
 
-int logging_add_writer_configs(Logging logging, WriterConfigEnums *configs,
-                               uint32_t config_cnt);
+int logging_add_writer_configs(Logging logging, WriterConfigEnums *configs);
 
-int logging_add_writers(Logging logging, WriterEnums *writers,
-                        uint32_t writer_cnt);
+int logging_add_writers(Logging logging, WriterEnums *writers);
 
 WriterEnums *logging_remove_writers(Logging logging, uint32_t *wids,
                                     uint32_t wid_cnt);
@@ -56,9 +54,9 @@ int logging_enable(Logging logging, uint32_t wid);
 
 int logging_disable(Logging logging, uint32_t wid);
 
-int logging_enable_type(Logging logging, WriterTypeEnum typ);
+int logging_enable_type(Logging logging, uint32_t typ);
 
-int logging_disable_type(Logging logging, WriterTypeEnum typ);
+int logging_disable_type(Logging logging, uint32_t typ);
 
 int logging_sync(Logging logging, WriterTypeEnum *types, uint32_t type_cnt,
                  double timeout);

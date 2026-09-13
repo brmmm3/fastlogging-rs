@@ -60,7 +60,7 @@ pub unsafe extern "C" fn file_writer_config_new(
     backlog: c_uint,
     timeout: c_int,
     time: c_longlong,
-    compression: *mut fastlogging::CompressionMethodEnum,
+    compression: *const fastlogging::CompressionMethodEnum,
 ) -> *mut fastlogging::WriterConfigEnum {
     let timeout = if timeout < 0 {
         None
@@ -75,7 +75,7 @@ pub unsafe extern "C" fn file_writer_config_new(
     let compression = if compression.is_null() {
         None
     } else {
-        Some(unsafe { *Box::from_raw(compression) })
+        Some(unsafe { *compression })
     };
     Box::into_raw(Box::new(fastlogging::WriterConfigEnum::File(
         fastlogging::FileWriterConfig::new(
@@ -103,7 +103,7 @@ pub unsafe extern "C" fn client_writer_config_new(
     let key = if key.is_null() {
         fastlogging::EncryptionMethod::NONE
     } else {
-        let c_key = unsafe { *Box::from_raw(key) };
+        let c_key = unsafe { std::ptr::read(key) };
         let key = unsafe { slice::from_raw_parts(c_key.key, c_key.len as usize) }.to_vec();
         if c_key.typ == EncryptionMethodEnum::AuthKey {
             fastlogging::EncryptionMethod::AuthKey(key)
@@ -128,7 +128,7 @@ pub unsafe extern "C" fn server_config_new(
     let key = if key.is_null() {
         fastlogging::EncryptionMethod::NONE
     } else {
-        let c_key = unsafe { *Box::from_raw(key) };
+        let c_key = unsafe { std::ptr::read(key) };
         if c_key.typ == EncryptionMethodEnum::NONE {
             fastlogging::EncryptionMethod::NONE
         } else {

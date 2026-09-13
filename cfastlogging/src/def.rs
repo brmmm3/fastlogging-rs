@@ -38,14 +38,13 @@ impl From<fastlogging::WriterEnum> for WriterEnum {
 #[repr(C)]
 pub struct WriterEnums {
     pub cnt: c_uint,
-    pub values: *const WriterEnum,
+    pub values: *const *const fastlogging::WriterEnum,
 }
 
 #[repr(C)]
 pub struct WriterConfigEnums {
     pub cnt: c_uint,
-    pub keys: Vec<usize>,
-    pub values: Vec<fastlogging::WriterConfigEnum>,
+    pub values: *const *const fastlogging::WriterConfigEnum,
 }
 
 #[repr(C)]

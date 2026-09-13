@@ -13,7 +13,7 @@ WriterConfigEnum console_writer_config_new(uint8_t level, int8_t colors);
 WriterConfigEnum file_writer_config_new(uint8_t level, const char *path,
                                         uint32_t size, uint32_t backlog,
                                         int32_t timeout, int64_t time,
-                                        CCompressionMethodEnum compression);
+                                        const CCompressionMethodEnum *compression);
 
 // Client writer
 
