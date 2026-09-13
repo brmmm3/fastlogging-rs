@@ -10,7 +10,7 @@ use crate::{enter_jni, log_message};
 ///
 /// This function creates a new instance.
 #[allow(non_snake_case)]
-#[jni_mangle("logging.FastLogging.loggerNew")]
+#[jni_mangle("org.logging.FastLogging", "loggerNew")]
 pub fn loggerNew(
     env: jni::EnvUnowned,
     _class: JClass,
@@ -34,25 +34,33 @@ pub fn loggerNew(
 ///
 /// This function creates a new extended instance.
 #[allow(non_snake_case)]
-#[jni_mangle("logging.FastLogging.loggerNewExt")]
+#[jni_mangle("org.logging.FastLogging", "loggerNewExt")]
 pub fn loggerNewExt(
-    _env: jni::EnvUnowned,
+    env: jni::EnvUnowned,
     _class: JClass,
     level: jint, // Global log level
     domain: JString,
     tname: jboolean,
     tid: jboolean,
 ) -> jlong {
-    let domain: String = JString::to_string(&domain);
-    let logger = Logger::new_ext(level as u8, domain, tname, tid);
-    Box::into_raw(Box::new(logger)) as jlong
+    enter_jni(env, |env| {
+        let domain: String = match domain.try_to_string(env) {
+            Ok(s) => s,
+            Err(err) => {
+                env.throw(err.to_string())?;
+                return Ok(0);
+            }
+        };
+        let logger = Logger::new_ext(level as u8, domain, tname, tid);
+        Ok(Box::into_raw(Box::new(logger)) as jlong)
+    })
 }
 
 /// # Safety
 ///
 /// Set log level.
 #[allow(non_snake_case)]
-#[jni_mangle("logging.FastLogging.loggerSetLevel")]
+#[jni_mangle("org.logging.FastLogging", "loggerSetLevel")]
 pub fn loggerSetLevel(_env: jni::EnvUnowned, _class: JClass, logger: &mut Logger, level: jint) {
     logger.set_level(level as u8);
 }
@@ -61,23 +69,25 @@ pub fn loggerSetLevel(_env: jni::EnvUnowned, _class: JClass, logger: &mut Logger
 ///
 /// Set log domain.
 #[allow(non_snake_case)]
-#[jni_mangle("logging.FastLogging.loggerSetDomain")]
+#[jni_mangle("org.logging.FastLogging", "loggerSetDomain")]
 pub fn loggerSetDomain(
-    _env: jni::EnvUnowned,
+    env: jni::EnvUnowned,
     _class: JClass,
     logger: &mut Logger,
     domain: JString,
 ) -> jint {
-    let domain: String = JString::to_string(&domain);
-    logger.set_domain(&domain);
-    0
+    enter_jni(env, |env| {
+        let domain: String = JString::to_string(&domain);
+        logger.set_domain(&domain);
+        Ok(0)
+    })
 }
 
 /// # Safety
 ///
 /// trace message.
 #[allow(non_snake_case)]
-#[jni_mangle("logging.FastLogging.loggerTrace")]
+#[jni_mangle("org.logging.FastLogging", "loggerTrace")]
 pub fn loggerTrace(
     env: jni::EnvUnowned,
     _class: JClass,
@@ -98,7 +108,7 @@ pub fn loggerTrace(
 ///
 /// debug message.
 #[allow(non_snake_case)]
-#[jni_mangle("logging.FastLogging.loggerDebug")]
+#[jni_mangle("org.logging.FastLogging", "loggerDebug")]
 pub fn loggerDebug(
     env: jni::EnvUnowned,
     _class: JClass,
@@ -112,7 +122,7 @@ pub fn loggerDebug(
 ///
 /// debug message.
 #[allow(non_snake_case)]
-#[jni_mangle("logging.FastLogging.loggerInfo")]
+#[jni_mangle("org.logging.FastLogging", "loggerInfo")]
 pub fn loggerInfo(
     env: jni::EnvUnowned,
     _class: JClass,
@@ -126,7 +136,7 @@ pub fn loggerInfo(
 ///
 /// trace message.
 #[allow(non_snake_case)]
-#[jni_mangle("logging.FastLogging.loggerSuccess")]
+#[jni_mangle("org.logging.FastLogging", "loggerSuccess")]
 pub fn loggerSuccess(
     env: jni::EnvUnowned,
     _class: JClass,
@@ -140,7 +150,7 @@ pub fn loggerSuccess(
 ///
 /// debug message.
 #[allow(non_snake_case)]
-#[jni_mangle("logging.FastLogging.loggerWarning")]
+#[jni_mangle("org.logging.FastLogging", "loggerWarning")]
 pub fn loggerWarning(
     env: jni::EnvUnowned,
     _class: JClass,
@@ -154,7 +164,7 @@ pub fn loggerWarning(
 ///
 /// error message.
 #[allow(non_snake_case)]
-#[jni_mangle("logging.FastLogging.loggerError")]
+#[jni_mangle("org.logging.FastLogging", "loggerError")]
 pub fn loggerError(
     env: jni::EnvUnowned,
     _class: JClass,
@@ -168,7 +178,7 @@ pub fn loggerError(
 ///
 /// error message.
 #[allow(non_snake_case)]
-#[jni_mangle("logging.FastLogging.loggerCritical")]
+#[jni_mangle("org.logging.FastLogging", "loggerCritical")]
 pub fn loggerCritical(
     env: jni::EnvUnowned,
     _class: JClass,
@@ -182,7 +192,7 @@ pub fn loggerCritical(
 ///
 /// error message.
 #[allow(non_snake_case)]
-#[jni_mangle("logging.FastLogging.loggerFatal")]
+#[jni_mangle("org.logging.FastLogging", "loggerFatal")]
 pub fn loggerFatal(
     env: jni::EnvUnowned,
     _class: JClass,
@@ -196,7 +206,7 @@ pub fn loggerFatal(
 ///
 /// error message.
 #[allow(non_snake_case)]
-#[jni_mangle("logging.FastLogging.loggerException")]
+#[jni_mangle("org.logging.FastLogging", "loggerException")]
 pub fn loggerException(
     env: jni::EnvUnowned,
     _class: JClass,

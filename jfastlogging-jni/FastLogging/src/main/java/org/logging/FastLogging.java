@@ -307,13 +307,9 @@ public class FastLogging {
 			if (console != null) {
 				console_ptr = console.instance_ptr;
 			}
-			System.out.println("#1");
 			instance_ptr = loggingNew(level, domain, null, null, null);
-			System.out.println("#2 " + instance_ptr + " " + console_ptr);
 			int writer_id = loggingAddWriter(instance_ptr, console_ptr);
-			System.out.println("#3 " + writer_id);
 			writers.put(writer_id, console_ptr);
-			System.out.println("#4 " + level);
 			instance_level = level;
 		}
 

@@ -12,7 +12,7 @@ use crate::enter_jni;
 ///
 /// Create new extended configuration.
 #[allow(non_snake_case)]
-#[jni_mangle("logging.FastLogging.extConfigNew")]
+#[jni_mangle("org.logging.FastLogging", "extConfigNew")]
 pub fn extConfigNew(
     env: jni::EnvUnowned,
     _class: JClass,
@@ -39,3 +39,5 @@ pub fn extConfigNew(
         ))))
     })
 }
+
+

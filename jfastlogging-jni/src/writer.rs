@@ -12,7 +12,7 @@ use parking_lot::RwLock;
 
 use fastlogging::{
     CallbackWriterConfig, ClientWriterConfig, CompressionMethodEnum, ConsoleWriterConfig,
-    EncryptionMethod, FileWriterConfig, ServerConfig, SyslogWriterConfig,
+    EncryptionMethod, FileWriterConfig, ServerConfig, SyslogWriterConfig, WriterConfigEnum,
 };
 
 use crate::enter_jni;
@@ -27,7 +27,7 @@ pub fn JNI_OnLoad(vm: JavaVM, _reserved: *mut std::os::raw::c_void) -> jint {
 }
 
 #[allow(non_snake_case)]
-#[jni_mangle("logging.FastLogging.consoleWriterConfigNew")]
+#[jni_mangle("org.logging.FastLogging", "consoleWriterConfigNew")]
 pub fn consoleWriterConfigNew(
     _env: jni::EnvUnowned,
     _class: JClass,
@@ -35,11 +35,11 @@ pub fn consoleWriterConfigNew(
     colors: jboolean,
 ) -> jlong {
     let console = ConsoleWriterConfig::new(level as u8, colors);
-    Box::into_raw(Box::new(console)) as jlong
+    Box::into_raw(Box::new(WriterConfigEnum::Console(console))) as jlong
 }
 
 #[allow(non_snake_case)]
-#[jni_mangle("logging.FastLogging.fileWriterConfigNew")]
+#[jni_mangle("org.logging.FastLogging", "fileWriterConfigNew")]
 pub fn fileWriterConfigNew(
     env: jni::EnvUnowned,
     _class: JClass,
@@ -89,80 +89,109 @@ pub fn fileWriterConfigNew(
                 return Ok(0);
             }
         };
-        Ok(Box::into_raw(Box::new(writer)) as jlong)
+        Ok(Box::into_raw(Box::new(WriterConfigEnum::File(writer))) as jlong)
     })
 }
 
+/// # Safety
+///
+/// Create new client writer config.
 #[allow(non_snake_case)]
-#[jni_mangle("logging.FastLogging.clientWriterConfigNew")]
+#[jni_mangle("org.logging.FastLogging", "clientWriterConfigNew")]
 pub fn clientWriterConfigNew(
-    _env: jni::EnvUnowned,
+    env: jni::EnvUnowned,
     _class: JClass,
     level: jint,
     address: JString,
     encryption: jint,
     key: JString,
 ) -> jlong {
-    let address: String = JString::to_string(&address);
-    let key = if encryption == 0 || key.is_null() {
-        EncryptionMethod::NONE
-    } else {
-        let key: String = JString::to_string(&key);
-        if encryption == 1 {
-            EncryptionMethod::AuthKey(key.into_bytes())
+    enter_jni(env, |env| {
+        let address: String = JString::to_string(&address);
+        let key = if encryption == 0 || key.is_null() {
+            EncryptionMethod::NONE
         } else {
-            EncryptionMethod::AES(key.into_bytes())
-        }
-    };
-    Box::into_raw(Box::new(ClientWriterConfig::new(level as u8, address, key))) as jlong
+            let key: String = JString::to_string(&key);
+            if encryption == 1 {
+                EncryptionMethod::AuthKey(key.into_bytes())
+            } else {
+                EncryptionMethod::AES(key.into_bytes())
+            }
+        };
+        Ok(
+            Box::into_raw(Box::new(WriterConfigEnum::Client(ClientWriterConfig::new(
+                level as u8,
+                address,
+                key,
+            )))) as jlong,
+        )
+    })
 }
 
+/// # Safety
+///
+/// Create new server config.
 #[allow(non_snake_case)]
-#[jni_mangle("logging.FastLogging.serverConfigNew")]
+#[jni_mangle("org.logging.FastLogging", "serverConfigNew")]
 pub fn serverConfigNew(
-    _env: jni::EnvUnowned,
+    env: jni::EnvUnowned,
     _class: JClass,
     level: jint,
     address: JString,
     encryption: jint,
     key: JString,
 ) -> jlong {
-    let address: String = JString::to_string(&address);
-    let key = if encryption == 0 || key.is_null() {
-        EncryptionMethod::NONE
-    } else {
-        let key: String = JString::to_string(&key);
-        if encryption == 1 {
-            EncryptionMethod::AuthKey(key.into_bytes())
+    enter_jni(env, |env| {
+        let address: String = JString::to_string(&address);
+        let key = if encryption == 0 || key.is_null() {
+            EncryptionMethod::NONE
         } else {
-            EncryptionMethod::AES(key.into_bytes())
-        }
-    };
-    Box::into_raw(Box::new(ServerConfig::new(level as u8, address, key))) as jlong
+            let key: String = JString::to_string(&key);
+            if encryption == 1 {
+                EncryptionMethod::AuthKey(key.into_bytes())
+            } else {
+                EncryptionMethod::AES(key.into_bytes())
+            }
+        };
+        Ok(
+            Box::into_raw(Box::new(WriterConfigEnum::Server(ServerConfig::new(
+                level as u8,
+                address,
+                key,
+            )))) as jlong,
+        )
+    })
 }
 
+/// # Safety
+///
+/// Create new syslog writer config.
 #[allow(non_snake_case)]
-#[jni_mangle("logging.FastLogging.syslogWriterConfigNew")]
+#[jni_mangle("org.logging.FastLogging", "syslogWriterConfigNew")]
 pub fn syslogWriterConfigNew(
-    _env: jni::EnvUnowned,
+    env: jni::EnvUnowned,
     _class: JClass,
     level: jint,
     hostname: JString,
     pname: JString,
     pid: jint,
 ) -> jlong {
-    let hostname: Option<String> = if hostname.is_null() {
-        None
-    } else {
-        Some(JString::to_string(&hostname))
-    };
-    let pname: String = JString::to_string(&pname);
-    Box::into_raw(Box::new(SyslogWriterConfig::new(
-        level as u8,
-        hostname,
-        pname,
-        pid as u32,
-    ))) as jlong
+    enter_jni(env, |env| {
+        let hostname: Option<String> = if hostname.is_null() {
+            None
+        } else {
+            Some(JString::to_string(&hostname))
+        };
+        let pname: String = JString::to_string(&pname);
+        Ok(
+            Box::into_raw(Box::new(WriterConfigEnum::Syslog(SyslogWriterConfig::new(
+                level as u8,
+                hostname,
+                pname,
+                pid as u32,
+            )))) as jlong,
+        )
+    })
 }
 
 pub static CALLBACK_JAVA_FUNC: RwLock<Option<Global<JObject<'static>>>> = RwLock::new(None);
@@ -202,7 +231,7 @@ pub fn callback_func(
 }
 
 #[allow(non_snake_case)]
-#[jni_mangle("logging.FastLogging.callbackWriterConfigNew")]
+#[jni_mangle("org.logging.FastLogging", "callbackWriterConfigNew")]
 pub fn callbackWriterConfigNew(
     env: jni::EnvUnowned,
     _class: JClass,
@@ -214,9 +243,8 @@ pub fn callbackWriterConfigNew(
             .new_global_ref(callback)
             .expect("Failed to create global reference for callback_instance");
         *CALLBACK_JAVA_FUNC.write() = Some(callback_ref);
-        Ok(Box::into_raw(Box::new(CallbackWriterConfig::new(
-            level as u8,
-            Some(Box::new(callback_func)),
+        Ok(Box::into_raw(Box::new(WriterConfigEnum::Callback(
+            CallbackWriterConfig::new(level as u8, Some(Box::new(callback_func))),
         ))) as jlong)
     })
 }
