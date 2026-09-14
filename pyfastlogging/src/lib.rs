@@ -1,7 +1,7 @@
 use pyo3::prelude::*;
 
 mod def;
-pub use def::{EncryptionMethod, LevelSyms, WriterConfigEnum, WriterTypeEnum};
+pub use def::{EncryptionMethod, Level2Sym, LevelSyms, WriterConfigEnum, WriterTypeEnum};
 mod writer;
 use writer::{CallbackWriterConfig, ExtConfig};
 pub use writer::{ClientWriterConfig, ConsoleWriterConfig, FileWriterConfig, ServerConfig};
@@ -36,6 +36,7 @@ fn init(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add("TRACE", fastlogging::TRACE)?;
     m.add("NOTSET", fastlogging::NOTSET)?;
     m.add_class::<def::Level2Sym>()?;
+    m.add_class::<def::LevelSyms>()?;
     m.add_class::<def::MessageStructEnum>()?;
     m.add_class::<def::CompressionMethodEnum>()?;
     m.add_class::<def::EncryptionMethod>()?;
@@ -49,6 +50,7 @@ fn init(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<CallbackWriterConfig>()?;
     m.add_class::<logging::Logging>()?;
     m.add_class::<logger::Logger>()?;
+    m.add_class::<LoggingError>()?;
     m.add_function(wrap_pyfunction!(root::root_init, m)?)?;
     m.add_function(wrap_pyfunction!(root::shutdown, m)?)?;
     m.add_function(wrap_pyfunction!(root::set_level, m)?)?;

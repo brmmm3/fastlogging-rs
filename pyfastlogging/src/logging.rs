@@ -56,7 +56,7 @@ impl Logging {
 #[pymethods]
 impl Logging {
     #[new]
-    #[pyo3(signature=(level, domain=None, configs=None, ext_config=None, config_path=None, indent=None))]
+    #[pyo3(signature=(level=None, domain=None, configs=None, ext_config=None, config_path=None, indent=None))]
     pub fn new(
         level: Option<u8>,                         // Global log level
         domain: Option<String>,                    // Optional log domain

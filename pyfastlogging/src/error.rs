@@ -1,61 +1,45 @@
 #![allow(non_snake_case)]
 
-use pyo3::exceptions;
+use pyo3::PyTypeInfo;
+use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
 
-#[pyclass]
+#[pyclass(extends = PyException)]
 #[derive(Debug)]
 pub struct LoggingError(pub fastlogging::LoggingError);
 
+#[pymethods]
+impl LoggingError {
+    #[new]
+    fn new(_message: String) -> Self {
+        Self(fastlogging::LoggingError::InvalidValue(_message))
+    }
+}
+
 impl From<LoggingError> for PyErr {
     fn from(error: LoggingError) -> Self {
-        match error.0 {
-            fastlogging::LoggingError::Io { kind, message } => match kind.as_str() {
-                "WouldBlock" => PyErr::new::<exceptions::PyBlockingIOError, _>(message),
-                "NotFound" => PyErr::new::<exceptions::PyFileNotFoundError, _>(message),
-                "InvalidData" => PyErr::new::<exceptions::PyValueError, _>(message),
-                "UnexpectedEof" => PyErr::new::<exceptions::PyEOFError, _>(message),
-                _ => PyErr::new::<exceptions::PyException, _>(message),
-            },
-            fastlogging::LoggingError::Utf8Error(e) => {
-                PyErr::new::<exceptions::PyUnicodeError, _>(e)
-            }
-            fastlogging::LoggingError::SyslogError(e) => {
-                PyErr::new::<exceptions::PyValueError, _>(e)
-            }
-            fastlogging::LoggingError::RecvError(e) => PyErr::new::<exceptions::PyValueError, _>(e),
-            fastlogging::LoggingError::SendError(e) => PyErr::new::<exceptions::PyValueError, _>(e),
+        let message = match error.0 {
+            fastlogging::LoggingError::Io { kind, message } => format!("{kind}: {message}"),
+            fastlogging::LoggingError::Utf8Error(e) => e.to_string(),
+            fastlogging::LoggingError::SyslogError(e)
+            | fastlogging::LoggingError::RecvError(e)
+            | fastlogging::LoggingError::SendError(e)
+            | fastlogging::LoggingError::InvalidValue(e)
+            | fastlogging::LoggingError::InvalidFile(e)
+            | fastlogging::LoggingError::ConfigError(e)
+            | fastlogging::LoggingError::ArchiveError(e) => e,
             fastlogging::LoggingError::SendCmdError(m, c, e) => {
-                PyErr::new::<exceptions::PyValueError, _>(format!(
-                    "{m}: Failed to send {c} command: {e}"
-                ))
+                format!("{m}: Failed to send {c} command: {e}")
             }
             fastlogging::LoggingError::RecvAswError(m, c, e) => {
-                PyErr::new::<exceptions::PyValueError, _>(format!(
-                    "{m}: Failed to receive {c} answer: {e}"
-                ))
-            }
-            fastlogging::LoggingError::InvalidValue(e) => {
-                PyErr::new::<exceptions::PyValueError, _>(e)
-            }
-            fastlogging::LoggingError::InvalidFile(e) => {
-                PyErr::new::<exceptions::PyValueError, _>(e)
+                format!("{m}: Failed to receive {c} answer: {e}")
             }
             fastlogging::LoggingError::InvalidEncryption(m, k, e) => {
-                PyErr::new::<exceptions::PyValueError, _>(format!(
-                    "{m}: Invalid encryption {k:?}: {e}"
-                ))
+                format!("{m}: Invalid encryption {k:?}: {e}")
             }
-            fastlogging::LoggingError::JoinError(m, e) => {
-                PyErr::new::<exceptions::PyRuntimeError, _>(format!("{m}: {e}"))
-            }
-            fastlogging::LoggingError::ConfigError(e) => {
-                PyErr::new::<exceptions::PyValueError, _>(e)
-            }
-            fastlogging::LoggingError::ArchiveError(e) => {
-                PyErr::new::<exceptions::PyValueError, _>(e)
-            }
-        }
+            fastlogging::LoggingError::JoinError(m, e) => format!("{m}: {e}"),
+        };
+        Python::attach(|py| PyErr::from_type(LoggingError::type_object(py), message))
     }
 }
 
