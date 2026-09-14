@@ -154,10 +154,10 @@ mod tests {
     /// Wait (with a short retry loop) until the given file contains `needle`.
     fn wait_for_file_content(path: &PathBuf, needle: &str) -> bool {
         for _ in 0..50 {
-            if let Ok(content) = fs::read_to_string(path) {
-                if content.contains(needle) {
-                    return true;
-                }
+            if let Ok(content) = fs::read_to_string(path)
+                && content.contains(needle)
+            {
+                return true;
             }
             std::thread::sleep(std::time::Duration::from_millis(20));
         }

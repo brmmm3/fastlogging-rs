@@ -497,11 +497,11 @@ fn ext_config_default() {
         tname: false,
         tid: false,
     };
-    assert_eq!(ext.hostname, false);
-    assert_eq!(ext.pname, false);
-    assert_eq!(ext.pid, false);
-    assert_eq!(ext.tname, false);
-    assert_eq!(ext.tid, false);
+    assert!(!ext.hostname);
+    assert!(!ext.pname);
+    assert!(!ext.pid);
+    assert!(!ext.tname);
+    assert!(!ext.tid);
 }
 
 // ---------------------------------------------------------------------------

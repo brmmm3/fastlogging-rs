@@ -74,6 +74,12 @@ impl NonceGenerator {
     }
 }
 
+impl Default for NonceGenerator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl aead::NonceSequence for NonceGenerator {
     fn advance(&mut self) -> Result<aead::Nonce, Unspecified> {
         self.last_nonce += self.last_nonce.checked_add(1).ok_or(Unspecified)?;
