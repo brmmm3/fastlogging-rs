@@ -15,16 +15,14 @@ func main() {
 	}
 
 	// Register the callback writer
-	// NOTE: callback writers are not yet implemented in gofastlogging, so this
-	// will always return an error - see writer.CallbackWriterConfigNew.
-	config, handle, err := writer.CallbackWriterConfigNew(fl.DEBUG, callback)
+	config, handle, err := writer.CallbackWriterConfigNew(uint8(fl.DEBUG), callback)
 	if err != nil {
 		panic(err)
 	}
 	defer handle.UnregisterCallback() // Clean up when done
 
 	// Create a logger with the callback writer
-	logger := logging.New(fl.DEBUG, nil, []fl.WriterConfigEnum{config}, nil, nil)
+	logger := logging.New(uint8(fl.DEBUG), nil, []fl.WriterConfigEnum{config}, nil, nil)
 	if logger == nil {
 		panic("Failed to create logger")
 	}

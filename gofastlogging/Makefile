@@ -26,9 +26,12 @@ build:
 	go build -x -ldflags="-r $(ROOT_DIR)lib" -o bin/file_add_writer examples/file_add_writer/main.go
 	go build -x -ldflags="-r $(ROOT_DIR)lib" -o bin/syslog examples/syslog/main.go
 	go build -x -ldflags="-r $(ROOT_DIR)lib" -o bin/callback examples/callback/main.go
+	go build -x -ldflags="-r $(ROOT_DIR)lib" -o bin/callback_add_writer examples/callback_add_writer/main.go
 	go build -x -ldflags="-r $(ROOT_DIR)lib" -o bin/threads examples/threads/main.go
 	go build -x -ldflags="-r $(ROOT_DIR)lib" -o bin/net_unencrypted_one_client examples/net_unencrypted_one_client/main.go
+	go build -x -ldflags="-r $(ROOT_DIR)lib" -o bin/net_unencrypted_one_client_enc examples/net_unencrypted_one_client_enc/main.go
 	go build -x -ldflags="-r $(ROOT_DIR)lib" -o bin/get_server_addresses_ports examples/get_server_addresses_ports/main.go
+	go build -x -ldflags="-r $(ROOT_DIR)lib" -o bin/get_server_addresses_ports_enc examples/get_server_addresses_ports_enc/main.go
 	go build -x -ldflags="-r $(ROOT_DIR)lib" -o bin/get_server_configs examples/get_server_configs/main.go
 	go build -x -ldflags="-r $(ROOT_DIR)lib" -o bin/ext_config examples/ext_config/main.go
 	go build -x -ldflags="-r $(ROOT_DIR)lib" -o bin/console_root examples/console_root/main.go
@@ -49,9 +52,12 @@ build-debug:
 	go build -x -ldflags="-r $(ROOT_DIR)lib" -o bin/file_add_writer examples/file_add_writer/main.go
 	go build -x -ldflags="-r $(ROOT_DIR)lib" -o bin/syslog examples/syslog/main.go
 	go build -x -ldflags="-r $(ROOT_DIR)lib" -o bin/callback examples/callback/main.go
+	go build -x -ldflags="-r $(ROOT_DIR)lib" -o bin/callback_add_writer examples/callback_add_writer/main.go
 	go build -x -ldflags="-r $(ROOT_DIR)lib" -o bin/threads examples/threads/main.go
 	go build -x -ldflags="-r $(ROOT_DIR)lib" -o bin/net_unencrypted_one_client examples/net_unencrypted_one_client/main.go
+	go build -x -ldflags="-r $(ROOT_DIR)lib" -o bin/net_unencrypted_one_client_enc examples/net_unencrypted_one_client_enc/main.go
 	go build -x -ldflags="-r $(ROOT_DIR)lib" -o bin/get_server_addresses_ports examples/get_server_addresses_ports/main.go
+	go build -x -ldflags="-r $(ROOT_DIR)lib" -o bin/get_server_addresses_ports_enc examples/get_server_addresses_ports_enc/main.go
 	go build -x -ldflags="-r $(ROOT_DIR)lib" -o bin/get_server_addresses_ports_enc examples/get_server_addresses_ports_enc/main.go
 	go build -x -ldflags="-r $(ROOT_DIR)lib" -o bin/get_server_configs examples/get_server_configs/main.go
 	go build -x -ldflags="-r $(ROOT_DIR)lib" -o bin/ext_config examples/ext_config/main.go

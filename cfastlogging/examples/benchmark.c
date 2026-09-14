@@ -28,7 +28,6 @@
 #define MKDIR(path) _mkdir(path)
 #else
 #include <unistd.h>
-#include <pthread.h>
 #define MKDIR(path) mkdir(path, 0755)
 #endif
 

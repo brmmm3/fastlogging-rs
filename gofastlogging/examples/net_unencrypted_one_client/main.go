@@ -14,7 +14,7 @@ func main() {
 	}
 	file := writer.FileWriterConfigNew(
 		fl.DEBUG,
-		"/tmp/cfastlogging.log",
+		"gofastlogging.log",
 		1024,
 		3,
 		-1,

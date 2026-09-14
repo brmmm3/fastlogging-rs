@@ -7,7 +7,7 @@ int main(void)
 {
     Logging logging(DEBUG, "root");
     logging.add_writer_config(
-        FileWriterConfig(DEBUG, "/tmp/cppfastlogging.log", 1024, 3));
+        FileWriterConfig(DEBUG, "cppfastlogging.log", 1024, 3));
     logging.trace("Trace Message");
     logging.debug("Debug Message");
     logging.info("Info Message");

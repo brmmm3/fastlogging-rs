@@ -6,13 +6,14 @@
 // File: file_add_writer.c
 //
 // Sample library usage.
-int main(void) {
+int main(void)
+{
   Logging logging = logging_new(DEBUG, NULL,
                                 NULL, // Pointer to writers array
                                 0, NULL, NULL);
   CCompressionMethodEnum compression = CompressionMethodEnum_Store;
-  WriterConfigEnum file = file_writer_config_new(DEBUG, "/tmp/cfastlogging.log",
-                                                 1024, 3, -1, -1, compression);
+  WriterConfigEnum file = file_writer_config_new(DEBUG, "cfastlogging.log",
+                                                 1024, 3, -1, -1, &compression);
 
   logging_add_writer_config(logging, file);
   logging_trace(logging, "Trace Message");

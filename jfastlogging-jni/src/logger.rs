@@ -76,7 +76,7 @@ pub fn loggerSetDomain(
     logger: &mut Logger,
     domain: JString,
 ) -> jint {
-    enter_jni(env, |_env| {
+    enter_jni(env, |env| {
         let domain: String = JString::to_string(&domain);
         logger.set_domain(&domain);
         Ok(0)

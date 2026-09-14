@@ -6,9 +6,10 @@
 // File: file.c
 //
 // Sample library usage.
-int main(void) {
+int main(void)
+{
   WriterConfigEnum writers[] = {
-      file_writer_config_new(DEBUG, "/tmp/cfastlogging.log", 1024, 3, -1, -1,
+      file_writer_config_new(DEBUG, "cfastlogging.log", 1024, 3, -1, -1,
                              CompressionMethodEnum_Store)};
   Logging logging = logging_new(DEBUG, NULL,
                                 writers, // Pointer to writers array

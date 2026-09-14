@@ -24,7 +24,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"time"
 
@@ -52,11 +51,7 @@ var tmpDir string
 // ------------------------------------------------------------------ //
 
 func init() {
-	if runtime.GOOS == "windows" {
-		tmpDir = `C:\temp\gofastlogging_bench`
-	} else {
-		tmpDir = "/tmp/gofastlogging_bench"
-	}
+	tmpDir = filepath.Join(os.TempDir(), "gofastlogging_bench")
 }
 
 func nowSec() float64 {

@@ -13,7 +13,7 @@ func main() {
 		log.Fatal(err)
 	}
 	file := writer.FileWriterConfigNew(fl.DEBUG,
-		"/tmp/gofastlogging.log",
+		"gofastlogging.log",
 		1024,
 		3,
 		-1,

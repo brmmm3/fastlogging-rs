@@ -345,7 +345,7 @@ func main() {
 | `file` | File writer with rotation |
 | `file_add_writer` | Adding file writer at runtime |
 | `syslog` | Syslog writer |
-| `callback` | Callback writer (not yet implemented) |
+| `callback` | Callback writer |
 | `threads` | Multi-threaded logging with `Logger` |
 | `ext_config` | Extended formatting config |
 | `net_unencrypted_one_client` | Network logging, unencrypted |

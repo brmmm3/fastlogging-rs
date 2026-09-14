@@ -16,9 +16,7 @@ func main() {
 	callback := func(level uint8, domain, message string) {
 		fmt.Printf("[CALLBACK] Level: %d, Domain: %s, Message: %s\n", level, domain, message)
 	}
-	// NOTE: callback writers are not yet implemented in gofastlogging, so this
-	// will always return an error - see writer.CallbackWriterConfigNew.
-	config, handle, err := writer.CallbackWriterConfigNew(fl.DEBUG, callback)
+	config, handle, err := writer.CallbackWriterConfigNew(uint8(fl.DEBUG), callback)
 	if err != nil {
 		log.Fatal(err)
 	}

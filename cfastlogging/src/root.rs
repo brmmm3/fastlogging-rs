@@ -9,7 +9,7 @@ use crate::{
     EncryptionMethodEnum, KeyStruct,
     def::{
         Cu32StringVec, Cu32u16Vec, CusizeVec, ServerConfig, ServerConfigs, WriterConfigEnums,
-        WriterEnums,
+        WriterEnum, WriterEnums,
     },
     util::char2string,
 };
@@ -117,11 +117,13 @@ pub unsafe extern "C" fn root_set_root_writer_config(
 /// Add writer.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_set_root_writer(writer: *const fastlogging::WriterEnum) -> isize {
-    match fastlogging::root::set_root_writer(unsafe { std::ptr::read(writer) }) {
-        Ok(_r) => 0,
-        Err(err) => {
-            eprintln!("set_root_writer failed: {err:?}");
-            err.as_int() as isize
+    unsafe {
+        match fastlogging::root::set_root_writer(unsafe { std::ptr::read(writer) }) {
+            Ok(_r) => 0,
+            Err(err) => {
+                eprintln!("set_root_writer failed: {err:?}");
+                err.as_int() as isize
+            }
         }
     }
 }
@@ -133,12 +135,14 @@ pub unsafe extern "C" fn root_set_root_writer(writer: *const fastlogging::Writer
 pub unsafe extern "C" fn root_add_writer_config(
     config: *const fastlogging::WriterConfigEnum,
 ) -> isize {
-    let config = unsafe { std::ptr::read(config) };
-    match fastlogging::root::add_writer_config(&config) {
-        Ok(_r) => 0,
-        Err(err) => {
-            eprintln!("add_writer_config failed: {err:?}");
-            err.as_int() as isize
+    unsafe {
+        let config = unsafe { std::ptr::read(config) };
+        match fastlogging::root::add_writer_config(&config) {
+            Ok(_r) => 0,
+            Err(err) => {
+                eprintln!("add_writer_config failed: {err:?}");
+                err.as_int() as isize
+            }
         }
     }
 }
@@ -148,7 +152,7 @@ pub unsafe extern "C" fn root_add_writer_config(
 /// Add writer.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_add_writer(writer: *const fastlogging::WriterEnum) -> usize {
-    fastlogging::root::add_writer(unsafe { std::ptr::read(writer) })
+    unsafe { fastlogging::root::add_writer(unsafe { std::ptr::read(writer) }) }
 }
 
 /// # Safety
@@ -269,11 +273,13 @@ pub unsafe extern "C" fn root_disable(wid: usize) -> isize {
 /// Add writer.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_enable_type(typ: *const fastlogging::WriterTypeEnum) -> isize {
-    match fastlogging::root::enable_type(unsafe { std::ptr::read(typ) }) {
-        Ok(_) => 0,
-        Err(err) => {
-            eprintln!("enable failed: {err:?}");
-            err.as_int() as isize
+    unsafe {
+        match fastlogging::root::enable_type(unsafe { std::ptr::read(typ) }) {
+            Ok(_) => 0,
+            Err(err) => {
+                eprintln!("enable failed: {err:?}");
+                err.as_int() as isize
+            }
         }
     }
 }
@@ -283,11 +289,13 @@ pub unsafe extern "C" fn root_enable_type(typ: *const fastlogging::WriterTypeEnu
 /// Add writer.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn root_disable_type(typ: *const fastlogging::WriterTypeEnum) -> isize {
-    match fastlogging::root::disable_type(unsafe { std::ptr::read(typ) }) {
-        Ok(_) => 0,
-        Err(err) => {
-            eprintln!("disable_type failed: {err:?}");
-            err.as_int() as isize
+    unsafe {
+        match fastlogging::root::disable_type(unsafe { std::ptr::read(typ) }) {
+            Ok(_) => 0,
+            Err(err) => {
+                eprintln!("disable_type failed: {err:?}");
+                err.as_int() as isize
+            }
         }
     }
 }

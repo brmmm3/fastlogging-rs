@@ -35,7 +35,6 @@
 #else
 #include <unistd.h>
 #include <sys/stat.h>
-#include <pthread.h>
 #define MKDIR(path) mkdir(path, 0755)
 #define PATH_SEP '/'
 #endif

@@ -9,7 +9,7 @@ int main(void)
     Logging *logging_server = new Logging(DEBUG, "LOGSRV");
     logging_server->add_writer_config(ConsoleWriterConfig(DEBUG, true));
     logging_server->add_writer_config(
-        FileWriterConfig(DEBUG, "/tmp/cfastlogging.log", 1024, 3));
+        FileWriterConfig(DEBUG, "cppfastlogging.log", 1024, 3));
     ServerConfig srv(DEBUG, "127.0.0.1");
     logging_server->add_writer_config(srv);
     logging_server->set_root_writer_config(srv);

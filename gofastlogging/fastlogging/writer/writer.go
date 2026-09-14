@@ -6,13 +6,23 @@ package writer
 
 extern void go_logging_callback_writer(uintptr_t h, char level, char *domain, char *message);
 
-static inline void CallCallbackWriter(uintptr_t h, char level, char *domain, char *message) {
-    go_logging_callback_writer(h, level, domain, message);
+static uintptr_t go_callback_handle;
+
+static inline void set_go_callback_handle(uintptr_t h) {
+	go_callback_handle = h;
+}
+
+static void go_callback_trampoline(uint8_t level, const char *domain, const char *message) {
+	go_logging_callback_writer(go_callback_handle, (char)level, (char *)domain, (char *)message);
 }
 
 #cgo CFLAGS: -I../../h
 #cgo LDFLAGS: -L../../lib -lcfastlogging
 #include "../../h/cfastlogging.h"
+
+static inline WriterConfigEnum go_callback_writer_config_new(uint8_t level) {
+	return callback_writer_config_new(level, go_callback_trampoline);
+}
 */
 import "C"
 import (
@@ -128,12 +138,23 @@ type CallbackHandle struct {
 // CallbackWriterConfigNew registers a Go callback and returns a WriterConfigEnum.
 // The callback receives (level uint8, domain string, message string).
 // The returned CallbackHandle must be kept alive as long as the writer is in use.
-// NOTE: Callback support requires passing a C function pointer, which is not yet implemented.
 func CallbackWriterConfigNew(level uint8, callback func(level uint8, domain, message string)) (fl.WriterConfigEnum, CallbackHandle, error) {
-	return fl.WriterConfigEnum{}, CallbackHandle{}, fmt.Errorf("callback writer not yet implemented")
+	if callback == nil {
+		return fl.WriterConfigEnum{}, CallbackHandle{}, fmt.Errorf("callback must not be nil")
+	}
+	handle := cgo.NewHandle(callback)
+	C.set_go_callback_handle(C.uintptr_t(handle))
+	config := C.go_callback_writer_config_new(C.uint8_t(level))
+	if config == nil {
+		handle.Delete()
+		C.set_go_callback_handle(0)
+		return fl.WriterConfigEnum{}, CallbackHandle{}, fmt.Errorf("failed to create callback writer")
+	}
+	return fl.WriterConfigEnum{Config: unsafe.Pointer(config)}, CallbackHandle{Handle: handle}, nil
 }
 
 // UnregisterCallback releases the Go callback handle. Call when the writer is no longer needed.
 func (h CallbackHandle) UnregisterCallback() {
+	C.set_go_callback_handle(0)
 	h.Handle.Delete()
 }

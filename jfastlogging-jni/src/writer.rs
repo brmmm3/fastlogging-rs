@@ -106,7 +106,7 @@ pub fn clientWriterConfigNew(
     encryption: jint,
     key: JString,
 ) -> jlong {
-    enter_jni(env, |_env| {
+    enter_jni(env, |env| {
         let address: String = JString::to_string(&address);
         let key = if encryption == 0 || key.is_null() {
             EncryptionMethod::NONE
@@ -141,7 +141,7 @@ pub fn serverConfigNew(
     encryption: jint,
     key: JString,
 ) -> jlong {
-    enter_jni(env, |_env| {
+    enter_jni(env, |env| {
         let address: String = JString::to_string(&address);
         let key = if encryption == 0 || key.is_null() {
             EncryptionMethod::NONE
@@ -176,7 +176,7 @@ pub fn syslogWriterConfigNew(
     pname: JString,
     pid: jint,
 ) -> jlong {
-    enter_jni(env, |_env| {
+    enter_jni(env, |env| {
         let hostname: Option<String> = if hostname.is_null() {
             None
         } else {

@@ -6,7 +6,7 @@
  * etc. in the global namespace).
  */
 
-#include "lib.rs.h"
+#include "cxxfastlogging/src/lib.rs.h"
 #include <cstdio>
 #include <cstring>
 #include <chrono>

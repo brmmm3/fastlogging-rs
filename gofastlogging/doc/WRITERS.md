@@ -95,7 +95,7 @@ logger.Shutdown(false)
 
 ## Callback Writer
 
-> **NOT YET IMPLEMENTED.** The callback writer currently returns an error and is not functional. The signature and types below document the intended API only.
+> The callback writer supports one active Go callback because the underlying C callback API has no user-data argument. Keep the returned `CallbackHandle` alive while the writer is active.
 
 ```go
 func CallbackWriterConfigNew(
@@ -127,7 +127,6 @@ Calling `UnregisterCallback()` removes the callback from the writer, after which
 Calling `CallbackWriterConfigNew` currently returns a non-nil error:
 
 ```text
-callback writer not yet implemented
 ```
 
 Do not rely on this writer until it is implemented.

@@ -8,5 +8,6 @@
 //
 //     #include "cxxfastlogging/h/fastlogging.h"
 //
-// instead of depending on cxx's generated include path directly.
-#include "../../target/cxxbridge/cxxfastlogging/src/lib.rs.h"
+// instead of depending on cxx's generated include path directly. The build
+// command must add cxx's generated include directory to the compiler path.
+#include "cxxfastlogging/src/lib.rs.h"
