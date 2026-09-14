@@ -7,7 +7,8 @@
 - [C](cfastlogging/README.md) (FFI)
 - [C++](cppfastlogging/README.md) (FFI and CXX)
 - [Go](gofastlogging/README.md)
-- [Java](jfastlogging/README.md) (JNI and FFM)
+- [Java FFM](jfastlogging-ffm/README.md)
+- [Java JNI](jfastlogging-jni/README.md)
 - [C#](csharpfastlogging/README.md)
 
 ## Features
@@ -49,7 +50,7 @@ As an alternative to API calls, configuration can be done through a configuratio
 Supported formats are JSON, XML and YAML. The configuration file must have the filename `fastlogging.<EXT>`,
 where `EXT` is one of `json`, `xml` or `yaml`.
 
-Example configuration files (default and full) are available in [`doc/configs`](doc/configs).
+Example configuration files (default and full) are available in [`docs/configs`](docs/configs).
 
 ## Benchmarks
 
@@ -109,5 +110,6 @@ Detailed documentation is available for each language binding:
 - C: [cfastlogging/README.md](cfastlogging/README.md)
 - C++: [cppfastlogging/README.md](cppfastlogging/README.md)
 - Go: [gofastlogging/README.md](gofastlogging/README.md)
-- Java: [jfastlogging/README.md](jfastlogging/README.md)
+- Java FFM: [jfastlogging-ffm/README.md](jfastlogging-ffm/README.md)
+- Java JNI: [jfastlogging-jni/README.md](jfastlogging-jni/README.md)
 - C#: [csharpfastlogging/README.md](csharpfastlogging/README.md)

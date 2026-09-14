@@ -1,7 +1,7 @@
 # Examples
 
 All examples are built against `libcxxfastlogging.a` produced by
-`cargo build -p cxxfastlogging`.  See the [README](README.md) for the exact
+`cargo build -p cxxfastlogging`. See the [README](README.md) for the exact
 `g++` command and Makefile.
 
 ---

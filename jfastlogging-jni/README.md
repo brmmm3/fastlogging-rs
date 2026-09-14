@@ -4,14 +4,14 @@ Java bindings for the fastlogging Rust logging library via JNI (Java Native Inte
 
 ## Table of Contents
 
-- [DEF.md](DEF.md) — Constants, enums, and config class definitions
-- [LEVELS.md](LEVELS.md) — Log level reference
-- [LOGGING.md](LOGGING.md) — The `Logging` class (main entry point)
-- [LOGGER.md](LOGGER.md) — The `Logger` inner class
-- [WRITERS.md](WRITERS.md) — Writer configuration classes
-- [NETWORK.md](NETWORK.md) — Client and server networking
-- [CONFIG.md](CONFIG.md) — Extended formatting configuration
-- [EXAMPLES.md](EXAMPLES.md) — End-to-end usage examples
+- [DEF.md](doc/DEF.md) — Constants, enums, and config class definitions
+- [LEVELS.md](doc/LEVELS.md) — Log level reference
+- [LOGGING.md](doc/LOGGING.md) — The `Logging` class (main entry point)
+- [LOGGER.md](doc/LOGGER.md) — The `Logger` inner class
+- [WRITERS.md](doc/WRITERS.md) — Writer configuration classes
+- [NETWORK.md](doc/NETWORK.md) — Client and server networking
+- [CONFIG.md](doc/CONFIG.md) — Extended formatting configuration
+- [EXAMPLES.md](doc/EXAMPLES.md) — End-to-end usage examples
 
 ## Quick Start
 
@@ -102,7 +102,7 @@ flowchart TD
 - **All classes are nested inside `org.logging.FastLogging`.** There is one top-level Java class; every config class, enum, `Logging`, and `Logger` is a static nested class or enum of it.
 - **Requires JDK 25.** The Maven project compiles with `maven.compiler.source`/`target` = 25 (see `FastLogging/pom.xml`).
 - **The native library `libjfastlogging.so` must be on `java.library.path`.** It is loaded via `System.loadLibrary("jfastlogging")`; ensure the directory containing the `.so` is passed with `-Djava.library.path=...`. The Maven build already sets this to `${project.basedir}/lib` for tests via the Surefire plugin.
-- **`Logging` constructors take individual writer config objects, not a list.** Each writer is passed as its own parameter (see [LOGGING.md](LOGGING.md) for the full set of overloads).
+- **`Logging` constructors take individual writer config objects, not a list.** Each writer is passed as its own parameter (see [LOGGING.md](doc/LOGGING.md) for the full set of overloads).
 - **Client-side level filtering happens in Java.** `Logging` methods compare the message level against `instance_level` before invoking JNI, so filtered-out messages never cross the JNI boundary.
 - **`Logger` is a non-static inner class** and must be created from a `FastLogging` instance (i.e. you need a `FastLogging` instance to create a `Logger`).
 - **Syslog and Callback writers exist in the JNI/Rust layer but do not have Java wrapper classes yet.** Syslog can be partially used via the `Logging(int level, String domain, int syslog)` constructor. The callback writer has no Java wrapper.

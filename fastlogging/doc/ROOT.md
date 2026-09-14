@@ -1,7 +1,7 @@
 # Root Logger
 
 `fastlogging` provides a process-wide singleton logger initialised automatically
-on first access.  It is suitable for applications that want a zero-setup, global
+on first access. It is suitable for applications that want a zero-setup, global
 logger without managing a `Logging` instance manually.
 
 ## `ROOT_LOGGER`
@@ -84,7 +84,7 @@ root::exception("message")?;
 When a child process is started (e.g. via `std::process::Command::spawn` or
 `fork(2)` on Unix), the child's `ROOT_LOGGER` will detect the parent's server
 port file in the system temp directory and automatically connect its
-`ClientWriter` to the parent's `LoggingServer`.  All log messages from the child
+`ClientWriter` to the parent's `LoggingServer`. All log messages from the child
 are then forwarded to the parent's writers (file, console, etc.) with no extra
 setup required.
 

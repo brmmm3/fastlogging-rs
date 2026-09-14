@@ -1,8 +1,8 @@
 # Log Levels
 
 `cxxfastlogging` uses `uint8_t` level values, identical to the underlying Rust
-library.  A message is forwarded to a writer only when
-`message_level >= writer_level`.  Lower values are *more* verbose.
+library. A message is forwarded to a writer only when
+`message_level >= writer_level`. Lower values are *more* verbose.
 
 ## Constants
 
@@ -22,7 +22,7 @@ The level constants are defined as `constexpr uint8_t` in `def.hpp`
 | `EXCEPTION` | `60` | Unhandled exception |
 | `NOLOG` | `100` | Silence all output |
 
-`FATAL` is an alias for `CRITICAL`.  `WARN` is an alias for `WARNING`.
+`FATAL` is an alias for `CRITICAL`. `WARN` is an alias for `WARNING`.
 
 ```cpp
 #include "cxxfastlogging/h/fastlogging.h"
@@ -49,7 +49,7 @@ log->set_level2sym(LevelSymsEnum::Short);
 ## Per-writer Level Filtering
 
 The global level on `Logging` is a gate: messages below it are dropped before
-they even enter the internal channel.  Each writer also has its own level, so
+they even enter the internal channel. Each writer also has its own level, so
 you can write `DEBUG` to a file while showing only `WARNING` and above on the
 console:
 

@@ -78,7 +78,7 @@ log.set_ext_config(&ExtConfig::new(MessageStructEnum::Xml, false, false, true, t
 ## File-Based Configuration
 
 `fastlogging` can save and load its full configuration (writers, levels, extended
-settings) to/from JSON, YAML, or XML files.  The file format is detected by
+settings) to/from JSON, YAML, or XML files. The file format is detected by
 extension.
 
 ### Saving

@@ -635,6 +635,6 @@ The compiled binaries are placed in `cppfastlogging/bin/`.
 > you may need to set `LD_LIBRARY_PATH` when running them outside the build
 > directory:
 >
-> ```
+> ```text
 > LD_LIBRARY_PATH=../target/release ./bin/console
 > ```

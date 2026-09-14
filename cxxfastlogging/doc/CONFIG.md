@@ -3,7 +3,7 @@
 ## `ExtConfigFfi` — Extended Message Metadata
 
 `ExtConfigFfi` controls what process/thread metadata is appended to every log
-message.  It is a plain C++ struct (shared across the cxx FFI boundary):
+message. It is a plain C++ struct (shared across the cxx FFI boundary):
 
 ```cpp
 struct ExtConfigFfi {

@@ -20,7 +20,7 @@ Go bindings for the [fastlogging](https://github.com/brmmm3/fastlogging-rs/tree/
 
 The `gofastlogging` module is **not** part of the Cargo workspace. It is built from the `gofastlogging/` directory, after producing the C shared library from the `cfastlogging` package.
 
-#### 1. Build the C library
+### 1. Build the C library
 
 From the repository root:
 

@@ -235,4 +235,6 @@ Replace `console.c` with the desired example file. On Windows, use `.dll` and `.
 
 All logging functions return 0 on success and a negative value on error. Always check return values in production code.
 }
+
+```text
 ```

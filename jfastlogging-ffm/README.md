@@ -19,7 +19,7 @@ Messages are routed through an asynchronous background thread to one or more ind
 
 > **Requirements:** JDK 25 (the Maven project compiles with `source`/`target` 25 and the bindings use the finalized FFM API) and a recent Maven 3.9+.
 
-#### 1. Build the native shared library
+### 1. Build the native shared library
 
 ```sh
 cargo build --release

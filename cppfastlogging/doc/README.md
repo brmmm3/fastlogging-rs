@@ -1,7 +1,7 @@
 # cppfastlogging — Documentation
 
-`cppfastlogging` is a modern C++17 wrapper around [`cfastlogging`](../cfastlogging),
-the C ABI bindings for the Rust [`fastlogging`](../fastlogging) library. It provides
+`cppfastlogging` is a modern C++17 wrapper around [`cfastlogging`](../../cfastlogging),
+the C ABI bindings for the Rust [`fastlogging`](../../fastlogging) library. It provides
 RAII classes in the `logging::` namespace for ergonomic, memory-safe usage while
 preserving the high-performance, asynchronous, multi-writer architecture of the
 underlying Rust library.
@@ -9,7 +9,7 @@ underlying Rust library.
 ## Contents
 
 | Document | Description |
-|---|---|
+| -------- | ----------- |
 | [LEVELS.md](LEVELS.md) | Log-level constants and filtering semantics |
 | [LOGGING.md](LOGGING.md) | `logging::Logging` class — primary API |
 | [LOGGER.md](LOGGER.md) | `logging::Logger` class — per-thread/per-domain handles |
@@ -97,7 +97,7 @@ lt -> sw : dispatch
 ```
 
 Each writer runs in its own background thread and consumes messages from a bounded
-channel.  The level check on the hot path is a single integer comparison with no locking.
+channel. The level check on the hot path is a single integer comparison with no locking.
 
 ## Build
 
@@ -129,7 +129,7 @@ The `threads` example additionally links `-lpthread`.
 ## Header File Overview
 
 | Header | Contents |
-|---|---|
+| ------ | -------- |
 | `h/def.hpp` | Log level constants, `rust::` enums, structs, opaque types |
 | `h/writer.hpp` | Writer config RAII classes, `CompressionMethod` enum, C FFI declarations |
 | `h/logger.hpp` | `logging::Logger` RAII class, C FFI declarations |

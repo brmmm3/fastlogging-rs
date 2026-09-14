@@ -1,9 +1,9 @@
 # `Logging` — Primary API
 
-`Logging` is the central class in `cxxfastlogging`.  Each instance owns a
-background Rust thread and zero or more writers.  All log calls are
+`Logging` is the central class in `cxxfastlogging`. Each instance owns a
+background Rust thread and zero or more writers. All log calls are
 non-blocking: the message is pushed onto a bounded channel and the thread
-dispatches it to each writer.  `Logging` is an opaque Rust type; C++ code
+dispatches it to each writer. `Logging` is an opaque Rust type; C++ code
 holds it through `rust::Box<Logging>`.
 
 ## Constructors
@@ -58,7 +58,7 @@ log->shutdown(false);
 int shutdown(bool now);
 ```
 
-Stops the background thread.  If `now` is `true` the stop flag is set
+Stops the background thread. If `now` is `true` the stop flag is set
 immediately and queued messages may be lost; if `false` a graceful stop is
 sent and the thread drains its channel before exiting.
 
@@ -79,8 +79,8 @@ Reload configuration from a JSON, YAML, or XML file at runtime.
 int save_config(rust::Str path);  // may throw rust::Error
 ```
 
-Persist the current configuration.  An empty string reuses the path from the
-last `apply_config` call.  The file format is determined by extension
+Persist the current configuration. An empty string reuses the path from the
+last `apply_config` call. The file format is determined by extension
 (`.json`, `.yaml`, `.xml`).
 
 ## Configuration Methods
@@ -93,8 +93,8 @@ void set_ext_config(ExtConfigFfi ext_config);
 void set_debug(uint8_t debug);
 ```
 
-`set_level` targets a specific writer by its numeric id.  Writer ids are
-returned by `add_writer_config`.  `wid = 0` is always the root writer
+`set_level` targets a specific writer by its numeric id. Writer ids are
+returned by `add_writer_config`. `wid = 0` is always the root writer
 (Client or Server type).
 
 ## Writer Management
@@ -226,7 +226,7 @@ int exception(rust::Str message);
 
 ## Error Handling
 
-All `int`-returning methods propagate errors as `rust::Error` exceptions.  The
+All `int`-returning methods propagate errors as `rust::Error` exceptions. The
 `.what()` method returns the Rust error message string:
 
 ```cpp

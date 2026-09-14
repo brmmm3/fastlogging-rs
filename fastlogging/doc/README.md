@@ -89,7 +89,7 @@ lt -> sw : dispatch
 ```
 
 Each writer runs in its own background thread and consumes messages from a bounded
-channel.  The level check on the hot path is a single integer comparison with no locking.
+channel. The level check on the hot path is a single integer comparison with no locking.
 
 ## Crate Features
 
@@ -108,5 +108,5 @@ fastlogging = { version = "0.3", default-features = false }
 ## Platform Notes
 
 `SyslogWriter` / `SyslogWriterConfig` are available on **Unix** only
-(`#[cfg(target_family = "unix")]`).  On **Windows** the equivalent is
+(`#[cfg(target_family = "unix")]`). On **Windows** the equivalent is
 `eventlog`-backed and exposed under the same type names.

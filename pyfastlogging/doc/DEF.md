@@ -10,11 +10,11 @@
 `WARNING` (30) &ensp;&ensp;&ensp; Log also warning messages. Default color is bright yellow.  
 `SUCCESS` (25) &ensp;&ensp;&ensp; Success messages.  
 `INFO` (20) &ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&nbsp; Log also info messages. Default color is bright green.  
-`DEBUG` (10) &ensp;&ensp;&ensp;&ensp;&ensp;  Log also debug messages. Default color is white.  
-`TRACE` (5) &ensp;&ensp;&ensp;&ensp;&ensp;  Trace messages.  
+`DEBUG` (10) &ensp;&ensp;&ensp;&ensp;&ensp; Log also debug messages. Default color is white.  
+`TRACE` (5) &ensp;&ensp;&ensp;&ensp;&ensp; Trace messages.  
 `NOTSET` (0) &ensp;&ensp;&ensp;&ensp; All messages are logged.
 
-## Enum `LevelSyms`
+## LevelSyms
 
 The enum has following values:
 
@@ -28,7 +28,7 @@ class LevelSyms(IntEnum):
     Str = 2
 ```
 
-## Enum `MessageStructEnum`
+## MessageStructEnum
 
 The enum has following values:
 
@@ -42,7 +42,7 @@ class MessageStructEnum(IntEnum):
     Xml = 2
 ```
 
-## Class `ExtConfig`
+## ExtConfig
 
 This class is for configuring extended formatting setting. It has following members:
 
@@ -62,7 +62,7 @@ class ExtConfig:
     tid: bool,
 ```
 
-## Class `RootConfig`
+## RootConfig
 
 ```python
 class RootConfig:
@@ -86,7 +86,7 @@ class RootConfig:
     level2sym: LevelSyms
 ```
 
-## Enum `ConsoleTargetEnum`
+## ConsoleTargetEnum
 
 ```python
 class ConsoleTargetEnum(IntEnum):
@@ -98,7 +98,7 @@ class ConsoleTargetEnum(IntEnum):
     Both = 2
 ```
 
-## Class `ConsoleWriterConfig`
+## ConsoleWriterConfig
 
 ```python
 class ConsoleWriterConfig:
@@ -118,7 +118,7 @@ class ConsoleWriterConfig:
     debug: int
 ```
 
-## Enum `CompressionMethodEnum`
+## CompressionMethodEnum
 
 ```python
 class CompressionMethodEnum(IntEnum):
@@ -132,7 +132,7 @@ class CompressionMethodEnum(IntEnum):
     Lzma = 3
 ```
 
-## Class `FileWriterConfig`
+## FileWriterConfig
 
 ```python
 class FileWriterConfig:
@@ -158,7 +158,7 @@ class FileWriterConfig:
     compression: CompressionMethodEnum
 ```
 
-## Class `ServerConfig`
+## ServerConfig
 
 ```python
 class ServerConfig:
@@ -174,7 +174,7 @@ class ServerConfig:
     port_file: str | None
 ```
 
-## Class `ClientWriterConfig`
+## ClientWriterConfig
 
 ```python
 class ClientWriterConfig:
@@ -192,6 +192,46 @@ class ClientWriterConfig:
     port: int
     # Optional key for authentication and message encryption
     key: EncryptionMethod
+    # Debug level. Only for developers.
+    debug: int
+```
+
+## SyslogWriterConfig
+
+```python
+class SyslogWriterConfig:
+    # Only write log messages if enabled is true
+    enabled: bool
+    # Log level for filtering log messages
+    level: int
+    # Optional filter log messages by domain
+    domain_filter: str | None
+    # Optional filter log messages by their contents
+    message_filter: str | None
+    # Hostname for syslog messages
+    hostname: str | None
+    # Process name for syslog messages
+    pname: str
+    # Process id for syslog messages
+    pid: int
+    # Debug level. Only for developers.
+    debug: int
+```
+
+## CallbackWriterConfig
+
+```python
+class CallbackWriterConfig:
+    # Only write log messages if enabled is true
+    enabled: bool
+    # Log level for filtering log messages
+    level: int
+    # Optional filter log messages by domain
+    domain_filter: str | None
+    # Optional filter log messages by their contents
+    message_filter: str | None
+    # Callback function which is called for each log message
+    callback: Callable | None
     # Debug level. Only for developers.
     debug: int
 ```

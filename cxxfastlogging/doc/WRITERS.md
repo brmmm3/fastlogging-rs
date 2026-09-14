@@ -1,8 +1,8 @@
 # Writer Configurations
 
-Writers are created through `WriterConfig` factory static functions.  Each
+Writers are created through `WriterConfig` factory static functions. Each
 factory returns a `rust::Box<WriterConfig>` (an owned, opaque handle to a Rust
-`WriterConfigEnum`).  These boxes are collected into a `rust::Vec` and passed
+`WriterConfigEnum`). These boxes are collected into a `rust::Vec` and passed
 to `Logging::create` or `Logging::add_writer_config`.
 
 ```cpp
@@ -141,7 +141,7 @@ auto syslog = WriterConfig::new_syslog(
 ## `WriterTypeTag`
 
 Used by `enable_type`, `disable_type`, and `sync_type` to address all writers
-of a given category at once.  Unlike the Rust `WriterTypeEnum`, which carries
+of a given category at once. Unlike the Rust `WriterTypeEnum`, which carries
 data for `File`, `Client`, and `Server` variants, the C++ enum is simple; a
 separate `rust::Str data` parameter carries the path or address when needed.
 

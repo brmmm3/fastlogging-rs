@@ -10,10 +10,9 @@
 `WARNING` (30) &ensp;&ensp;&ensp; Log also warning messages. Default color is bright yellow.  
 `SUCCESS` (25) &ensp;&ensp;&ensp; Success messages.  
 `INFO` (20) &ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&nbsp; Log also info messages. Default color is bright green.  
-`DEBUG` (10) &ensp;&ensp;&ensp;&ensp;&ensp;  Log also debug messages. Default color is white.  
-`TRACE` (5) &ensp;&ensp;&ensp;&ensp;&ensp;  Trace messages.  
+`DEBUG` (10) &ensp;&ensp;&ensp;&ensp;&ensp; Log also debug messages. Default color is white.  
+`TRACE` (5) &ensp;&ensp;&ensp;&ensp;&ensp; Trace messages.  
 `NOTSET` (0) &ensp;&ensp;&ensp;&ensp; All messages are logged.
-
 
 ## Enum `CWriterEnum`
 
@@ -33,7 +32,6 @@ typedef enum {
 
 ---
 
-
 ## Struct `CWriterEnums`
 
 Holds an array of writer types.
@@ -48,7 +46,6 @@ typedef struct {
 *Memory management:* The caller is responsible for freeing any dynamically allocated arrays if returned by the API.
 
 ---
-
 
 ## Struct `CEncryptionMethod`
 
@@ -65,7 +62,6 @@ typedef struct {
 *Pointer usage:* The key pointer must remain valid for the lifetime of the config. If allocated, free after use.
 
 ---
-
 
 ## Struct `CServerConfig`
 
@@ -85,7 +81,6 @@ typedef struct {
 
 ---
 
-
 ## Struct `CServerConfigs`
 
 Holds an array of server configs, indexed by key.
@@ -102,12 +97,12 @@ typedef struct {
 
 ---
 
-
 ## `ext_config_new(structured: c_uchar, hostname: c_char, pname: c_char, pid: c_char, tname: c_char, tid: c_char) -> *const ExtConfig`
 
 Create an `ExtConfig` instance for advanced formatting and metadata.
 
 **Parameters:**
+
 - `structured`: 0 = plain string, 1 = structured/JSON
 - `hostname`: Hostname string
 - `pname`: Process name string

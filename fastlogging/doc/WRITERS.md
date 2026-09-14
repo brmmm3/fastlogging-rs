@@ -147,7 +147,7 @@ fn main() -> Result<(), LoggingError> {
 
 ## Callback Writer
 
-Invokes a user-supplied Rust closure for every log message.  Useful for testing
+Invokes a user-supplied Rust closure for every log message. Useful for testing
 or for integrating with third-party logging pipelines.
 
 ### `CallbackWriterConfig`

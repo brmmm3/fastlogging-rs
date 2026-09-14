@@ -118,4 +118,4 @@ fn main() -> Result<(), LoggingError> {
 ```
 
 > **Note:** `add_logger` must be called *before* `spawn`, because it sets the
-> internal channel sender.  The `Logger` is then moved into the closure.
+> internal channel sender. The `Logger` is then moved into the closure.

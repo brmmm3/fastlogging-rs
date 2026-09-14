@@ -1,7 +1,7 @@
 # Root Logger
 
 `cxxfastlogging` exposes the `fastlogging` process-wide singleton logger via a
-set of `root_*` free functions.  They are suitable for applications that want
+set of `root_*` free functions. They are suitable for applications that want
 a zero-setup, global logger without managing a `Logging` instance.
 
 The root logger is initialised automatically on first use and:

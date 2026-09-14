@@ -19,7 +19,7 @@ a writer only when `message_level >= writer.level`. Lower numeric values are
 | `EXCEPTION` | `60` | Unhandled exception |
 | `NOLOG` | `100` | Silence all output |
 
-`FATAL` is an alias for `CRITICAL`.  `WARN` is an alias for `WARNING`.
+`FATAL` is an alias for `CRITICAL`. `WARN` is an alias for `WARNING`.
 
 ```rust
 use fastlogging::{NOTSET, TRACE, DEBUG, INFO, SUCCESS, WARNING, ERROR, FATAL, NOLOG};
@@ -70,7 +70,7 @@ log.set_level2sym(&LevelSyms::Short);
 
 ## Per-writer Level Filtering
 
-Each writer carries its own level, independent of the global level.  A common
+Each writer carries its own level, independent of the global level. A common
 pattern is to write everything to a file but show only warnings on the console:
 
 ```rust

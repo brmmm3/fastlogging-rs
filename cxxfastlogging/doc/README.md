@@ -1,7 +1,7 @@
 # cxxfastlogging — Documentation
 
 `cxxfastlogging` is a type-safe C++ binding for the `fastlogging` Rust library,
-generated via the [`cxx`](https://cxx.rs) crate.  It exposes the full
+generated via the [`cxx`](https://cxx.rs) crate. It exposes the full
 `fastlogging` API to C++ callers through opaque handle types and shared value
 types, with errors mapped to C++ exceptions (`rust::Error`).
 
@@ -125,7 +125,7 @@ lt -> sw : dispatch
 
 ## Error Handling
 
-Fallible bridge functions throw `rust::Error` on failure.  `rust::Error` is a
+Fallible bridge functions throw `rust::Error` on failure. `rust::Error` is a
 standard C++ exception that inherits from `std::exception`:
 
 ```cpp
@@ -139,7 +139,7 @@ try {
 
 ## Platform Notes
 
-`WriterConfig::new_syslog` is available on **Unix** only.  On **Windows** the
+`WriterConfig::new_syslog` is available on **Unix** only. On **Windows** the
 underlying `eventlog`-backed writer is exposed under the same name.
 
 ## Relationship to the Rust Crate
@@ -149,5 +149,5 @@ Types shared by value across the FFI boundary (`EncryptionMethodEnum`,
 `CompressionMethodEnum`, `MessageStructEnum`, `LevelSymsEnum`, `WriterTypeTag`,
 `ExtConfigFfi`, `ServerConfigInfo`, `IdString`, `IdU16`) are declared as
 `struct`/`enum class` in the generated C++ header and can be used like ordinary
-C++ types.  Opaque handle types (`Logging`, `Logger`, `WriterConfig`) are
+C++ types. Opaque handle types (`Logging`, `Logger`, `WriterConfig`) are
 accessible only through `rust::Box<T>` pointers returned by factory functions.

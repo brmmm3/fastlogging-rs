@@ -1,8 +1,8 @@
 # Network Logging
 
-`fastlogging` supports forwarding log messages over TCP.  A **server** (`ServerConfig`)
+`fastlogging` supports forwarding log messages over TCP. A **server** (`ServerConfig`)
 listens for incoming connections; a **client** (`ClientWriterConfig`) connects to a
-server.  Both support optional authentication-key or AES-256-GCM encryption.
+server. Both support optional authentication-key or AES-256-GCM encryption.
 
 ## Overview
 
@@ -31,7 +31,7 @@ cw --> sw : TCP
 ```
 
 The server receives messages and re-dispatches them to its own writers (file, console,
-etc.).  Both processes are ordinary `Logging` instances; the network transport is just
+etc.). Both processes are ordinary `Logging` instances; the network transport is just
 another writer.
 
 ## `EncryptionMethod`

@@ -35,8 +35,8 @@ Set extended formatting configuration.
 - [RootConfig](DEF.md#RootConfig)
 - [ConsoleWriterConfig](DEF.md#ConsoleWriterConfig)
 - [FileWriterConfig](DEF.md#FileWriterConfig)
-- [ClientWriterConfig](DEF.md#ClientWriterConfig)
 - [ServerConfig](DEF.md#ServerConfig)
+- [ClientWriterConfig](DEF.md#ClientWriterConfig)
 - [SyslogWriterConfig](DEF.md#SyslogWriterConfig)
 - [CallbackWriterConfig](DEF.md#CallbackWriterConfig)
 

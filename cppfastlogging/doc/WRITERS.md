@@ -265,8 +265,8 @@ public:
 void callback(uint8_t level, const char *domain, const char *message);
 ```
 
-- `level`   — the numeric log level of the message (see the log level table above).
-- `domain`  — the log domain string.
+- `level` — the numeric log level of the message (see the log level table above).
+- `domain` — the log domain string.
 - `message` — the formatted log message string.
 
 The callback is invoked on the writer's background dispatch thread. It must be thread-safe and must not block for long periods, as this would stall all writers on the same `Logging` instance.
