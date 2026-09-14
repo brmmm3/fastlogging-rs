@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Replace the BENCH data in linux.html with values from python_linux/windows.json.
 
 The JSON file has the hierarchy:  length -> exc -> scenario -> level -> lib

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Generate a self-contained benchmark presentation page (index.html).
 
 Loads all *.json benchmark files in this directory, embeds the data into a

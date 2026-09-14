@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Update const DATA in windows.html from python_windows.json.
 
 The source JSON layout is:

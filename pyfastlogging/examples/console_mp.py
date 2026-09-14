@@ -2,8 +2,8 @@ import os
 
 from pyfastlogging import (
     TRACE,
-    Logging,
     ConsoleWriterConfig,
+    Logging,
 )
 
 print("__name__", __name__, os.getpid())

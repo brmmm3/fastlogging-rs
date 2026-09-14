@@ -1,9 +1,9 @@
 from pyfastlogging import (
-    TRACE,
     DEBUG,
-    Logging,
-    ConsoleWriterConfig,
+    TRACE,
     CallbackWriterConfig,
+    ConsoleWriterConfig,
+    Logging,
 )
 
 

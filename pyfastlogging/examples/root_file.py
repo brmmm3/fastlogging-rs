@@ -3,9 +3,9 @@ import os
 import pyfastlogging as fl
 from pyfastlogging import (
     TRACE,
-    Logging,
     CompressionMethodEnum,
     FileWriterConfig,
+    Logging,
 )
 
 if __name__ == "__main__":

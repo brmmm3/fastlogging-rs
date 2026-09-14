@@ -1,5 +1,5 @@
-import os
 import json
+import os
 from copy import deepcopy
 
 import plotly.graph_objects as go
@@ -7,7 +7,9 @@ import plotly.graph_objects as go
 data = {}
 for fileName in os.listdir():
     if fileName.endswith(".json"):
-        data[fileName] = json.loads(open(fileName, "rb").read())
+        with open(fileName, "rb") as F:
+            d = F.read()
+        data[fileName] = json.loads(d)
 
 levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 d = deepcopy(data["linux_pybenchmarks.json"])

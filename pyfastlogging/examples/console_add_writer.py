@@ -1,7 +1,7 @@
 from pyfastlogging import (
     TRACE,
-    Logging,
     ConsoleWriterConfig,
+    Logging,
 )
 
 if __name__ == "__main__":

@@ -1,23 +1,21 @@
-import os
-from tarfile import data_filter
-import time
-import platform
-
 import json
+import os
+import platform
 import shutil
+import time
 
-from fastlogging import LogInit
 import pyfastlogging as fl
+from fastlogging import LogInit
 from pyfastlogging import (
     CRITICAL,
-    ERROR,
-    WARNING,
-    INFO,
     DEBUG,
-    Logging,
-    Level2Sym,
-    FileWriterConfig,
+    ERROR,
+    INFO,
+    WARNING,
     CompressionMethodEnum,
+    FileWriterConfig,
+    Level2Sym,
+    Logging,
 )
 
 MB = 1024 * 1024
@@ -53,7 +51,7 @@ def LoggingWork(logger, cnt: int, bWithException: bool, message: str) -> float:
             # noinspection PyBroadException
             try:
                 # noinspection PyUnusedLocal
-                x = 1 / 0
+                pass
             except Exception:
                 logger.exception("EXCEPTION")
     return time.time() - t1
@@ -350,11 +348,14 @@ if __name__ == "__main__":
         os.makedirs(htmlDirName)
     fileName = "logging.log"
     fastFileName = "logging.log"
-    htmlTemplate = open("doc/benchmarks/template.html").read()
+    with open("doc/benchmarks/template.html") as F:
+        htmlTemplate = F.read()
     allJsonPathName = f"doc/benchmarks/python_{platformName}.json"
     dtAllJson = {}
     if os.path.exists(allJsonPathName):
-        dtAllJson = json.loads(open(allJsonPathName).read())
+        with open(allJsonPathName) as F:
+            data = F.read()
+        dtAllJson = json.loads(data)
     for msg, message in (
         ("short", "Message"),
         (

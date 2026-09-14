@@ -1,15 +1,14 @@
-import os
-import sys
-import subprocess
 import concurrent.futures
-from typing import List
+import os
+import subprocess
+import sys
 
 
-def Run(args: List[str]) -> subprocess.CompletedProcess:
+def Run(args: list[str]) -> subprocess.CompletedProcess:
     print("RUN:", " ".join(args))
     if os.name == "nt":
-        return subprocess.run(args, shell=True, capture_output=True)
-    return subprocess.run(" ".join(args), shell=True, capture_output=True)
+        return subprocess.run(args, shell=True, capture_output=True, check=False)
+    return subprocess.run(" ".join(args), shell=True, capture_output=True, check=False)
 
 
 def ShowResult(title: str, prc: subprocess.CompletedProcess):

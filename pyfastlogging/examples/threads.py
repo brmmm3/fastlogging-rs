@@ -2,14 +2,14 @@ import tempfile
 from threading import Thread
 
 from pyfastlogging import (
-    TRACE,
     DEBUG,
-    MessageStructEnum,
-    Logging,
-    Logger,
-    ExtConfig,
+    TRACE,
     ConsoleWriterConfig,
+    ExtConfig,
     FileWriterConfig,
+    Logger,
+    Logging,
+    MessageStructEnum,
 )
 
 

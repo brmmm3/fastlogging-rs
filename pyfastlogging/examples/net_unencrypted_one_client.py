@@ -1,13 +1,13 @@
 import tempfile
 
 from pyfastlogging import (
-    TRACE,
     DEBUG,
-    Logging,
+    TRACE,
+    ClientWriterConfig,
     ConsoleWriterConfig,
     FileWriterConfig,
+    Logging,
     ServerConfig,
-    ClientWriterConfig,
 )
 
 
