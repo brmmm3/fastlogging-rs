@@ -8,6 +8,7 @@
 - [C++](cppfastlogging/README.md) (FFI and CXX)
 - [Go](gofastlogging/README.md)
 - [Java](jfastlogging/README.md) (JNI and FFM)
+- [C#](csharpfastlogging/README.md)
 
 ## Features
 
@@ -109,3 +110,4 @@ Detailed documentation is available for each language binding:
 - C++: [cppfastlogging/README.md](cppfastlogging/README.md)
 - Go: [gofastlogging/README.md](gofastlogging/README.md)
 - Java: [jfastlogging/README.md](jfastlogging/README.md)
+- C#: [csharpfastlogging/README.md](csharpfastlogging/README.md)
