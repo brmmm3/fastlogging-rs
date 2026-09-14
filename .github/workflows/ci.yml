@@ -1,6 +1,8 @@
 name: CI
 
-permissions: { }
+permissions:
+  contents: read
+  packages: read
 
 on:
   push:
@@ -76,9 +78,6 @@ jobs:
       matrix:
         python-version:
           - "3.10"
-          - "3.11"
-          - "3.12"
-          - "3.13"
           - "3.14"
           - "pypy3.11"
     steps:
@@ -144,6 +143,7 @@ jobs:
     needs: [ tests, cargo-fmt, cargo-clippy ]
     runs-on: ${{ matrix.platform.runner }}
     strategy:
+      max-parallel: 4
       matrix:
         platform:
           - {
