@@ -1,4 +1,4 @@
-use std::ffi::{c_char, CStr};
+use std::ffi::{CStr, c_char};
 
 #[inline]
 pub fn char2string(s: *const c_char) -> String {

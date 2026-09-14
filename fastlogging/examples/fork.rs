@@ -1,7 +1,7 @@
 use std::{process, thread, time::Duration};
 
-use fastlogging::{root, LoggingError};
-use fork::{fork, Fork};
+use fastlogging::{LoggingError, root};
+use fork::{Fork, fork};
 
 fn run_parent(child: i32) -> Result<(), LoggingError> {
     println!("# Run parent. Child has pid {child}.");

@@ -39,5 +39,3 @@ pub fn extConfigNew(
         ))))
     })
 }
-
-
