@@ -34,3 +34,55 @@ build-backend = "maturin"
 [tool.maturin]
 manylinux = "2_34"
 strip = true
+module-name = "fastlogging_rs"
+include = [
+    { path = "pyproject.toml", format = "sdist" },
+    { path = "README.md", format = "sdist" },
+    { path = "LICENSE", format = "sdist" },
+    { path = "CHANGELOG.md", format = "sdist" },
+    { path = "src/**/*", format = "sdist" },
+    { path = "tests/**/*", format = "sdist" },
+    { path = "examples/**/*", format = "sdist" },
+    { path = "fastlogging_rs.pyi", format = "wheel" },
+]
+exclude = ["../**", "**/target/**", "**/__pycache__/**"]
+
+[tool.poetry.dependencies]
+python = '>=3.10'
+maturin = ">=1.15.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = ">=9.1.1"
+
+[tool.ruff.lint]
+extend-select = ["BLE", "S"]
+extend-ignore = [
+    "BLE001", # Do not catch blind exception: `Exception`
+    "S101",   # Use of assert detected
+    "S108",   # Use of exec detected
+    "S110",   # Try, Except, Pass detected
+    "S112",   # try-except-continue detected
+    "S113",   # Probable use of `requests` call without timeout
+    "S602",   # Use of subprocess call with shell=True detected
+    "S605",   # Starting a process with a shell, possible injection detected
+]
+
+[dependency-groups]
+dev = [
+    "pytest == 9.1.1",
+    "dirty-equals == 0.11",
+    "ruff == 0.16.7",
+    "zizmor == 1.30.1",
+    "typos == 1.50.1",
+    "rumdl == 0.2.73",
+]
+bench = [
+    "oyaml",
+    "pyyaml",
+    "ryaml",
+    "ruamel-yaml",
+    "polars == 1.44.2",
+    "altair == 6.2.2",
+    "py-cpuinfo == 9.0.0",
+    "vl-convert-python == 1.9.0.post1",
+]
