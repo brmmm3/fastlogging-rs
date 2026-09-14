@@ -16,11 +16,11 @@ jobs:
     name: Upload release to PyPI
     runs-on: ubuntu-latest
     environment:
-      name: pypi
-      url: https://pypi.org/p/fastlogging-rs
+      name: testpypi
+      url: https://test.pypi.org/p/fastlogging-rs
     steps:
       - name: Download wheels
-        uses: robinraju/release-downloader@v1
+        uses: robinraju/release-downloader@v1 # zizmor: ignore[unpinned-uses]
         with:
           repository: ${{ github.repository }}
           tag: ${{ github.ref_name }}        # Uses the tag of the release
@@ -32,7 +32,7 @@ jobs:
         run: rm -f dist/*-sse.whl
 
       - name: Download source distribution
-        uses: robinraju/release-downloader@v1
+        uses: robinraju/release-downloader@v1 # zizmor: ignore[unpinned-uses]
         with:
           repository: ${{ github.repository }}
           tag: ${{ github.ref_name }}
@@ -44,7 +44,7 @@ jobs:
         run: ls -R dist
 
       - name: Publish on PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@release/v1 # zizmor: ignore[unpinned-uses]
         with:
           repository-url: https://test.pypi.org/legacy/
           skip-existing: true
