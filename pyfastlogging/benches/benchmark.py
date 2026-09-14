@@ -4,8 +4,9 @@ import platform
 import shutil
 import time
 
-import pyfastlogging as fl
 from fastlogging import LogInit
+
+import pyfastlogging as fl
 from pyfastlogging import (
     CRITICAL,
     DEBUG,
