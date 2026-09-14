@@ -1,0 +1,42 @@
+name: Build sdist
+
+permissions: { }
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-sdist:
+    name: "build sdist"
+    runs-on: ubuntu-latest
+    permissions:
+      # Used to upload release artifacts
+      contents: write
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Add license files to sdist root
+        run: |
+          cp Cargo.toml Cargo.toml.bak
+          sed -i '/members = \["fastlogging", "pyfastlogging"\]/c\members = ["fastlogging"]\nexclude = ["pyfastlogging"]' Cargo.toml
+
+      - name: "Build sdist"
+        uses: PyO3/maturin-action@v1
+        with:
+          command: sdist
+          args: --out dist
+          rust-toolchain: nightly
+          working-directory: pyfastlogging
+
+      - name: Create/Release GitHub Release
+        uses: softprops/action-gh-release@v3
+        # zizmor: ignore[superfluous-actions]
+        with:
+          files: pyfastlogging/dist/*
+          draft: false
+          prerelease: false
+          generate_release_notes: false
+          fail_on_unmatched_files: true

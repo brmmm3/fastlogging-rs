@@ -1,0 +1,51 @@
+name: Publish on PyPi
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref_name }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  pypi-publish:
+    name: Upload release to PyPI
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/fastlogging-rs
+    steps:
+      - name: Download wheels
+        uses: robinraju/release-downloader@v1
+        with:
+          repository: ${{ github.repository }}
+          tag: ${{ github.ref_name }}        # Uses the tag of the release
+          fileName: "*.whl"                  # Download all wheels
+          out-file-path: dist
+          extract: false
+
+      - name: Remove SSE wheels
+        run: rm -f dist/*-sse.whl
+
+      - name: Download source distribution
+        uses: robinraju/release-downloader@v1
+        with:
+          repository: ${{ github.repository }}
+          tag: ${{ github.ref_name }}
+          fileName: "*.tar.gz"               # Download the sdist
+          out-file-path: dist
+          extract: false
+
+      - name: Show what we got
+        run: ls -R dist
+
+      - name: Publish on PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://upload.pypi.org/legacy/
+          skip-existing: true
+          verbose: true
