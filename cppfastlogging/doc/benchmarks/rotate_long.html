@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>C++ Logging benchmark results</title>
+  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+  <script type="text/javascript">
+    google.charts.load('current', { 'packages': ['bar'] });
+    google.charts.setOnLoadCallback(drawChart);
+
+    function drawChart() {
+      var data = google.visualization.arrayToDataTable([
+        ['Log level', 'cppfastlogging', 'cxxfastlogging', 'loguru'],
+        ['DEBUG', 0.1908, 0.2378, 1.0785],
+        ['INFO', 0.1350, 0.1551, 1.0416],
+        ['WARNING', 0.1162, 0.1144, 1.0497],
+        ['ERROR', 0.0728, 0.0631, 1.0366],
+        ['CRITICAL', 0.0575, 0.0300, 1.0442]
+      ]);
+
+      var options = {
+        chart: {
+          title: 'Rotating log file — longs',
+        },
+        bars: 'horizontal' // Required for Material Bar Charts.
+      };
+
+      var chart = new google.charts.Bar(document.getElementById('barchart_material'));
+
+      chart.draw(data, google.charts.Bar.convertOptions(options));
+    }
+  </script>
+</head>
+
+<body>
+  <div id="barchart_material" style="width: 900px; height: 500px;"></div>
+</body>
+
+</html>

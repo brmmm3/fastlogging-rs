@@ -114,6 +114,18 @@ public class FastLogging {
 				.orElseThrow(() -> new UnsatisfiedLinkError("Symbol not found: " + name));
 	}
 
+	private static final FunctionDescriptor LOG_DESCRIPTOR = FunctionDescriptor.of(
+			ValueLayout.JAVA_INT, ValueLayout.JAVA_LONG, ValueLayout.ADDRESS, ValueLayout.JAVA_LONG);
+	private static final MethodHandle LOGGING_TRACE = lookup("loggingTrace", LOG_DESCRIPTOR);
+	private static final MethodHandle LOGGING_DEBUG = lookup("loggingDebug", LOG_DESCRIPTOR);
+	private static final MethodHandle LOGGING_INFO = lookup("loggingInfo", LOG_DESCRIPTOR);
+	private static final MethodHandle LOGGING_SUCCESS = lookup("loggingSuccess", LOG_DESCRIPTOR);
+	private static final MethodHandle LOGGING_WARNING = lookup("loggingWarning", LOG_DESCRIPTOR);
+	private static final MethodHandle LOGGING_ERROR = lookup("loggingError", LOG_DESCRIPTOR);
+	private static final MethodHandle LOGGING_CRITICAL = lookup("loggingCritical", LOG_DESCRIPTOR);
+	private static final MethodHandle LOGGING_FATAL = lookup("loggingFatal", LOG_DESCRIPTOR);
+	private static final MethodHandle LOGGING_EXCEPTION = lookup("loggingException", LOG_DESCRIPTOR);
+
 	private static MemorySegment allocStr(Arena arena, String s) {
 		if (s == null) {
 			return MemorySegment.NULL;
@@ -526,9 +538,9 @@ public class FastLogging {
 				if (ptr == null || ptr.address() == 0) {
 					return null;
 				}
-				// Reinterpret with a large size so getUtf8String can read the C string
+				// Reinterpret with a large size so getString can read the C string
 				MemorySegment strSeg = ptr.reinterpret(Integer.MAX_VALUE);
-				return strSeg.getUtf8String(0);
+				return strSeg.getString(0);
 			} catch (Throwable e) {
 				throw new RuntimeException(e);
 			}
@@ -552,67 +564,65 @@ public class FastLogging {
 
 		public void trace(String message) {
 			if (instance_level <= TRACE) {
-				logMessage("loggingTrace", message);
+				logMessage(LOGGING_TRACE, message);
 			}
 		}
 
 		public void debug(String message) {
 			if (instance_level <= DEBUG) {
-				logMessage("loggingDebug", message);
+				logMessage(LOGGING_DEBUG, message);
 			}
 		}
 
 		public void info(String message) {
 			if (instance_level <= INFO) {
-				logMessage("loggingInfo", message);
+				logMessage(LOGGING_INFO, message);
 			}
 		}
 
 		public void success(String message) {
 			if (instance_level <= SUCCESS) {
-				logMessage("loggingSuccess", message);
+				logMessage(LOGGING_SUCCESS, message);
 			}
 		}
 
 		public void warning(String message) {
 			if (instance_level <= WARN) {
-				logMessage("loggingWarning", message);
+				logMessage(LOGGING_WARNING, message);
 			}
 		}
 
 		public void error(String message) {
 			if (instance_level <= ERROR) {
-				logMessage("loggingError", message);
+				logMessage(LOGGING_ERROR, message);
 			}
 		}
 
 		public void critical(String message) {
 			if (instance_level <= CRITICAL) {
-				logMessage("loggingCritical", message);
+				logMessage(LOGGING_CRITICAL, message);
 			}
 		}
 
 		public void fatal(String message) {
 			if (instance_level <= FATAL) {
-				logMessage("loggingFatal", message);
+				logMessage(LOGGING_FATAL, message);
 			}
 		}
 
 		public void exception(String message) {
 			if (instance_level <= EXCEPTION) {
-				logMessage("loggingException", message);
+				logMessage(LOGGING_EXCEPTION, message);
 			}
 		}
 
-		private void logMessage(String funcName, String message) {
+		private void logMessage(MethodHandle mh, String message) {
 			try (Arena arena = Arena.ofConfined()) {
-				MemorySegment msgSeg = allocStr(arena, message);
-				MethodHandle mh = lookup(funcName,
-						FunctionDescriptor.of(ValueLayout.JAVA_INT,
-								ValueLayout.JAVA_LONG,
-								ValueLayout.ADDRESS,
-								ValueLayout.JAVA_LONG));
-				mh.invoke(instance_ptr, msgSeg, strLen(message));
+				byte[] bytes = message.getBytes(StandardCharsets.UTF_8);
+				MemorySegment msgSeg = arena.allocate(bytes.length + 1L);
+				msgSeg.copyFrom(MemorySegment.ofArray(bytes));
+				msgSeg.set(ValueLayout.JAVA_BYTE, bytes.length, (byte) 0);
+				mh.invoke(instance_ptr, msgSeg, (long) bytes.length);
 			} catch (Throwable e) {
 				throw new RuntimeException(e);
 			}

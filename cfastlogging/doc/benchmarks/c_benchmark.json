@@ -1,0 +1,54 @@
+{
+  "short": {
+    "nolog": {
+      "title": "No log file",
+      "DEBUG": {"cfastlogging": 0.000214, "zlog": 0.006779},
+      "INFO": {"cfastlogging": 0.000199, "zlog": 0.004885},
+      "WARNING": {"cfastlogging": 0.000180, "zlog": 0.003464},
+      "ERROR": {"cfastlogging": 0.000153, "zlog": 0.002180},
+      "CRITICAL": {"cfastlogging": 0.000138, "zlog": 0.001863}
+    },
+    "file": {
+      "title": "Log file",
+      "DEBUG": {"cfastlogging": 0.000211, "zlog": 0.054447},
+      "INFO": {"cfastlogging": 0.000184, "zlog": 0.043930},
+      "WARNING": {"cfastlogging": 0.000189, "zlog": 0.033715},
+      "ERROR": {"cfastlogging": 0.000183, "zlog": 0.025700},
+      "CRITICAL": {"cfastlogging": 0.000142, "zlog": 0.013326}
+    },
+    "rotate": {
+      "title": "Rotating log file",
+      "DEBUG": {"cfastlogging": 0.000211, "zlog": 0.148297},
+      "INFO": {"cfastlogging": 0.000206, "zlog": 0.113624},
+      "WARNING": {"cfastlogging": 0.000173, "zlog": 0.091637},
+      "ERROR": {"cfastlogging": 0.000171, "zlog": 0.060902},
+      "CRITICAL": {"cfastlogging": 0.000132, "zlog": 0.033214}
+    }
+  },
+  "long": {
+    "nolog": {
+      "title": "No log file",
+      "DEBUG": {"cfastlogging": 0.000495, "zlog": 0.008103},
+      "INFO": {"cfastlogging": 0.000427, "zlog": 0.006272},
+      "WARNING": {"cfastlogging": 0.000408, "zlog": 0.004629},
+      "ERROR": {"cfastlogging": 0.000420, "zlog": 0.002730},
+      "CRITICAL": {"cfastlogging": 0.000373, "zlog": 0.002053}
+    },
+    "file": {
+      "title": "Log file",
+      "DEBUG": {"cfastlogging": 0.000479, "zlog": 0.063875},
+      "INFO": {"cfastlogging": 0.000483, "zlog": 0.048450},
+      "WARNING": {"cfastlogging": 0.000423, "zlog": 0.041802},
+      "ERROR": {"cfastlogging": 0.000398, "zlog": 0.024311},
+      "CRITICAL": {"cfastlogging": 0.000382, "zlog": 0.013213}
+    },
+    "rotate": {
+      "title": "Rotating log file",
+      "DEBUG": {"cfastlogging": 0.000460, "zlog": 0.149908},
+      "INFO": {"cfastlogging": 0.000464, "zlog": 0.116379},
+      "WARNING": {"cfastlogging": 0.000405, "zlog": 0.092212},
+      "ERROR": {"cfastlogging": 0.000394, "zlog": 0.058398},
+      "CRITICAL": {"cfastlogging": 0.000367, "zlog": 0.037442}
+    }
+  }
+}

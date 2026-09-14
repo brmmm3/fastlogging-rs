@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Go Logging benchmark results</title>
+  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+  <script type="text/javascript">
+    google.charts.load('current', { 'packages': ['bar'] });
+    google.charts.setOnLoadCallback(drawChart);
+
+    function drawChart() {
+      var data = google.visualization.arrayToDataTable([
+        ['Log level', 'gofastlogging', 'slog', 'logrus'],
+        ['DEBUG', 0.1296, 0.0787, 0.0828],
+        ['INFO', 0.1072, 0.0779, 0.0831],
+        ['WARNING', 0.0706, 0.0794, 0.0838],
+        ['ERROR', 0.0475, 0.0799, 0.0874],
+        ['CRITICAL', 0.0450, 0.0780, 0.0833]
+      ]);
+
+      var options = {
+        chart: {
+          title: 'No log file — short',
+        },
+        bars: 'horizontal' // Required for Material Bar Charts.
+      };
+
+      var chart = new google.charts.Bar(document.getElementById('barchart_material'));
+
+      chart.draw(data, google.charts.Bar.convertOptions(options));
+    }
+  </script>
+</head>
+
+<body>
+  <div id="barchart_material" style="width: 900px; height: 500px;"></div>
+</body>
+
+</html>

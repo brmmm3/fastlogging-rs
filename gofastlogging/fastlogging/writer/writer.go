@@ -41,7 +41,15 @@ func ConsoleWriterConfigNew(level uint8, colors bool) *fl.WriterConfigEnum {
 func FileWriterConfigNew(level uint8, path string, size uint32, backlog uint32, timeout int32, time int64, compression fl.CompressionMethod) *fl.WriterConfigEnum {
 	cpath := C.CString(path)
 	defer C.free(unsafe.Pointer(cpath))
-	cCompression := C.CCompressionMethodEnum(compression.Into())
+	// Pass nil for compression when Store (0) is selected — the Rust side
+	// defaults to Store.  cgo does not reliably handle the C23 enum-with-
+	// fixed-underlying-type syntax (enum : uint8_t) used in def.h, so taking
+	// the address of a C.CCompressionMethodEnum value can cause heap corruption.
+	var cCompression *C.CCompressionMethodEnum = nil
+	if compression != fl.Store {
+		tmp := C.CCompressionMethodEnum(compression.Into())
+		cCompression = &tmp
+	}
 	config := C.file_writer_config_new(
 		C.uint8_t(level),
 		cpath,
@@ -49,7 +57,7 @@ func FileWriterConfigNew(level uint8, path string, size uint32, backlog uint32, 
 		C.uint32_t(backlog),
 		C.int32_t(timeout),
 		C.int64_t(time),
-		&cCompression)
+		cCompression)
 	if config == nil {
 		return nil
 	}

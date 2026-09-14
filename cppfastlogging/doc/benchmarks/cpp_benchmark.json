@@ -1,0 +1,54 @@
+{
+  "short": {
+    "nolog": {
+      "title": "No log file",
+      "DEBUG": {"cppfastlogging": 0.120517, "cxxfastlogging": 0.119456, "loguru": 0.004564},
+      "INFO": {"cppfastlogging": 0.095217, "cxxfastlogging": 0.098148, "loguru": 0.004538},
+      "WARNING": {"cppfastlogging": 0.071461, "cxxfastlogging": 0.074900, "loguru": 0.004519},
+      "ERROR": {"cppfastlogging": 0.050429, "cxxfastlogging": 0.047862, "loguru": 0.004480},
+      "CRITICAL": {"cppfastlogging": 0.026434, "cxxfastlogging": 0.025666, "loguru": 0.004575}
+    },
+    "file": {
+      "title": "Log file",
+      "DEBUG": {"cppfastlogging": 0.162123, "cxxfastlogging": 0.177690, "loguru": 0.837258},
+      "INFO": {"cppfastlogging": 0.134400, "cxxfastlogging": 0.140084, "loguru": 0.800034},
+      "WARNING": {"cppfastlogging": 0.102254, "cxxfastlogging": 0.103390, "loguru": 0.818328},
+      "ERROR": {"cppfastlogging": 0.065087, "cxxfastlogging": 0.069036, "loguru": 0.803483},
+      "CRITICAL": {"cppfastlogging": 0.030482, "cxxfastlogging": 0.033074, "loguru": 0.801781}
+    },
+    "rotate": {
+      "title": "Rotating log file",
+      "DEBUG": {"cppfastlogging": 0.263368, "cxxfastlogging": 0.174113, "loguru": 0.817411},
+      "INFO": {"cppfastlogging": 0.157175, "cxxfastlogging": 0.161308, "loguru": 0.811880},
+      "WARNING": {"cppfastlogging": 0.119696, "cxxfastlogging": 0.124006, "loguru": 0.808766},
+      "ERROR": {"cppfastlogging": 0.136132, "cxxfastlogging": 0.067658, "loguru": 0.821324},
+      "CRITICAL": {"cppfastlogging": 0.033564, "cxxfastlogging": 0.033553, "loguru": 0.799448}
+    }
+  },
+  "long": {
+    "nolog": {
+      "title": "No log file",
+      "DEBUG": {"cppfastlogging": 0.118152, "cxxfastlogging": 0.123240, "loguru": 0.022542},
+      "INFO": {"cppfastlogging": 0.096881, "cxxfastlogging": 0.096563, "loguru": 0.022630},
+      "WARNING": {"cppfastlogging": 0.070546, "cxxfastlogging": 0.072219, "loguru": 0.022117},
+      "ERROR": {"cppfastlogging": 0.044227, "cxxfastlogging": 0.042965, "loguru": 0.022366},
+      "CRITICAL": {"cppfastlogging": 0.043984, "cxxfastlogging": 0.032360, "loguru": 0.022383}
+    },
+    "file": {
+      "title": "Log file",
+      "DEBUG": {"cppfastlogging": 0.163414, "cxxfastlogging": 0.172407, "loguru": 1.033484},
+      "INFO": {"cppfastlogging": 0.126571, "cxxfastlogging": 0.138424, "loguru": 1.062965},
+      "WARNING": {"cppfastlogging": 0.101468, "cxxfastlogging": 0.103115, "loguru": 1.037166},
+      "ERROR": {"cppfastlogging": 0.062831, "cxxfastlogging": 0.069172, "loguru": 1.067790},
+      "CRITICAL": {"cppfastlogging": 0.044569, "cxxfastlogging": 0.030722, "loguru": 1.032169}
+    },
+    "rotate": {
+      "title": "Rotating log file",
+      "DEBUG": {"cppfastlogging": 0.190781, "cxxfastlogging": 0.237842, "loguru": 1.078481},
+      "INFO": {"cppfastlogging": 0.135039, "cxxfastlogging": 0.155141, "loguru": 1.041555},
+      "WARNING": {"cppfastlogging": 0.116199, "cxxfastlogging": 0.114384, "loguru": 1.049683},
+      "ERROR": {"cppfastlogging": 0.072779, "cxxfastlogging": 0.063072, "loguru": 1.036611},
+      "CRITICAL": {"cppfastlogging": 0.057451, "cxxfastlogging": 0.029986, "loguru": 1.044238}
+    }
+  }
+}

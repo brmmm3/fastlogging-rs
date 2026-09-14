@@ -1,0 +1,186 @@
+{
+  "short": {
+    "nolog": {
+      "Title": "No log file",
+      "Levels": [
+        {
+          "CsharpFastLogging": 0.12124503,
+          "Serilog": 0.05190672999999999,
+          "NLog": 0.005202259999999999
+        },
+        {
+          "CsharpFastLogging": 0.09593431,
+          "Serilog": 0.02248832,
+          "NLog": 0.00501035
+        },
+        {
+          "CsharpFastLogging": 0.06966594,
+          "Serilog": 0.022123200000000003,
+          "NLog": 0.005139059999999999
+        },
+        {
+          "CsharpFastLogging": 0.048895829999999994,
+          "Serilog": 0.02200374,
+          "NLog": 0.00507439
+        },
+        {
+          "CsharpFastLogging": 0.02209427,
+          "Serilog": 0.023636280000000003,
+          "NLog": 0.00525943
+        }
+      ]
+    },
+    "file": {
+      "Title": "Log file",
+      "Levels": [
+        {
+          "CsharpFastLogging": 0.17157108000000001,
+          "Serilog": 0.527689925,
+          "NLog": 13.6482027
+        },
+        {
+          "CsharpFastLogging": 0.13378496,
+          "Serilog": 0.45792592,
+          "NLog": 16.4298518
+        },
+        {
+          "CsharpFastLogging": 0.133743,
+          "Serilog": 0.48291325999999996,
+          "NLog": 14.5529562
+        },
+        {
+          "CsharpFastLogging": 0.0916767,
+          "Serilog": 0.5119486499999999,
+          "NLog": 14.2210261
+        },
+        {
+          "CsharpFastLogging": 0.033133169999999997,
+          "Serilog": 0.505745525,
+          "NLog": 16.0915881
+        }
+      ]
+    },
+    "rotate": {
+      "Title": "Rotating log file",
+      "Levels": [
+        {
+          "CsharpFastLogging": 0.20042555,
+          "Serilog": 0.7976328333333335,
+          "NLog": 17.4892292
+        },
+        {
+          "CsharpFastLogging": 0.13145790999999998,
+          "Serilog": 0.6258288249999999,
+          "NLog": 16.4803389
+        },
+        {
+          "CsharpFastLogging": 0.12151879000000002,
+          "Serilog": 0.6561798,
+          "NLog": 30.0524565
+        },
+        {
+          "CsharpFastLogging": 0.07251706999999999,
+          "Serilog": 0.6634135,
+          "NLog": 29.4907226
+        },
+        {
+          "CsharpFastLogging": 0.03175923,
+          "Serilog": 0.6390828,
+          "NLog": 29.4254791
+        }
+      ]
+    }
+  },
+  "long": {
+    "nolog": {
+      "Title": "No log file",
+      "Levels": [
+        {
+          "CsharpFastLogging": 0.12604732999999999,
+          "Serilog": 0.02237232,
+          "NLog": 0.006620040000000001
+        },
+        {
+          "CsharpFastLogging": 0.09834509999999999,
+          "Serilog": 0.02246864,
+          "NLog": 0.00619337
+        },
+        {
+          "CsharpFastLogging": 0.07552051,
+          "Serilog": 0.023688610000000002,
+          "NLog": 0.00706537
+        },
+        {
+          "CsharpFastLogging": 0.04834045,
+          "Serilog": 0.02257506,
+          "NLog": 0.0064763
+        },
+        {
+          "CsharpFastLogging": 0.030413000000000003,
+          "Serilog": 0.021594839999999997,
+          "NLog": 0.0064357600000000004
+        }
+      ]
+    },
+    "file": {
+      "Title": "Log file",
+      "Levels": [
+        {
+          "CsharpFastLogging": 0.17662566000000002,
+          "Serilog": 0.45187336,
+          "NLog": 22.1761778
+        },
+        {
+          "CsharpFastLogging": 0.13712557,
+          "Serilog": 0.43659486000000003,
+          "NLog": 16.5390055
+        },
+        {
+          "CsharpFastLogging": 0.09890109,
+          "Serilog": 0.4460579599999999,
+          "NLog": 25.8486185
+        },
+        {
+          "CsharpFastLogging": 0.06455577,
+          "Serilog": 0.44403708000000003,
+          "NLog": 25.963645
+        },
+        {
+          "CsharpFastLogging": 0.02994424,
+          "Serilog": 0.4351751200000001,
+          "NLog": 25.9174026
+        }
+      ]
+    },
+    "rotate": {
+      "Title": "Rotating log file",
+      "Levels": [
+        {
+          "CsharpFastLogging": 0.2453557333333333,
+          "Serilog": 0.7265300666666666,
+          "NLog": 28.375556
+        },
+        {
+          "CsharpFastLogging": 0.16908989,
+          "Serilog": 0.6748428000000001,
+          "NLog": 29.4498118
+        },
+        {
+          "CsharpFastLogging": 0.08868840000000001,
+          "Serilog": 0.6617119,
+          "NLog": 29.0410662
+        },
+        {
+          "CsharpFastLogging": 0.0740105,
+          "Serilog": 0.6671555333333333,
+          "NLog": 28.8763581
+        },
+        {
+          "CsharpFastLogging": 0.027379689999999995,
+          "Serilog": 0.6689716,
+          "NLog": 28.4732584
+        }
+      ]
+    }
+  }
+}

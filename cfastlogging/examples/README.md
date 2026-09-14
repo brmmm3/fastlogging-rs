@@ -70,6 +70,14 @@ This document describes each example in the `cfastlogging/examples` folder. Each
 - Sets up a logger for use in a thread.
 - Logs messages from both the main thread and a worker thread.
 
+## benchmark.c
+**Demonstrates:** Benchmark comparing cfastlogging with zlog.
+- Tests short and long messages across all log levels.
+- Measures no-file, file, and rotating-file scenarios.
+- Compares performance with the [zlog](https://github.com/HardySimpson/zlog) library.
+- Outputs results as JSON and HTML charts.
+- Build: `make build` (from `benches/` directory), Run: `./bin/benchmark [count]`
+
 ---
 
 For build and run instructions, see the [EXAMPLES.md](../doc/EXAMPLES.md) file.

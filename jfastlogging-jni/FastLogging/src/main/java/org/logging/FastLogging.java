@@ -273,7 +273,7 @@ public class FastLogging {
 
 	static public class Logging {
 
-		Long instance_ptr = null;
+		long instance_ptr = 0;
 		int instance_level = NOTSET;
 		// key=WriterId, value=Writer pointer
 		HashMap<Integer, Long> writers = new HashMap<>();

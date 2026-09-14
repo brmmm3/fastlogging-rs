@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>C++ Logging benchmark results</title>
+  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+  <script type="text/javascript">
+    google.charts.load('current', { 'packages': ['bar'] });
+    google.charts.setOnLoadCallback(drawChart);
+
+    function drawChart() {
+      var data = google.visualization.arrayToDataTable([
+        ['Log level', 'cppfastlogging', 'cxxfastlogging', 'loguru'],
+        ['DEBUG', 0.1205, 0.1195, 0.0046],
+        ['INFO', 0.0952, 0.0981, 0.0045],
+        ['WARNING', 0.0715, 0.0749, 0.0045],
+        ['ERROR', 0.0504, 0.0479, 0.0045],
+        ['CRITICAL', 0.0264, 0.0257, 0.0046]
+      ]);
+
+      var options = {
+        chart: {
+          title: 'No log file — shorts',
+        },
+        bars: 'horizontal' // Required for Material Bar Charts.
+      };
+
+      var chart = new google.charts.Bar(document.getElementById('barchart_material'));
+
+      chart.draw(data, google.charts.Bar.convertOptions(options));
+    }
+  </script>
+</head>
+
+<body>
+  <div id="barchart_material" style="width: 900px; height: 500px;"></div>
+</body>
+
+</html>

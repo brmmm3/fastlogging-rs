@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Go Logging benchmark results</title>
+  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+  <script type="text/javascript">
+    google.charts.load('current', { 'packages': ['bar'] });
+    google.charts.setOnLoadCallback(drawChart);
+
+    function drawChart() {
+      var data = google.visualization.arrayToDataTable([
+        ['Log level', 'gofastlogging', 'slog', 'logrus'],
+        ['DEBUG', 0.2144, 0.6535, 0.6809],
+        ['INFO', 0.1441, 0.6496, 0.6721],
+        ['WARNING', 0.1066, 0.6478, 0.6675],
+        ['ERROR', 0.0731, 0.6656, 0.6688],
+        ['CRITICAL', 0.0633, 0.6662, 0.6611]
+      ]);
+
+      var options = {
+        chart: {
+          title: 'Rotating log file — long',
+        },
+        bars: 'horizontal' // Required for Material Bar Charts.
+      };
+
+      var chart = new google.charts.Bar(document.getElementById('barchart_material'));
+
+      chart.draw(data, google.charts.Bar.convertOptions(options));
+    }
+  </script>
+</head>
+
+<body>
+  <div id="barchart_material" style="width: 900px; height: 500px;"></div>
+</body>
+
+</html>

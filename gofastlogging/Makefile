@@ -1,6 +1,6 @@
 ROOT_DIR := $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
 
-.PHONY: lint vet test build
+.PHONY: lint vet test build benchmark
 
 run: build-debug
 
@@ -32,6 +32,11 @@ build:
 	go build -x -ldflags="-r $(ROOT_DIR)lib" -o bin/get_server_configs examples/get_server_configs/main.go
 	go build -x -ldflags="-r $(ROOT_DIR)lib" -o bin/ext_config examples/ext_config/main.go
 	go build -x -ldflags="-r $(ROOT_DIR)lib" -o bin/console_root examples/console_root/main.go
+	go build -x -ldflags="-r $(ROOT_DIR)lib" -o bin/benchmark examples/benchmark/main.go
+
+benchmark:
+	@mkdir -p bin
+	go build -x -ldflags="-r $(ROOT_DIR)lib" -o bin/benchmark examples/benchmark/main.go
 
 build-debug:
 	@mkdir -p bin lib
@@ -50,4 +55,5 @@ build-debug:
 	go build -x -ldflags="-r $(ROOT_DIR)lib" -o bin/get_server_addresses_ports_enc examples/get_server_addresses_ports_enc/main.go
 	go build -x -ldflags="-r $(ROOT_DIR)lib" -o bin/get_server_configs examples/get_server_configs/main.go
 	go build -x -ldflags="-r $(ROOT_DIR)lib" -o bin/ext_config examples/ext_config/main.go
+	go build -x -ldflags="-r $(ROOT_DIR)lib" -o bin/benchmark examples/benchmark/main.go
 
