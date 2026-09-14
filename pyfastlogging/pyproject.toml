@@ -34,7 +34,7 @@ build-backend = "maturin"
 [tool.maturin]
 manylinux = "2_34"
 strip = true
-module-name = "fastlogging_rs"
+module-name = "pyfastlogging"
 include = [
     { path = "pyproject.toml", format = "sdist" },
     { path = "README.md", format = "sdist" },
@@ -43,7 +43,7 @@ include = [
     { path = "src/**/*", format = "sdist" },
     { path = "tests/**/*", format = "sdist" },
     { path = "examples/**/*", format = "sdist" },
-    { path = "fastlogging_rs.pyi", format = "wheel" },
+    { path = "pyfastlogging.pyi", format = "wheel" },
 ]
 exclude = ["../**", "**/target/**", "**/__pycache__/**"]
 
