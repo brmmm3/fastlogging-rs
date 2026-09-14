@@ -8,9 +8,10 @@
 // Sample library usage.
 int main(void)
 {
+  CCompressionMethodEnum compression = CompressionMethodEnum_Store;
   WriterConfigEnum writers[] = {
       file_writer_config_new(DEBUG, "cfastlogging.log", 1024, 3, -1, -1,
-                             &CompressionMethodEnum_Store)};
+                             &compression)};
   Logging logging = logging_new(DEBUG, NULL,
                                 writers, // Pointer to writers array
                                 1, NULL, NULL);
