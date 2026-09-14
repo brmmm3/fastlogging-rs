@@ -5,8 +5,7 @@ use jni::objects::{JClass, JString};
 use jni::sys::{jboolean, jdouble, jint, jlong};
 
 use fastlogging::{
-    EncryptionMethod, ExtConfig, LevelSyms, Logger, Logging, WriterConfigEnum, WriterEnum,
-    WriterTypeEnum,
+    EncryptionMethod, ExtConfig, LevelSyms, Logger, Logging, WriterConfigEnum, WriterTypeEnum,
 };
 
 use crate::{enter_jni, log_message};
@@ -25,7 +24,7 @@ pub fn loggingNewDefault(_env: jni::EnvUnowned, _class: JClass) -> jlong {
 /// Create new instance.
 #[allow(non_snake_case)]
 #[jni_mangle("org.logging.FastLogging", "loggingNew")]
-pub fn loggingNew(
+pub unsafe fn loggingNew(
     env: jni::EnvUnowned,
     _class: JClass,
     level: jint, // Global log level
@@ -115,7 +114,7 @@ pub fn loggingSetDomain(
     logging: &mut Logging,
     domain: JString,
 ) -> jint {
-    enter_jni(env, |env| {
+    enter_jni(env, |_env| {
         let domain: String = JString::to_string(&domain);
         logging.set_domain(&domain);
         Ok(0)

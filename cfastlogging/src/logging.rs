@@ -5,7 +5,7 @@ use std::slice;
 
 use crate::def::{
     Cu32StringVec, Cu32u16Vec, CusizeVec, ServerConfig, ServerConfigs, WriterConfigEnums,
-    WriterEnum, WriterEnums,
+    WriterEnums,
 };
 use crate::util::char2string;
 use crate::{EncryptionMethodEnum, KeyStruct};
@@ -205,13 +205,11 @@ pub unsafe extern "C" fn logging_set_root_writer(
     logging: &mut fastlogging::Logging,
     writer: *const fastlogging::WriterEnum,
 ) -> isize {
-    unsafe {
-        match logging.set_root_writer(unsafe { std::ptr::read(writer) }) {
-            Ok(_r) => 0,
-            Err(err) => {
-                eprintln!("logging_set_root_writer failed: {err:?}");
-                err.as_int() as isize
-            }
+    match logging.set_root_writer(unsafe { std::ptr::read(writer) }) {
+        Ok(_r) => 0,
+        Err(err) => {
+            eprintln!("logging_set_root_writer failed: {err:?}");
+            err.as_int() as isize
         }
     }
 }
