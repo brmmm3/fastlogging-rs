@@ -19,7 +19,7 @@ include = [
 
 [lib]
 name = "pyfastlogging"
-crate-type = ["cdylib", "rlib"]
+crate-type = ["staticlib", "rlib"]
 
 [dependencies]
 once_cell = "1.21"
