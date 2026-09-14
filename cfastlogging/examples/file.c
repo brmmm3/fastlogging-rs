@@ -10,7 +10,7 @@ int main(void)
 {
   WriterConfigEnum writers[] = {
       file_writer_config_new(DEBUG, "cfastlogging.log", 1024, 3, -1, -1,
-                             CompressionMethodEnum_Store)};
+                             &CompressionMethodEnum_Store)};
   Logging logging = logging_new(DEBUG, NULL,
                                 writers, // Pointer to writers array
                                 1, NULL, NULL);
