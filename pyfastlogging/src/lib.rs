@@ -21,7 +21,6 @@ fn shutdown_at_exit() -> Result<(), LoggingError> {
 
 /// Python API
 #[pymodule]
-#[pyo3(name = "pyfastlogging")]
 fn init(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     m.add("EXCEPTION", fastlogging::EXCEPTION)?;
