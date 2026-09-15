@@ -7,29 +7,7 @@ description = "A lightning fast logger, written in Rust, for multiple platforms 
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/brmmm3/fastlogging-rs"
 homepage = "https://github.com/brmmm3/fastlogging-rs/cfastlogging"
-keywords = [
-    "logging",
-    "logger",
-    "logging-framework",
-    "logging-library",
-    "logging-system",
-    "logging-tool",
-    "logging-utility",
-    "logging-service",
-    "logging-solution",
-    "logging-application",
-    "logging-software",
-    "logging-platform",
-    "logging-infrastructure",
-    "logging-environment",
-    "logging-ecosystem",
-    "logging-stack",
-    "logging-suite",
-    "logging-package",
-    "logging-module",
-    "logging-component",
-    "logging-subsystem",
-]
+keywords = ["logging", "logger"]
 include = [
     "Cargo.toml",
     "src/*",

@@ -7,29 +7,7 @@ license = "MIT OR Apache-2.0"
 edition = "2024"
 repository = "https://github.com/brmmm3/fastlogging-rs"
 homepage = "https://github.com/brmmm3/fastlogging-rs/jfastlogging-ffm"
-keywords = [
-    "logging",
-    "logger",
-    "logging-framework",
-    "logging-library",
-    "logging-system",
-    "logging-tool",
-    "logging-utility",
-    "logging-service",
-    "logging-solution",
-    "logging-application",
-    "logging-software",
-    "logging-platform",
-    "logging-infrastructure",
-    "logging-environment",
-    "logging-ecosystem",
-    "logging-stack",
-    "logging-suite",
-    "logging-package",
-    "logging-module",
-    "logging-component",
-    "logging-subsystem",
-]
+keywords = ["logging", "logger"]
 
 [dependencies]
 once_cell = "1.21"
