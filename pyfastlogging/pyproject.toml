@@ -2,9 +2,8 @@
 name = "pyfastlogging"
 version = "0.8.0"
 authors = [{ name = "Martin Bammer", email = "mrbm74@gmail.com" }]
-description = "A fast logger"
+description = "A lightning fast logger, written in Rust, for multiple platforms and languages."
 license = "MIT OR Apache-2.0"
-readme = "README.md"
 dependencies = []
 requires-python = ">=3.10"
 classifiers = [
