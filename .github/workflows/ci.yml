@@ -143,7 +143,7 @@ jobs:
     needs: [ tests, cargo-fmt, cargo-clippy ]
     runs-on: ${{ matrix.platform.runner }}
     strategy:
-      max-parallel: 4
+      max-parallel: 3
       matrix:
         platform:
           - {
@@ -227,6 +227,7 @@ jobs:
     needs: [ tests, cargo-fmt, cargo-clippy ]
     runs-on: ${{ matrix.platform.runner }}
     strategy:
+      max-parallel: 2
       matrix:
         platform:
           - {
@@ -294,6 +295,7 @@ jobs:
     needs: [ tests, cargo-fmt, cargo-clippy ]
     runs-on: ${{ matrix.platform.runner }}
     strategy:
+      max-parallel: 2
       matrix:
         platform:
           - {
