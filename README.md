@@ -72,9 +72,9 @@ To give you an idea how fast `fastlogging-rs` is, here are some benchmarks:
 | log4j           | 1.56s |
 | fastlogging-rs  | 0.17s |
 
-More benchmarks can be found in `doc/benchmarks`.
+More benchmarks can be found in `doc/benchmarks` in each sub package.
 
-You can explore the full benchmark results with interactive charts and tables: **[Benchmarks overview](https://brmmm3.github.io/fastlogging-rs/)** (generated from the raw JSON data).
+You can explore the full benchmark results with charts and tables: **[Benchmarks overview](https://brmmm3.github.io/fastlogging-rs/)** (generated from the raw JSON data).
 
 ## Usage
 
