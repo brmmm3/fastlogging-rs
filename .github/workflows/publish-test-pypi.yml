@@ -2,6 +2,11 @@ name: Publish on Test PyPi
 
 on:
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "GitHub release tag"
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -23,7 +28,7 @@ jobs:
         uses: robinraju/release-downloader@v1 # zizmor: ignore[unpinned-uses]
         with:
           repository: ${{ github.repository }}
-          tag: ${{ github.ref_name }}        # Uses the tag of the release
+          tag: ${{ inputs.tag }}        # Uses the tag of the release
           fileName: "*.whl"                  # Download all wheels
           out-file-path: dist
           extract: false
@@ -35,7 +40,7 @@ jobs:
         uses: robinraju/release-downloader@v1 # zizmor: ignore[unpinned-uses]
         with:
           repository: ${{ github.repository }}
-          tag: ${{ github.ref_name }}
+          tag: ${{ inputs.tag }}
           fileName: "*.tar.gz"               # Download the sdist
           out-file-path: dist
           extract: false
