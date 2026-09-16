@@ -1,8 +1,9 @@
 [project]
 name = "pyfastlogging"
-version = "0.8.0"
+version = "0.8.1"
 authors = [{ name = "Martin Bammer", email = "mrbm74@gmail.com" }]
 description = "A lightning fast logger, written in Rust, for multiple platforms and languages."
+readme = "README.md"
 license = "MIT OR Apache-2.0"
 dependencies = []
 requires-python = ">=3.10"
@@ -25,6 +26,12 @@ classifiers = [
     'Topic :: Software Development :: Libraries :: Python Modules',
     'Topic :: Utilities',
 ]
+
+[project.urls]
+Homepage = "https://github.com/brmmm3/fastlogging-rs"
+Repository = "https://github.com/brmmm3/fastlogging-rs"
+Documentation = "https://github.com/brmmm3/fastlogging-rs#readme"
+Issues = "https://github.com/brmmm3/fastlogging-rs/issues"
 
 [build-system]
 requires = ["setuptools", "wheel", "setuptools_rust", "maturin>=1.5.1"]

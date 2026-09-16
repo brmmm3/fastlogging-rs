@@ -1,13 +1,14 @@
 [package]
 name = "fastlogging"
-version = "0.8.0"
+version = "0.8.1"
 edition = "2024"
 authors = ["Martin Bammer <mrbm74@gmail.com>"]
 description = "A lightning fast logger, written in Rust, for multiple platforms and languages."
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/brmmm3/fastlogging-rs"
-homepage = "https://github.com/brmmm3/fastlogging-rs/fastlogging"
+documentation = "https://docs.rs/fastlogging-rs"
 keywords = ["logging", "logger"]
+categories = ["development-tools::debugging"]
 include = [
     "Cargo.toml",
     "src/*",
@@ -80,3 +81,7 @@ default = ["config_json", "config_xml", "config_yaml"]
 config_json = ["dep:serde", "dep:serde_derive"]
 config_xml = ["dep:serde", "dep:serde_derive", "dep:quick-xml"]
 config_yaml = ["dep:serde", "dep:serde_derive", "dep:serde_yaml"]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

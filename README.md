@@ -103,6 +103,8 @@ log.shutdown(False)
 
 ## Documentation
 
+[![Documentation](https://docs.rs/fastlogging-rs/badge.svg)](https://docs.rs/fastlogging-rs)
+
 Detailed documentation is available for each language binding:
 
 - Rust: [fastlogging/README.md](fastlogging/README.md)
