@@ -12,7 +12,7 @@ use pyo3::prelude::*;
 
 use crate::{
     ClientWriterConfig, ConsoleWriterConfig, EncryptionMethod, FileWriterConfig, LevelSyms,
-    LoggingError, ServerConfig, WriterConfigEnum, WriterTypeEnum,
+    LoggingError, OpenTelemetryWriterConfig, ServerConfig, WriterConfigEnum, WriterTypeEnum,
     logger::Logger,
     writer::{CallbackWriterConfig, ExtConfig, RootConfig, SyslogWriterConfig},
 };
@@ -48,6 +48,8 @@ fn extract_writer_config_enum(
         fastlogging::WriterConfigEnum::Syslog(config.0)
     } else if let Ok(config) = config.extract::<CallbackWriterConfig>(py) {
         fastlogging::WriterConfigEnum::Callback(config.0)
+    } else if let Ok(config) = config.extract::<OpenTelemetryWriterConfig>(py) {
+        fastlogging::WriterConfigEnum::OpenTelemetry(config.0)
     } else {
         return Err(fastlogging::LoggingError::InvalidValue(
             "writer has invalid argument type".to_string(),

@@ -57,6 +57,37 @@ fn main() -> Result<(), LoggingError> {
 }
 ```
 
+## OpenTelemetry
+
+Export logs to an OpenTelemetry Collector over OTLP/HTTP with
+`OpenTelemetryWriterConfig`. The writer posts batches to
+`{endpoint}/v1/logs`; the default endpoint is `http://localhost:4318`.
+
+```rust
+use fastlogging::{
+    DEBUG, Logging, LoggingError, OpenTelemetryWriterConfig,
+};
+
+fn main() -> Result<(), LoggingError> {
+    let mut log = Logging::new(
+        DEBUG,
+        "root",
+        Some(vec![OpenTelemetryWriterConfig::new(
+            DEBUG,
+            "http://localhost:4318",
+            "my-rust-app",
+        ).into()]),
+        None,
+        None,
+    )?;
+    log.info("exported to OpenTelemetry")?;
+    log.shutdown(false)?;
+    Ok(())
+}
+```
+
+See the complete example in [`examples/otel.rs`](examples/otel.rs).
+
 ## Architecture
 
 Log calls never touch I/O on the caller's thread. Each call performs a level check (the hot path), and if it passes, the message is handed to a flume-backed channel. A single `LoggingThread` running in the background drains that channel and dispatches to each writer's own thread.

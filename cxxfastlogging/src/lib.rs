@@ -104,6 +104,17 @@ impl WriterConfig {
             fastlogging::SyslogWriterConfig::new(level, hostname, pname, pid),
         )))
     }
+
+    /// Create configuration for an OpenTelemetry writer.
+    pub fn new_otel(level: u8, endpoint: &str, service_name: &str) -> Box<WriterConfig> {
+        Box::new(WriterConfig(fastlogging::WriterConfigEnum::OpenTelemetry(
+            fastlogging::OpenTelemetryWriterConfig::new(
+                level,
+                endpoint.to_string(),
+                service_name.to_string(),
+            ),
+        )))
+    }
 }
 
 /// Opaque wrapper around a [`fastlogging::Logging`] instance.
@@ -828,6 +839,8 @@ pub mod ffi {
         ) -> Box<WriterConfig>;
         #[Self = "WriterConfig"]
         fn new_syslog(level: u8, hostname: &str, pname: &str, pid: u32) -> Box<WriterConfig>;
+        #[Self = "WriterConfig"]
+        fn new_otel(level: u8, endpoint: &str, service_name: &str) -> Box<WriterConfig>;
     }
 
     extern "Rust" {

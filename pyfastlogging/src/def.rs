@@ -2,7 +2,9 @@ use std::path::PathBuf;
 
 use pyo3::{exceptions::PyValueError, prelude::*};
 
-use crate::writer::{CallbackWriterConfig, RootConfig, SyslogWriterConfig};
+use crate::writer::{
+    CallbackWriterConfig, OpenTelemetryWriterConfig, RootConfig, SyslogWriterConfig,
+};
 use crate::{ClientWriterConfig, ConsoleWriterConfig, FileWriterConfig, ServerConfig};
 
 #[pyclass(eq, eq_int, from_py_object)]
@@ -214,6 +216,7 @@ pub enum WriterTypeEnum {
     Servers {},
     Syslog {},
     Callback {},
+    OpenTelemetry {},
 }
 
 impl From<WriterTypeEnum> for fastlogging::WriterTypeEnum {
@@ -230,6 +233,7 @@ impl From<WriterTypeEnum> for fastlogging::WriterTypeEnum {
             Servers {} => fastlogging::WriterTypeEnum::Servers,
             Syslog {} => fastlogging::WriterTypeEnum::Syslog,
             Callback {} => fastlogging::WriterTypeEnum::Callback,
+            OpenTelemetry {} => fastlogging::WriterTypeEnum::OpenTelemetry,
         }
     }
 }
@@ -250,6 +254,7 @@ impl From<fastlogging::WriterTypeEnum> for WriterTypeEnum {
             Servers => WriterTypeEnum::Servers {},
             Syslog => WriterTypeEnum::Syslog {},
             Callback => WriterTypeEnum::Callback {},
+            OpenTelemetry => WriterTypeEnum::OpenTelemetry {},
         }
     }
 }
@@ -275,6 +280,7 @@ pub enum WriterConfigEnum {
     Server { config: ServerConfig },
     Syslog { config: SyslogWriterConfig },
     Callback { config: CallbackWriterConfig },
+    OpenTelemetry { config: OpenTelemetryWriterConfig },
 }
 
 impl From<WriterConfigEnum> for fastlogging::WriterConfigEnum {
@@ -288,6 +294,7 @@ impl From<WriterConfigEnum> for fastlogging::WriterConfigEnum {
             Server { config } => fastlogging::WriterConfigEnum::Server(config.into()),
             Syslog { config } => fastlogging::WriterConfigEnum::Syslog(config.into()),
             Callback { config } => fastlogging::WriterConfigEnum::Callback(config.0),
+            OpenTelemetry { config } => fastlogging::WriterConfigEnum::OpenTelemetry(config.into()),
         }
     }
 }
@@ -317,6 +324,9 @@ impl From<fastlogging::WriterConfigEnum> for WriterConfigEnum {
             Callback(config) => WriterConfigEnum::Callback {
                 config: CallbackWriterConfig(config),
             },
+            OpenTelemetry(config) => WriterConfigEnum::OpenTelemetry {
+                config: config.into(),
+            },
         }
     }
 }
@@ -332,6 +342,7 @@ impl From<&WriterConfigEnum> for fastlogging::WriterConfigEnum {
             Server { config } => fastlogging::WriterConfigEnum::Server(config.into()),
             Syslog { config } => fastlogging::WriterConfigEnum::Syslog(config.into()),
             Callback { config } => fastlogging::WriterConfigEnum::Callback(config.0.clone()),
+            OpenTelemetry { config } => fastlogging::WriterConfigEnum::OpenTelemetry(config.into()),
         }
     }
 }
@@ -360,6 +371,9 @@ impl<'a> From<&'a fastlogging::WriterConfigEnum> for WriterConfigEnum {
             },
             Callback(config) => WriterConfigEnum::Callback {
                 config: CallbackWriterConfig(config.clone()),
+            },
+            OpenTelemetry(config) => WriterConfigEnum::OpenTelemetry {
+                config: config.into(),
             },
         }
     }
@@ -398,6 +412,12 @@ impl From<SyslogWriterConfig> for WriterConfigEnum {
 impl From<CallbackWriterConfig> for WriterConfigEnum {
     fn from(config: CallbackWriterConfig) -> Self {
         Self::Callback { config }
+    }
+}
+
+impl From<OpenTelemetryWriterConfig> for WriterConfigEnum {
+    fn from(config: OpenTelemetryWriterConfig) -> Self {
+        Self::OpenTelemetry { config }
     }
 }
 

@@ -385,6 +385,7 @@ pub unsafe extern "C" fn logging_enable_type(
         7 => fastlogging::WriterTypeEnum::Servers,
         8 => fastlogging::WriterTypeEnum::Callback,
         9 => fastlogging::WriterTypeEnum::Syslog,
+        10 => fastlogging::WriterTypeEnum::OpenTelemetry,
         _ => fastlogging::WriterTypeEnum::Root,
     };
     match logging.enable_type(typ) {
@@ -415,6 +416,7 @@ pub unsafe extern "C" fn logging_disable_type(
         7 => fastlogging::WriterTypeEnum::Servers,
         8 => fastlogging::WriterTypeEnum::Callback,
         9 => fastlogging::WriterTypeEnum::Syslog,
+        10 => fastlogging::WriterTypeEnum::OpenTelemetry,
         _ => fastlogging::WriterTypeEnum::Root,
     };
     match logging.disable_type(typ) {

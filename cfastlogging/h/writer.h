@@ -35,4 +35,9 @@ WriterConfigEnum syslog_writer_config_new(uint8_t level, const char *hostname,
 WriterConfigEnum callback_writer_config_new(
     uint8_t level, void (*callback)(uint8_t, const char *, const char *));
 
+// OpenTelemetry writer
+
+WriterConfigEnum otel_writer_config_new(uint8_t level, const char *endpoint,
+                                        const char *service_name);
+
 #endif

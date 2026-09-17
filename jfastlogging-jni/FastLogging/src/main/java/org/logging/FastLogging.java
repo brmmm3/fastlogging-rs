@@ -77,7 +77,7 @@ public class FastLogging {
 	}
 
 	public enum WriterTypeEnum {
-		Root(0), Console(1), File(2), Client(3), Server(4), Syslog(5);
+		Root(0), Console(1), File(2), Client(3), Server(4), Syslog(5), Callback(6), Otel(7);
 
 		private final int value;
 
@@ -199,6 +199,16 @@ public class FastLogging {
 
 		public CallbackWriterConfig(int level, CallbackWriterConfigLog callback) {
 			instance_ptr = callbackWriterConfigNew(level, callback);
+		}
+	}
+
+	public static native long otelWriterConfigNew(int level, String endpoint, String service_name);
+
+	static public class OpenTelemetryWriterConfig {
+		long instance_ptr = 0;
+
+		public OpenTelemetryWriterConfig(int level, String endpoint, String service_name) {
+			instance_ptr = otelWriterConfigNew(level, endpoint, service_name);
 		}
 	}
 

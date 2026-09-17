@@ -64,7 +64,8 @@ public class FastLogging {
 	}
 
 	public enum WriterTypeEnum {
-		Root(0), Console(1), File(2), Files(3), Client(4), Clients(5), Server(6), Servers(7), Callback(8), Syslog(9);
+		Root(0), Console(1), File(2), Files(3), Client(4), Clients(5), Server(6), Servers(7), Callback(8), Syslog(9),
+		Otel(10);
 
 		private final int value;
 
@@ -301,6 +302,28 @@ public class FastLogging {
 				instance_ptr = (long) mh.invoke(cbStub, (byte) level);
 			} catch (Throwable e) {
 				arena.close();
+				throw new RuntimeException(e);
+			}
+		}
+	}
+
+	public static class OpenTelemetryWriterConfig {
+		long instance_ptr = 0;
+
+		public OpenTelemetryWriterConfig(int level, String endpoint, String service_name) {
+			try (Arena arena = Arena.ofConfined()) {
+				MemorySegment endpointSeg = allocStr(arena, endpoint);
+				MemorySegment serviceNameSeg = allocStr(arena, service_name);
+				MethodHandle mh = lookup("otelWriterConfigNew",
+						FunctionDescriptor.of(ValueLayout.JAVA_LONG,
+								ValueLayout.JAVA_BYTE,
+								ValueLayout.ADDRESS,
+								ValueLayout.JAVA_LONG,
+								ValueLayout.ADDRESS,
+								ValueLayout.JAVA_LONG));
+				instance_ptr = (long) mh.invoke((byte) level, endpointSeg, strLen(endpoint),
+						serviceNameSeg, strLen(service_name));
+			} catch (Throwable e) {
 				throw new RuntimeException(e);
 			}
 		}

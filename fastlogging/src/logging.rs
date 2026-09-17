@@ -17,6 +17,7 @@ use crate::def::{CRITICAL, DEBUG, ERROR, EXCEPTION, FATAL, INFO, LoggingTypeEnum
 use crate::file::FileWriter;
 use crate::logger::Logger;
 use crate::net::{AUTH_KEY, ClientWriter, EncryptionMethod, LoggingServer, ServerConfig};
+use crate::otel::OpenTelemetryWriter;
 use crate::{
     LevelSyms, LoggingError, MessageStructEnum, NOTSET, SUCCESS, SyslogWriter, TRACE,
     WriterConfigEnum, WriterEnum, WriterTypeEnum, level2short, level2str, level2string, level2sym,
@@ -304,6 +305,11 @@ fn logging_thread_worker(
                         syslog_writer.send(level, domain.clone(), buffer.clone())?;
                     }
                 }
+                WriterEnum::OpenTelemetry(otel_writer) => {
+                    if otel_writer.config.read().level <= level {
+                        otel_writer.send(level, domain.clone(), buffer.clone())?;
+                    }
+                }
             }
         }
     }
@@ -363,6 +369,11 @@ fn logging_thread(
             WriterEnum::Syslog(syslog_writer) => {
                 if let Err(err) = syslog_writer.shutdown() {
                     eprintln!("Failed to stop syslog logger: {err:?}");
+                }
+            }
+            WriterEnum::OpenTelemetry(otel_writer) => {
+                if let Err(err) = otel_writer.shutdown() {
+                    eprintln!("Failed to stop OpenTelemetry logger: {err:?}");
                 }
             }
         }
@@ -503,6 +514,11 @@ impl Logging {
                         self.stop.clone(),
                     )?)));
                 }
+                WriterConfigEnum::OpenTelemetry(otel_writer_config) => {
+                    instance.add_writer(WriterEnum::OpenTelemetry(Box::new(
+                        OpenTelemetryWriter::new(otel_writer_config.clone(), self.stop.clone())?,
+                    )));
+                }
             }
         }
         Ok(())
@@ -553,6 +569,7 @@ impl Logging {
             WriterEnum::Server(logging_server) => logging_server.set_level(level),
             WriterEnum::Callback(callback_writer) => callback_writer.set_level(level),
             WriterEnum::Syslog(syslog_writer) => syslog_writer.set_level(level),
+            WriterEnum::OpenTelemetry(otel_writer) => otel_writer.set_level(level),
         }
         Ok(())
     }
@@ -659,6 +676,7 @@ impl Logging {
             WriterEnum::Server(logging_server) => logging_server.enable(),
             WriterEnum::Callback(callback_writer) => callback_writer.enable(),
             WriterEnum::Syslog(syslog_writer) => syslog_writer.enable(),
+            WriterEnum::OpenTelemetry(otel_writer) => otel_writer.enable(),
         }
         Ok(())
     }
@@ -683,6 +701,7 @@ impl Logging {
             WriterEnum::Server(logging_server) => logging_server.disable(),
             WriterEnum::Callback(callback_writer) => callback_writer.disable(),
             WriterEnum::Syslog(syslog_writer) => syslog_writer.disable(),
+            WriterEnum::OpenTelemetry(otel_writer) => otel_writer.disable(),
         }
         Ok(())
     }
@@ -744,6 +763,7 @@ impl Logging {
                 WriterTypeEnum::Servers,
                 WriterTypeEnum::Callback,
                 WriterTypeEnum::Syslog,
+                WriterTypeEnum::OpenTelemetry,
             ],
             timeout,
         )?;
@@ -807,6 +827,7 @@ impl Logging {
                 WriterEnum::Server(logging_server) => logging_server.debug = debug,
                 WriterEnum::Callback(callback_writer) => callback_writer.debug = debug,
                 WriterEnum::Syslog(syslog_writer) => syslog_writer.debug = debug,
+                WriterEnum::OpenTelemetry(otel_writer) => otel_writer.debug = debug,
             }
         }
     }

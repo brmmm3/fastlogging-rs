@@ -203,3 +203,21 @@ pub unsafe extern "C" fn callback_writer_config_new(
         fastlogging::CallbackWriterConfig::new(level, Some(Box::new(callback_func))),
     )))
 }
+
+/// # Safety
+///
+/// Create and return new config for OpenTelemetry writer.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn otel_writer_config_new(
+    level: c_uchar,
+    endpoint: *const c_char,
+    service_name: *const c_char,
+) -> *mut fastlogging::WriterConfigEnum {
+    Box::into_raw(Box::new(fastlogging::WriterConfigEnum::OpenTelemetry(
+        fastlogging::OpenTelemetryWriterConfig::new(
+            level,
+            char2string(endpoint),
+            char2string(service_name),
+        ),
+    )))
+}

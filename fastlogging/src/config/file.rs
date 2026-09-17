@@ -11,6 +11,7 @@ use crate::WriterEnum;
 use crate::WriterTypeEnum;
 use crate::callback::CallbackWriter;
 use crate::level2string;
+use crate::otel::OpenTelemetryWriter;
 use crate::{
     ClientWriter, ConsoleWriter, FileWriter, LevelSyms, LoggingServer, MessageStructEnum, NOTSET,
     SyslogWriter,
@@ -218,6 +219,7 @@ impl ConfigFile {
                     WriterEnum::Server(mut logging_server) => logging_server.shutdown()?,
                     WriterEnum::Callback(mut callback_writer) => callback_writer.shutdown()?,
                     WriterEnum::Syslog(mut syslog_writer) => syslog_writer.shutdown()?,
+                    WriterEnum::OpenTelemetry(mut otel_writer) => otel_writer.shutdown()?,
                 }
             }
         } else {
@@ -313,6 +315,17 @@ impl ConfigFile {
                             syslog_config.clone(),
                             instance.stop.clone(),
                         )?)));
+                    }
+                }
+                WriterConfigEnum::OpenTelemetry(otel_config) => {
+                    let configs =
+                        instance.get_filtered_writer_configs(WriterTypeEnum::OpenTelemetry);
+                    if merge == FileMerge::MergeReplace {
+                        instance.remove_writers(Some(configs.into_keys().collect::<Vec<_>>()));
+                    } else if merge == FileMerge::Merge && configs.is_empty() {
+                        instance.add_writer(WriterEnum::OpenTelemetry(Box::new(
+                            OpenTelemetryWriter::new(otel_config.clone(), instance.stop.clone())?,
+                        )));
                     }
                 }
             }

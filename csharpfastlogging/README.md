@@ -52,3 +52,20 @@ dotnet run --project csharpfastlogging/examples/FileExample
 dotnet run --project csharpfastlogging/examples/CallbackExample
 dotnet run --project csharpfastlogging/examples/ThreadsExample
 ```
+
+## OpenTelemetry
+
+Configure `OpenTelemetryWriterConfig` to export logs over OTLP/HTTP. The
+endpoint is written as `{endpoint}/v1/logs`; a local Collector uses
+`http://localhost:4318`.
+
+```csharp
+using FastLogging;
+
+using var logging = new Logging(Levels.Debug, "root");
+logging.AddWriterConfig(new OpenTelemetryWriterConfig(
+	Levels.Debug, "http://localhost:4318", "my-csharp-app"));
+logging.Info("exported to OpenTelemetry");
+```
+
+The complete example is in `examples/OtelExample/Program.cs`.

@@ -3,7 +3,7 @@ use pyo3::prelude::*;
 mod def;
 pub use def::{EncryptionMethod, Level2Sym, LevelSyms, WriterConfigEnum, WriterTypeEnum};
 mod writer;
-use writer::{CallbackWriterConfig, ExtConfig};
+use writer::{CallbackWriterConfig, ExtConfig, OpenTelemetryWriterConfig};
 pub use writer::{ClientWriterConfig, ConsoleWriterConfig, FileWriterConfig, ServerConfig};
 mod error;
 pub use error::LoggingError;
@@ -48,6 +48,7 @@ fn init(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<ServerConfig>()?;
     m.add_class::<ClientWriterConfig>()?;
     m.add_class::<CallbackWriterConfig>()?;
+    m.add_class::<OpenTelemetryWriterConfig>()?;
     m.add_class::<logging::Logging>()?;
     m.add_class::<logger::Logger>()?;
     m.add_class::<LoggingError>()?;

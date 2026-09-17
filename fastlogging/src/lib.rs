@@ -18,6 +18,12 @@ pub mod console;
 pub use console::{ConsoleWriter, ConsoleWriterConfig};
 pub mod callback;
 pub use callback::{CallbackWriter, CallbackWriterConfig};
+pub mod otel;
+pub use otel::{
+    OpenTelemetryWriter, OpenTelemetryWriterConfig, DEFAULT_OTEL_BATCH_SIZE,
+    DEFAULT_OTEL_ENDPOINT, DEFAULT_OTEL_FLUSH_INTERVAL, DEFAULT_OTEL_SERVICE_NAME,
+    level2severity_number, level2severity_text,
+};
 pub mod logging;
 pub mod root;
 pub use logging::Logging;

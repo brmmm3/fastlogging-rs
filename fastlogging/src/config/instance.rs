@@ -178,6 +178,9 @@ impl LoggingInstance {
                     wtype == WriterTypeEnum::Callback
                 }
                 WriterConfigEnum::Syslog(_syslog_writer_config) => wtype == WriterTypeEnum::Syslog,
+                WriterConfigEnum::OpenTelemetry(_otel_writer_config) => {
+                    wtype == WriterTypeEnum::OpenTelemetry
+                }
             })
             .collect()
     }

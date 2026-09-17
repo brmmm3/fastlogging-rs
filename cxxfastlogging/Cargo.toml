@@ -1,6 +1,6 @@
 [package]
 name = "cxxfastlogging"
-version = "0.8.1"
+version = "0.9.0"
 edition = "2024"
 authors = ["Martin Bammer <mrbm74@gmail.com>"]
 description = "A lightning fast logger, written in Rust, for multiple platforms and languages."
@@ -23,7 +23,7 @@ name = "cxxfastlogging"
 crate-type = ["staticlib", "rlib"]
 
 [dependencies]
-fastlogging = { path = "../fastlogging", version = "0.8.1" }
+fastlogging = { path = "../fastlogging", version = "0.9.0" }
 cxx = "1.0"
 
 [build-dependencies]

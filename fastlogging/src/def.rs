@@ -2,8 +2,9 @@ use std::fmt;
 
 use crate::{
     CallbackWriter, ClientWriter, ClientWriterConfig, ConsoleWriter, ConsoleWriterConfig,
-    FileWriter, FileWriterConfig, LoggingError, LoggingServer, ServerConfig, SyslogWriter,
-    SyslogWriterConfig, callback::CallbackWriterConfig, config::LoggingInstance,
+    FileWriter, FileWriterConfig, LoggingError, LoggingServer, OpenTelemetryWriter,
+    OpenTelemetryWriterConfig, ServerConfig, SyslogWriter, SyslogWriterConfig,
+    callback::CallbackWriterConfig, config::LoggingInstance,
 };
 
 // Log-Levels
@@ -144,6 +145,7 @@ pub enum WriterTypeEnum {
     Servers,
     Callback,
     Syslog,
+    OpenTelemetry,
 }
 
 impl fmt::Display for WriterTypeEnum {
@@ -161,6 +163,7 @@ pub enum WriterConfigEnum {
     Server(ServerConfig),
     Callback(CallbackWriterConfig),
     Syslog(SyslogWriterConfig),
+    OpenTelemetry(OpenTelemetryWriterConfig),
 }
 
 impl WriterConfigEnum {
@@ -199,6 +202,10 @@ impl WriterConfigEnum {
 
             WriterEnum::Syslog(syslog_writer) => {
                 WriterConfigEnum::Syslog(syslog_writer.config.read().clone())
+            }
+
+            WriterEnum::OpenTelemetry(otel_writer) => {
+                WriterConfigEnum::OpenTelemetry(otel_writer.config.read().clone())
             }
         }
     }
@@ -246,6 +253,12 @@ impl From<SyslogWriterConfig> for WriterConfigEnum {
     }
 }
 
+impl From<OpenTelemetryWriterConfig> for WriterConfigEnum {
+    fn from(config: OpenTelemetryWriterConfig) -> Self {
+        Self::OpenTelemetry(config)
+    }
+}
+
 #[derive(Debug)]
 pub enum WriterEnum {
     Root,
@@ -255,6 +268,7 @@ pub enum WriterEnum {
     Server(Box<LoggingServer>),
     Callback(Box<CallbackWriter>),
     Syslog(Box<SyslogWriter>),
+    OpenTelemetry(Box<OpenTelemetryWriter>),
 }
 
 impl WriterEnum {
@@ -301,6 +315,11 @@ impl WriterEnum {
             WriterConfigEnum::Syslog(syslog_writer_config) => Ok(WriterEnum::Syslog(Box::new(
                 SyslogWriter::new(syslog_writer_config.clone(), instance.stop.clone())?,
             ))),
+            WriterConfigEnum::OpenTelemetry(otel_writer_config) => {
+                Ok(WriterEnum::OpenTelemetry(Box::new(
+                    OpenTelemetryWriter::new(otel_writer_config.clone(), instance.stop.clone())?,
+                )))
+            }
         }
     }
 
@@ -325,6 +344,10 @@ impl WriterEnum {
             WriterEnum::Syslog(syslog_writer) => {
                 WriterConfigEnum::Syslog(syslog_writer.config.read().clone())
             }
+
+            WriterEnum::OpenTelemetry(otel_writer) => {
+                WriterConfigEnum::OpenTelemetry(otel_writer.config.read().clone())
+            }
         }
     }
 
@@ -343,6 +366,7 @@ impl WriterEnum {
             }
             WriterEnum::Callback(_callback_writer) => WriterTypeEnum::Callback,
             WriterEnum::Syslog(_syslog_writer) => WriterTypeEnum::Syslog,
+            WriterEnum::OpenTelemetry(_otel_writer) => WriterTypeEnum::OpenTelemetry,
         }
     }
 
@@ -364,6 +388,9 @@ impl WriterEnum {
             }
             WriterEnum::Syslog(syslog_writer) => {
                 syslog_writer.sync(timeout)?;
+            }
+            WriterEnum::OpenTelemetry(otel_writer) => {
+                otel_writer.sync(timeout)?;
             }
         }
         Ok(())

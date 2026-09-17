@@ -75,6 +75,27 @@ int main() {
 }
 ```
 
+## OpenTelemetry
+
+Add an `OpenTelemetryWriterConfig` to export logs over OTLP/HTTP. The writer
+posts to `{endpoint}/v1/logs`; use `http://localhost:4318` for a local
+OpenTelemetry Collector.
+
+```cpp
+#include "h/cppfastlogging.hpp"
+using namespace logging;
+
+int main() {
+    Logging logging(DEBUG, "root");
+    logging.add_writer_config(OpenTelemetryWriterConfig(
+        DEBUG, "http://localhost:4318", "my-cpp-app"));
+    logging.info("exported to OpenTelemetry");
+    return 0;
+}
+```
+
+See [`examples/otel.cpp`](examples/otel.cpp) for a complete example.
+
 ## Architecture
 
 Log calls never touch I/O on the caller's thread. Each call performs a level check (the hot path), and if it passes, the message is handed to a flume-backed channel. A single `LoggingThread` running in the background drains that channel and dispatches to each writer's own thread.

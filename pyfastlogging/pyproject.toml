@@ -1,6 +1,6 @@
 [project]
 name = "pyfastlogging"
-version = "0.8.1"
+version = "0.9.0"
 authors = [{ name = "Martin Bammer", email = "mrbm74@gmail.com" }]
 description = "A lightning fast logger, written in Rust, for multiple platforms and languages."
 readme = "README.md"

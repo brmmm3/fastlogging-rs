@@ -148,6 +148,12 @@ impl From<flume::SendError<CallbackTypeEnum>> for LoggingError {
     }
 }
 
+impl From<flume::SendError<crate::otel::OpenTelemetryTypeEnum>> for LoggingError {
+    fn from(error: flume::SendError<crate::otel::OpenTelemetryTypeEnum>) -> Self {
+        LoggingError::SendError(error.to_string())
+    }
+}
+
 impl From<flume::SendError<ClientTypeEnum>> for LoggingError {
     fn from(error: flume::SendError<ClientTypeEnum>) -> Self {
         LoggingError::SendError(error.to_string())

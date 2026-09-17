@@ -387,3 +387,53 @@ impl CallbackWriterConfig {
         format!("{self:?}")
     }
 }
+
+// OpenTelemetry writer config
+
+#[pyclass(from_py_object)]
+#[derive(Debug, Clone)]
+pub struct OpenTelemetryWriterConfig(pub fastlogging::OpenTelemetryWriterConfig);
+
+#[pymethods]
+impl OpenTelemetryWriterConfig {
+    #[new]
+    pub fn new(level: u8, endpoint: String, service_name: String) -> Self {
+        Self(fastlogging::OpenTelemetryWriterConfig::new(
+            level,
+            endpoint,
+            service_name,
+        ))
+    }
+
+    fn __repr__(&self) -> String {
+        format!("{self:?}")
+    }
+
+    fn __str__(&self) -> String {
+        format!("{self:?}")
+    }
+}
+
+impl From<OpenTelemetryWriterConfig> for fastlogging::OpenTelemetryWriterConfig {
+    fn from(val: OpenTelemetryWriterConfig) -> Self {
+        val.0
+    }
+}
+
+impl From<fastlogging::OpenTelemetryWriterConfig> for OpenTelemetryWriterConfig {
+    fn from(val: fastlogging::OpenTelemetryWriterConfig) -> OpenTelemetryWriterConfig {
+        OpenTelemetryWriterConfig(val)
+    }
+}
+
+impl From<&OpenTelemetryWriterConfig> for fastlogging::OpenTelemetryWriterConfig {
+    fn from(val: &OpenTelemetryWriterConfig) -> Self {
+        val.0.clone()
+    }
+}
+
+impl From<&fastlogging::OpenTelemetryWriterConfig> for OpenTelemetryWriterConfig {
+    fn from(val: &fastlogging::OpenTelemetryWriterConfig) -> OpenTelemetryWriterConfig {
+        OpenTelemetryWriterConfig(val.clone())
+    }
+}

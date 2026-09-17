@@ -103,3 +103,19 @@ The Go wrapper is split across four packages. Import paths are rooted at the `go
 - **Callback writer supports one active Go callback.** The C callback API has no user-data argument, so keep the returned `CallbackHandle` alive while the writer is active and unregister it only after shutdown.
 - **Cross-package type wrappers use `unsafe.Pointer` fields.** This is intentional: cgo generates a distinct, non-interchangeable Go type per package for each C type, even when two `import "C"` blocks include the same header. Using `unsafe.Pointer` lets `WriterConfigEnum`, `Key`, `ExtConfig`, etc. flow between the `fastlogging`, `logging`, `logger`, and `writer` packages.
 - **Build order matters.** The Makefile expects `libcfastlogging.so` to already exist in `../target/debug` (or `../target/release`). Run `cargo build -p cfastlogging` first, then `make build-debug` / `make build`.
+
+## OpenTelemetry
+
+Create an OTLP/HTTP writer with `writer.OtelWriterConfigNew`. Records are
+exported to `{endpoint}/v1/logs`; use `http://localhost:4318` for a local
+OpenTelemetry Collector.
+
+```go
+otel := writer.OtelWriterConfigNew(
+    fl.DEBUG, "http://localhost:4318", "my-go-app")
+logger := logging.New(fl.DEBUG, nil, []fl.WriterConfigEnum{*otel}, nil, nil)
+logger.Info("exported to OpenTelemetry")
+logger.Shutdown(false)
+```
+
+See [`examples/otel/main.go`](examples/otel/main.go) for a complete example.

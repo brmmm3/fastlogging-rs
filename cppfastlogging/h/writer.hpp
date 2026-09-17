@@ -36,6 +36,9 @@ extern "C"
       uint8_t level,
       void (*callback)(uint8_t, const char *, const char *));
 
+  rust::WriterConfigEnum *otel_writer_config_new(
+      uint8_t level, const char *endpoint, const char *service_name);
+
 } // extern "C"
 
 // ---- C++ helper enums (subset of rust:: enums with friendlier names) --------
@@ -127,5 +130,15 @@ public:
                        void (*callback)(uint8_t, const char *, const char *))
   {
     config = callback_writer_config_new(level, callback);
+  }
+};
+
+class OpenTelemetryWriterConfig : public WriterConfig
+{
+public:
+  OpenTelemetryWriterConfig(uint8_t level, const char *endpoint,
+                            const char *service_name)
+  {
+    config = otel_writer_config_new(level, endpoint, service_name);
   }
 };

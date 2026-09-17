@@ -19,6 +19,7 @@ pub enum WriterEnum {
     Server,
     Callback,
     Syslog,
+    OpenTelemetry,
 }
 
 impl From<fastlogging::WriterEnum> for WriterEnum {
@@ -31,6 +32,7 @@ impl From<fastlogging::WriterEnum> for WriterEnum {
             fastlogging::WriterEnum::Server(_logging_server) => WriterEnum::Server,
             fastlogging::WriterEnum::Callback(_callback_writer) => WriterEnum::Callback,
             fastlogging::WriterEnum::Syslog(_syslog_writer) => WriterEnum::Syslog,
+            fastlogging::WriterEnum::OpenTelemetry(_otel_writer) => WriterEnum::OpenTelemetry,
         }
     }
 }

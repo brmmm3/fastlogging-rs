@@ -66,3 +66,27 @@ As of now [manylinux](https://github.com/pypa/manylinux) wheels are failing to b
 - Logging class: [doc/LOGGING.md](doc/LOGGING.md)
 - Logger class: [doc/LOGGER.md](doc/LOGGER.md)
 - Examples: [examples](examples) and [doc/EXAMPLES.md](doc/EXAMPLES.md)
+
+## OpenTelemetry
+
+Pass an `OpenTelemetryWriterConfig` to `Logging` to export logs over
+OTLP/HTTP. Records are sent to `{endpoint}/v1/logs`; a local Collector uses
+`http://localhost:4318`.
+
+```python
+from pyfastlogging import Logging, OpenTelemetryWriterConfig, TRACE
+
+logger = Logging(
+    TRACE,
+    "main",
+    otel=OpenTelemetryWriterConfig(
+        level=TRACE,
+        endpoint="http://localhost:4318",
+        service_name="my-python-app",
+    ),
+)
+logger.info("exported to OpenTelemetry")
+logger.shutdown()
+```
+
+See [`examples/otel.py`](examples/otel.py) for a complete example.

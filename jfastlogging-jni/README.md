@@ -62,6 +62,26 @@ Run from the repo root or from `jfastlogging-jni/`. This produces `target/releas
 
 The Java source lives at `jfastlogging-jni/org/logging/FastLogging.java`. The Maven project lives at `jfastlogging-jni/FastLogging/`.
 
+### Build a JAR
+
+From `jfastlogging-jni/`, use the platform script to build the native library,
+copy it into `FastLogging/lib/` with the name expected by
+`System.loadLibrary("jfastlogging")`, and create the Maven JAR:
+
+```sh
+bash build-jar.sh
+```
+
+On Windows PowerShell:
+
+```powershell
+.\build-jar.ps1
+```
+
+The JAR is written to
+`FastLogging/target/FastLogging-0.0.1-SNAPSHOT.jar`. The PowerShell script also
+accepts `-SkipNativeBuild` when the native DLL has already been built.
+
 ### Minimal Console Example
 
 ```java
@@ -105,4 +125,20 @@ flowchart TD
 - **`Logging` constructors take individual writer config objects, not a list.** Each writer is passed as its own parameter (see [LOGGING.md](doc/LOGGING.md) for the full set of overloads).
 - **Client-side level filtering happens in Java.** `Logging` methods compare the message level against `instance_level` before invoking JNI, so filtered-out messages never cross the JNI boundary.
 - **`Logger` is a non-static inner class** and must be created from a `FastLogging` instance (i.e. you need a `FastLogging` instance to create a `Logger`).
+
+## OpenTelemetry
+
+The JNI binding supports OTLP/HTTP with `OpenTelemetryWriterConfig`. Records
+are sent to `{endpoint}/v1/logs`; use `http://localhost:4318` for a local
+OpenTelemetry Collector.
+
+```java
+OpenTelemetryWriterConfig otel = new OpenTelemetryWriterConfig(
+   FastLogging.DEBUG, "http://localhost:4318", "my-java-jni-app");
+Logging logging = new Logging(FastLogging.DEBUG, "root", otel);
+logging.info("exported to OpenTelemetry");
+logging.shutdown();
+```
+
+See `FastLogging/src/main/java/org/logging/examples/OtelExample.java`.
 - **Syslog and Callback writers exist in the JNI/Rust layer but do not have Java wrapper classes yet.** Syslog can be partially used via the `Logging(int level, String domain, int syslog)` constructor. The callback writer has no Java wrapper.

@@ -57,6 +57,24 @@ int main(void) {
 }
 ```
 
+## OpenTelemetry
+
+The C ABI provides `otel_writer_config_new`, which exports log records to an
+OpenTelemetry Collector using OTLP/HTTP. The endpoint is normalized to
+`{endpoint}/v1/logs`; a local Collector normally uses
+`http://localhost:4318`.
+
+```c
+WriterConfigEnum writers[] = {
+    otel_writer_config_new(DEBUG, "http://localhost:4318", "my-c-app")
+};
+Logging logging = logging_new(DEBUG, NULL, writers, 1, NULL, NULL);
+logging_info(logging, "exported to OpenTelemetry");
+logging_shutdown(logging, 0);
+```
+
+See [`examples/otel.c`](examples/otel.c) for a complete example.
+
 ## Headers
 
 | Header | Contents |

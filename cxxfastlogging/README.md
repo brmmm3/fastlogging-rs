@@ -64,6 +64,23 @@ int main() {
 }
 ```
 
+### OpenTelemetry
+
+The CXX bridge supports OTLP/HTTP through `WriterConfig::new_otel`. Logs are
+sent to `{endpoint}/v1/logs`; a local Collector uses
+`http://localhost:4318`.
+
+```cpp
+rust::Vec<rust::Box<WriterConfig>> configs;
+configs.push_back(WriterConfig::new_otel(
+    DEBUG, "http://localhost:4318", "my-cxx-app"));
+auto log = Logging::create(DEBUG, "root", std::move(configs));
+log->info("exported to OpenTelemetry");
+log->shutdown(false);
+```
+
+See [`examples/otel.cpp`](examples/otel.cpp) for a complete example.
+
 ### Including the Header
 
 The stable include path is:
