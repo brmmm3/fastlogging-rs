@@ -141,4 +141,5 @@ logging.shutdown();
 ```
 
 See `FastLogging/src/main/java/org/logging/examples/OtelExample.java`.
+
 - **Syslog and Callback writers exist in the JNI/Rust layer but do not have Java wrapper classes yet.** Syslog can be partially used via the `Logging(int level, String domain, int syslog)` constructor. The callback writer has no Java wrapper.
