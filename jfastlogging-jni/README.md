@@ -79,8 +79,9 @@ On Windows PowerShell:
 ```
 
 The JAR is written to
-`FastLogging/target/FastLogging-0.0.1-SNAPSHOT.jar`. The PowerShell script also
-accepts `-SkipNativeBuild` when the native DLL has already been built.
+`FastLogging/target/FastLogging-0.9.0-jni.jar` and includes the native
+library under `lib/jfastlogging.dll`. The PowerShell script also accepts
+`-SkipNativeBuild` when the native DLL has already been built.
 
 ### Minimal Console Example
 

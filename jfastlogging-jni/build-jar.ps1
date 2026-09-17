@@ -7,6 +7,7 @@ $ErrorActionPreference = 'Stop'
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = Split-Path -Parent $scriptDir
 $profile = 'release'
+Remove-Item Env:CARGO_TARGET_DIR -ErrorAction SilentlyContinue
 
 if (-not $SkipNativeBuild) {
     cargo build --manifest-path (Join-Path $scriptDir 'Cargo.toml') --release
@@ -18,6 +19,22 @@ $source = Join-Path $repoRoot "target/$profile/jfastlogging_jni.dll"
 $destination = Join-Path $libDir 'jfastlogging.dll'
 Copy-Item -Force $source $destination
 
-mvn -f (Join-Path $scriptDir 'FastLogging/pom.xml') clean package
-$jar = Join-Path $scriptDir 'FastLogging/target/FastLogging-0.9.0-jni.jar'
-Write-Output "Created $jar"
+$pom = Join-Path $scriptDir 'FastLogging/pom.xml'
+$mavenArgs = @('-f', $pom, 'clean', 'compile')
+& mvn @mavenArgs
+if ($LASTEXITCODE -ne 0) {
+    throw "Maven compilation failed with exit code $LASTEXITCODE."
+}
+
+$pomXml = [xml](Get-Content $pom)
+$artifactId = $pomXml.project.artifactId
+$version = $pomXml.project.version
+$targetDir = Join-Path $scriptDir 'FastLogging/target'
+$classesDir = Join-Path $targetDir 'classes'
+$fastLoggingDir = Join-Path $scriptDir 'FastLogging'
+$jarPath = Join-Path $targetDir "$artifactId-$version.jar"
+& jar --create --file $jarPath -C $classesDir . -C $fastLoggingDir lib
+if ($LASTEXITCODE -ne 0) {
+    throw "JAR creation failed with exit code $LASTEXITCODE."
+}
+Write-Output "Created $jarPath"

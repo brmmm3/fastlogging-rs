@@ -35,6 +35,33 @@ public class FastLogging {
 	public static final int TRACE = 5;
 	public static final int NOTSET = 0;
 
+	public static String Level2Sym(int level) {
+		switch (level) {
+			case NOLOG:
+				return "NOLOG";
+			case EXCEPTION:
+				return "EXCEPTION";
+			case CRITICAL:
+				return "CRITICAL";
+			case ERROR:
+				return "ERROR";
+			case WARNING:
+				return "WARNING";
+			case SUCCESS:
+				return "SUCCESS";
+			case INFO:
+				return "INFO";
+			case DEBUG:
+				return "DEBUG";
+			case TRACE:
+				return "TRACE";
+			case NOTSET:
+				return "NOTSET";
+			default:
+				return "?";
+		}
+	}
+
 	public enum LevelSyms {
 		Sym(0), Short(1), Str(2);
 
@@ -392,6 +419,13 @@ public class FastLogging {
 			this(level, domain);
 			if (callback != null) {
 				addWriter(callback.instance_ptr);
+			}
+		}
+
+		public Logging(int level, String domain, OpenTelemetryWriterConfig otel) {
+			this(level, domain);
+			if (otel != null) {
+				addWriter(otel.instance_ptr);
 			}
 		}
 

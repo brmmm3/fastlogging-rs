@@ -343,6 +343,16 @@ public class FastLogging {
 			instance_level = level;
 		}
 
+		public Logging(int level, String domain, OpenTelemetryWriterConfig otel) {
+			long otel_ptr = 0;
+			if (otel != null) {
+				otel_ptr = otel.instance_ptr;
+			}
+			instance_ptr = loggingNew(level, domain, null, null, null);
+			writers.put(loggingAddWriter(instance_ptr, otel_ptr), otel_ptr);
+			instance_level = level;
+		}
+
 		public Logging(int level, String domain, ConsoleWriterConfig console, FileWriterConfig file) {
 			long console_ptr = 0;
 			if (console != null) {
