@@ -21,7 +21,7 @@ case "$(uname -s)" in
 esac
 
 mvn -f "$SCRIPT_DIR/FastLogging/pom.xml" clean compile
-JAR="$SCRIPT_DIR/FastLogging/target/FastLogging-0.9.0-jni.jar"
+JAR="$SCRIPT_DIR/FastLogging/target/FastLogging-0.9.0-jni-linux.jar"
 jar --create --file "$JAR" \
     -C "$SCRIPT_DIR/FastLogging/target/classes" . \
     -C "$SCRIPT_DIR/FastLogging" lib

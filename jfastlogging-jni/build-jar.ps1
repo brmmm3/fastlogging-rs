@@ -32,7 +32,7 @@ $version = $pomXml.project.version
 $targetDir = Join-Path $scriptDir 'FastLogging/target'
 $classesDir = Join-Path $targetDir 'classes'
 $fastLoggingDir = Join-Path $scriptDir 'FastLogging'
-$jarPath = Join-Path $targetDir "$artifactId-$version.jar"
+$jarPath = Join-Path $targetDir "$artifactId-$version-windows.jar"
 & jar --create --file $jarPath -C $classesDir . -C $fastLoggingDir lib
 if ($LASTEXITCODE -ne 0) {
     throw "JAR creation failed with exit code $LASTEXITCODE."
