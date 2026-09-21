@@ -1,3 +1,5 @@
+![fastlogging-rs](docs/title.png)
+
 # fastlogging-rs
 
 `fastlogging-rs` is a very fast and versatile logging framework. It supports the following programming languages with similar APIs:
