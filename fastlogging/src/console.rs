@@ -1,3 +1,9 @@
+//! Terminal (console) writer.
+//!
+//! The [`ConsoleWriter`] writes formatted log messages to standard output or
+//! standard error, optionally with colour. Use [`ConsoleWriterConfig`] to create
+//! the configuration and add it to a [`Logging`](crate::Logging) instance.
+
 use std::{
     fmt,
     io::Write,

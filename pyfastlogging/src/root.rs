@@ -103,7 +103,7 @@ pub fn set_level2sym(level2sym: &Bound<'_, LevelSyms>) {
     fastlogging::root::set_level2sym(&level2sym.borrow().0)
 }
 
-/// Set extended configuration. For details see [ExtConfig].
+/// Set extended configuration. For details see `ExtConfig`.
 #[pyfunction]
 pub fn set_ext_config(ext_config: &Bound<'_, ExtConfig>) {
     fastlogging::root::set_ext_config(&ext_config.borrow().0)

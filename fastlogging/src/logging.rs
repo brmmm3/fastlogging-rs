@@ -1,3 +1,8 @@
+//! The primary logging API.
+//!
+//! The [`Logging`] struct is the main entry point: create it with [`Logging::new`], add one or more writers, log messages and shut it down with
+//! [`Logging::shutdown`].
+
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::process;

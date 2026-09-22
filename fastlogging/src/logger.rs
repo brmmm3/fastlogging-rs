@@ -1,3 +1,9 @@
+//! Per-domain logger handles.
+//!
+//! The [`Logger`] is a lightweight cloneable handle that logs to an existing
+//! [`Logging`](crate::Logging) instance from any thread. Use [`Logger::new_ext`]
+//! to also embed thread name and id in each message.
+
 use std::{
     thread,
     time::{Duration, Instant},

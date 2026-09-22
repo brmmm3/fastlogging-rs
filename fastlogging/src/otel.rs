@@ -1,3 +1,9 @@
+//! OpenTelemetry writer.
+//!
+//! The [`OpenTelemetryWriter`] exports log records to an OpenTelemetry
+//! Collector over OTLP/HTTP (`{endpoint}/v1/logs`). Use
+//! [`OpenTelemetryWriterConfig`] to set the endpoint and service name.
+
 use std::{
     fmt,
     sync::{

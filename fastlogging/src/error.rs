@@ -1,3 +1,9 @@
+//! Error types.
+//!
+//! [`LoggingError`] is the error type returned by the logging API. It
+//! implements [`std::error::Error`] and can be converted from the underlying I/O,
+//! archive, syslog and channel errors.
+
 use std::io;
 
 #[allow(unused_imports)]

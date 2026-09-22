@@ -1,3 +1,9 @@
+//! Network logging — client and server writers.
+//!
+//! [`ClientWriter`] sends log records to a remote [`LoggingServer`] over TCP,
+//! optionally encrypted with [`EncryptionMethod`]. Use
+//! [`ClientWriterConfig`] and [`ServerConfig`] to configure the connection.
+
 mod def;
 pub use def::AUTH_KEY;
 mod server;

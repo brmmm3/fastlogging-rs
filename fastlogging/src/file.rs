@@ -1,3 +1,9 @@
+//! File writer.
+//!
+//! The [`FileWriter`] writes log messages to plain, rotating or compressed log
+//! files. [`FileWriterConfig`] controls the file name, rotation scheme and
+//! optional compression, so logs can be archived with [`CompressionMethodEnum`].
+
 use std::{
     fmt,
     fs::{File, OpenOptions, rename},

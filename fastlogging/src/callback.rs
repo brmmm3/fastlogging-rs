@@ -1,3 +1,9 @@
+//! Callback writer.
+//!
+//! The [`CallbackWriter`] invokes a user-supplied closure for every log message
+//! emitted, which is useful for forwarding logs to other systems. Use
+//! [`CallbackWriterConfig`] to configure the callback.
+
 use std::{
     fmt,
     sync::{

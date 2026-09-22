@@ -17,7 +17,7 @@ use fastlogging::LoggingError;
 /// Opaque wrapper around a [`fastlogging::WriterConfigEnum`].
 ///
 /// Instances are created with one of the `WriterConfig::new_*` factory
-/// functions and consumed by [`Logging::new`], [`Logging::add_writer_config`],
+/// functions and consumed by [`Logging::new_default`], [`Logging::add_writer_config`],
 /// [`Logging::add_writer_configs`] or [`Logging::set_root_writer_config`].
 pub struct WriterConfig(fastlogging::WriterConfigEnum);
 

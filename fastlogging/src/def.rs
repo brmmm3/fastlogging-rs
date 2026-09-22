@@ -1,3 +1,10 @@
+//! Log levels, converters and shared configuration enums.
+//!
+//! This module defines the log-level constants (such as [`DEBUG`], [`INFO`] and
+//! [`ERROR`]), the [`level2str`], [`level2short`] and [`level2sym`] converters,
+//! and shared enums such as [`WriterConfigEnum`] and [`MessageStructEnum`].
+//! Constants and types here are re-exported at the crate root.
+
 use std::fmt;
 
 use crate::{

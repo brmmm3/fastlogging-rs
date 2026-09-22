@@ -1,3 +1,9 @@
+//! Process-wide root logger.
+//!
+//! The [`ROOT_LOGGER`] is a lazily initialised [`Logging`]
+//! instance plus a set of free functions for adding writers, changing levels and
+//! logging from anywhere.
+
 use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::net::{Shutdown, TcpStream};
