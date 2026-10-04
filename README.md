@@ -117,3 +117,11 @@ Detailed documentation is available for each language binding:
 - Java FFM: [jfastlogging-ffm/README.md](jfastlogging-ffm/README.md)
 - Java JNI: [jfastlogging-jni/README.md](jfastlogging-jni/README.md)
 - C#: [csharpfastlogging/README.md](csharpfastlogging/README.md)
+
+## A note to LLM usage
+
+Parts of this crate are created by an LLM. I want to give you an overview:
+
+- The core and the Python wrapper are 100% hand coded.
+- The wrappers for the other programming languages, are more than 50% hand coded.
+- The documentation is around 50% hand written.
