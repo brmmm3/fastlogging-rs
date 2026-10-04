@@ -105,7 +105,7 @@ log.shutdown(False)
 
 ## Documentation
 
-[![Documentation](https://docs.rs/fastlogging-rs/badge.svg)](https://docs.rs/fastlogging)
+[![Documentation](https://docs.rs/fastlogging/badge.svg)](https://docs.rs/fastlogging)
 
 Detailed documentation is available for each language binding:
 
