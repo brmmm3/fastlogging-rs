@@ -299,7 +299,7 @@ function javaCharts(osName) {
  * ------------------------------------------------------------------ */
 
 function pythonCharts() {
-  const d = BENCH_DATA["linux_pybenchmarks"];
+  const d = BENCH_DATA["linux_pyfastlogging"];
   if (!d) return "";
   let html = `<h2>Python / Rust benchmarks — Linux</h2><p class="note">Python stdlib <code>logging</code> vs <code>fastlogging</code> Python bindings (single- and multi-threaded) vs the raw <code>fastlogging-rs</code> Rust core. Values in seconds, lower is better.</p>`;
 
@@ -379,7 +379,7 @@ function javaTable(osName) {
  * ------------------------------------------------------------------ */
 
 function pythonTable() {
-  const d = BENCH_DATA["linux_pybenchmarks"];
+  const d = BENCH_DATA["linux_pyfastlogging"];
   if (!d) return "";
   let html = `<h2>Python / Rust benchmark tables — Linux</h2><p class="note">Values in seconds (lower is better). The <span class="speedup">green</span> column is the speedup of <code>fastlogging-rs</code> over Python stdlib <code>logging</code>.</p>`;
   for (const size of ["short", "long"]) {

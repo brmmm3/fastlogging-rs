@@ -12,7 +12,7 @@ for fileName in os.listdir():
         data[fileName] = json.loads(d)
 
 levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
-d = deepcopy(data["linux_pybenchmarks.json"])
+d = deepcopy(data["linux_pyfastlogging.json"])
 
 for size, sizev in d.items():
     for exc, excv in sizev.items():
