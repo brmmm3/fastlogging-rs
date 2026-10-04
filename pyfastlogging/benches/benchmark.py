@@ -476,6 +476,7 @@ if __name__ == "__main__":
                     dtAll[Level2Sym(level).name] = ", ".join(
                         [f"{dt: .4f}" for dt in dts]
                     )
+                    time.sleep(1.0)
                     # Cleanup
                     for prefix in (
                         "Logging",
