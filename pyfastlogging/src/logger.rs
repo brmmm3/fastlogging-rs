@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::cmp;
 
 use pyo3::{exceptions::PyException, prelude::*};
@@ -14,12 +15,16 @@ pub struct Logger {
 }
 
 impl Logger {
-    fn do_indent(&self, msg: &str) -> PyResult<String> {
-        Python::attach(|py| -> PyResult<String> {
-            let mut message: String = msg.to_string();
-            if let Some((offset, inc, max, s)) = &self.indent
-                && let Ok(mut frame) = self.getframe.call1(py, (*offset,))
-            {
+    fn do_indent<'a>(&self, msg: &'a str) -> PyResult<Cow<'a, str>> {
+        // Fast path: without indentation the message is passed straight
+        // through, avoiding an extra allocation and any GIL interaction.
+        let Some((offset, inc, max, s)) = &self.indent else {
+            return Ok(Cow::Borrowed(msg));
+        };
+        Python::attach(|py| -> PyResult<Cow<'a, str>> {
+            let mut message = String::with_capacity(msg.len() + s.len());
+            message.push_str(msg);
+            if let Ok(mut frame) = self.getframe.call1(py, (*offset,)) {
                 let mut depth = 0;
                 loop {
                     frame = match frame.getattr(py, "f_back") {
@@ -33,9 +38,9 @@ impl Logger {
                         break;
                     }
                 }
-                message.insert_str(0, &s[..depth]);
+                message.insert_str(0, &s[..depth.min(s.len())]);
             }
-            Ok(message)
+            Ok(Cow::Owned(message))
         })
     }
 }
@@ -52,25 +57,17 @@ impl Logger {
         tid: Option<bool>,
         py: Python,
     ) -> PyResult<Self> {
-        let (getframe, format_exc) = {
-            let sys = py.import("sys")?;
-            let getframe = sys.getattr("_getframe")?;
-            let traceback = py.import("traceback")?;
-            let format_exc = traceback.getattr("format_exc")?;
-            (getframe.into(), format_exc.into())
-        };
-        let indent = match indent {
-            Some((offset, mut inc, mut max)) => {
-                inc = cmp::min(inc, 8);
-                max = cmp::min(max, 256);
-                let mut s = String::with_capacity(max);
-                let _ = (0..(max - offset) * inc)
-                    .map(|_| s.push(' '))
-                    .collect::<Vec<_>>();
-                Some((offset, inc, max, s))
-            }
-            None => None,
-        };
+        let (getframe, format_exc) = (
+            crate::root::get_getframe(py)?.clone_ref(py),
+            crate::root::get_format_exc(py)?.clone_ref(py),
+        );
+        let indent = indent.map(|(offset, inc, max)| {
+            let inc = cmp::min(inc, 8);
+            let max = cmp::min(max, 256);
+            // Pre-build the padding string once with exactly the right length.
+            let s = " ".repeat(max.saturating_sub(offset) * inc);
+            (offset, inc, max, s)
+        });
         Ok(Self {
             instance: fastlogging::Logger::new_ext(
                 level,

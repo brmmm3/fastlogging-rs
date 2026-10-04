@@ -79,7 +79,11 @@ impl LevelSyms {
 
     #[getter]
     pub fn value(&self) -> u8 {
-        self.0.clone() as u8
+        match &self.0 {
+            fastlogging::LevelSyms::Sym => 0,
+            fastlogging::LevelSyms::Short => 1,
+            fastlogging::LevelSyms::Str => 2,
+        }
     }
 
     #[getter]

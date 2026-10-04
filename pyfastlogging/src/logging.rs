@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::cmp;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -10,12 +11,10 @@ use fastlogging::{
     CRITICAL, DEBUG, ERROR, EXCEPTION, FATAL, INFO, LoggingConfig, NOTSET, SUCCESS, TRACE, WARNING,
 };
 
+use crate::LoggingError;
 use crate::def::{EncryptionMethod, LevelSyms, WriterConfigEnum, WriterTypeEnum};
 use crate::logger::Logger;
-use crate::writer::{
-    CallbackWriterConfig, ExtConfig, RootConfig, ServerConfig, SyslogWriterConfig,
-};
-use crate::{ClientWriterConfig, ConsoleWriterConfig, FileWriterConfig, LoggingError};
+use crate::writer::{ExtConfig, ServerConfig};
 
 #[pyclass]
 #[derive(Debug)]
@@ -27,12 +26,16 @@ pub struct Logging {
 }
 
 impl Logging {
-    fn do_indent(&self, msg: &str) -> PyResult<String> {
-        Python::attach(|py| {
-            let mut message = msg.to_string();
-            if let Some((offset, inc, max, s)) = &self.indent
-                && let Ok(mut frame) = self.getframe.call1(py, (*offset,))
-            {
+    fn do_indent<'a>(&self, msg: &'a str) -> PyResult<Cow<'a, str>> {
+        // Fast path: without indentation the message is passed straight
+        // through, avoiding an extra allocation and any GIL interaction.
+        let Some((offset, inc, max, s)) = &self.indent else {
+            return Ok(Cow::Borrowed(msg));
+        };
+        Python::attach(|py| -> PyResult<Cow<'a, str>> {
+            let mut message = String::with_capacity(msg.len() + s.len());
+            message.push_str(msg);
+            if let Ok(mut frame) = self.getframe.call1(py, (*offset,)) {
                 let mut depth = 0;
                 loop {
                     frame = match frame.getattr(py, "f_back") {
@@ -46,9 +49,9 @@ impl Logging {
                         break;
                     }
                 }
-                message.insert_str(0, &s[..depth]);
+                message.insert_str(0, &s[..depth.min(s.len())]);
             }
-            Ok(message.to_string())
+            Ok(Cow::Owned(message))
         })
     }
 }
@@ -66,49 +69,22 @@ impl Logging {
         indent: Option<(usize, usize, usize)>,     // If defined indent text by call depth
         py: Python,
     ) -> Result<Self, LoggingError> {
-        let (getframe, format_exc) = {
-            let sys = py.import("sys")?;
-            let getframe = sys.getattr("_getframe")?;
-            let traceback = py.import("traceback")?;
-            let format_exc = traceback.getattr("format_exc")?;
-            (getframe.into(), format_exc.into())
-        };
-        let indent = match indent {
-            Some((offset, mut inc, mut max)) => {
-                inc = cmp::min(inc, 8);
-                max = cmp::min(max, 256);
-                let mut s = String::with_capacity(max);
-                let _ = (0..(max - offset) * inc)
-                    .map(|_| s.push(' '))
-                    .collect::<Vec<_>>();
-                Some((offset, inc, max, s))
-            }
-            None => None,
-        };
+        let (getframe, format_exc) = (
+            crate::root::get_getframe(py)?.clone_ref(py),
+            crate::root::get_format_exc(py)?.clone_ref(py),
+        );
+        let indent = indent.map(|(offset, inc, max)| {
+            let inc = cmp::min(inc, 8);
+            let max = cmp::min(max, 256);
+            // Pre-build the padding string once with exactly the right length.
+            let s = " ".repeat(max.saturating_sub(offset) * inc);
+            (offset, inc, max, s)
+        });
         let writer_configs = if let Some(configs) = configs {
-            let mut writer_configs: Vec<fastlogging::WriterConfigEnum> = Vec::new();
+            let mut writer_configs: Vec<fastlogging::WriterConfigEnum> =
+                Vec::with_capacity(configs.len());
             for config in configs {
-                if let Ok(v) = config.extract::<WriterConfigEnum>(py) {
-                    writer_configs.push(v.into());
-                } else if let Ok(v) = config.extract::<RootConfig>(py) {
-                    writer_configs.push(WriterConfigEnum::Root { config: v }.into());
-                } else if let Ok(v) = config.extract::<ConsoleWriterConfig>(py) {
-                    writer_configs.push(WriterConfigEnum::Console { config: v }.into());
-                } else if let Ok(v) = config.extract::<FileWriterConfig>(py) {
-                    writer_configs.push(WriterConfigEnum::File { config: v }.into());
-                } else if let Ok(v) = config.extract::<ClientWriterConfig>(py) {
-                    writer_configs.push(WriterConfigEnum::Client { config: v }.into());
-                } else if let Ok(v) = config.extract::<ServerConfig>(py) {
-                    writer_configs.push(WriterConfigEnum::Server { config: v }.into());
-                } else if let Ok(v) = config.extract::<SyslogWriterConfig>(py) {
-                    writer_configs.push(WriterConfigEnum::Syslog { config: v }.into());
-                } else if let Ok(v) = config.extract::<CallbackWriterConfig>(py) {
-                    writer_configs.push(WriterConfigEnum::Callback { config: v }.into());
-                } else {
-                    return Err(LoggingError(fastlogging::LoggingError::InvalidValue(
-                        format!("Writer configuration {config:?} has invalid type"),
-                    )));
-                }
+                writer_configs.push(crate::root::extract_writer_config_enum(config, py)?);
             }
             Some(writer_configs)
         } else {
@@ -167,26 +143,7 @@ impl Logging {
     }
 
     pub fn add_writer(&mut self, config: Py<PyAny>, py: Python) -> Result<usize, LoggingError> {
-        let config = if let Ok(config) = config.extract::<RootConfig>(py) {
-            fastlogging::WriterConfigEnum::Root(config.0)
-        } else if let Ok(config) = config.extract::<ConsoleWriterConfig>(py) {
-            fastlogging::WriterConfigEnum::Console(config.0)
-        } else if let Ok(config) = config.extract::<FileWriterConfig>(py) {
-            fastlogging::WriterConfigEnum::File(config.0)
-        } else if let Ok(config) = config.extract::<ClientWriterConfig>(py) {
-            fastlogging::WriterConfigEnum::Client(config.0)
-        } else if let Ok(config) = config.extract::<ServerConfig>(py) {
-            fastlogging::WriterConfigEnum::Server(config.0)
-        } else if let Ok(config) = config.extract::<SyslogWriterConfig>(py) {
-            fastlogging::WriterConfigEnum::Syslog(config.0)
-        } else if let Ok(config) = config.extract::<CallbackWriterConfig>(py) {
-            fastlogging::WriterConfigEnum::Callback(config.0)
-        } else {
-            return Err(fastlogging::LoggingError::InvalidValue(
-                "writer has invalid argument type".to_string(),
-            )
-            .into());
-        };
+        let config = crate::root::extract_writer_config_enum(config, py)?;
         Ok(self.instance.add_writer_config(&config)?)
     }
 
@@ -427,15 +384,12 @@ impl Logging {
     }
 
     pub fn __setstate__(&mut self, state: Bound<'_, PyBytes>) -> Result<(), LoggingError> {
-        println!("__setstate__");
         let data: &[u8] = state.as_bytes();
-        let config = LoggingConfig::from_json_vec(data);
-        println!("config={config:?}");
+        let _config = LoggingConfig::from_json_vec(data);
         Ok(())
     }
 
     pub fn __getstate__<'py>(&self, py: Python<'py>) -> Result<Bound<'py, PyBytes>, LoggingError> {
-        println!("__getstate__");
         let config = self
             .instance
             .instance
@@ -449,7 +403,6 @@ impl Logging {
         &self,
         py: Python<'py>,
     ) -> Result<(Bound<'py, PyBytes>,), LoggingError> {
-        println!("__getnewargs__");
         let config = self
             .instance
             .instance

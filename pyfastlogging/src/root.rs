@@ -20,6 +20,7 @@ use crate::{
 static LEVEL: AtomicU8 = AtomicU8::new(NOTSET);
 
 static FORMAT_EXC: OnceCell<Py<PyAny>> = OnceCell::new();
+static GET_FRAME: OnceCell<Py<PyAny>> = OnceCell::new();
 
 pub fn get_format_exc(py: Python) -> PyResult<&'static Py<PyAny>> {
     FORMAT_EXC.get_or_try_init(|| {
@@ -28,13 +29,24 @@ pub fn get_format_exc(py: Python) -> PyResult<&'static Py<PyAny>> {
     })
 }
 
+/// Cached reference to ``sys._getframe``, shared by all loggers instead of
+/// being re-imported for every ``Logging``/``Logger`` instance.
+pub fn get_getframe(py: Python) -> PyResult<&'static Py<PyAny>> {
+    GET_FRAME.get_or_try_init(|| {
+        let sys = py.import("sys")?;
+        sys.getattr("_getframe").map(|f| f.into())
+    })
+}
+
 // Python layer for fastlogging.
 
-fn extract_writer_config_enum(
+pub(crate) fn extract_writer_config_enum(
     config: Py<PyAny>,
     py: Python,
 ) -> Result<fastlogging::WriterConfigEnum, LoggingError> {
-    Ok(if let Ok(config) = config.extract::<RootConfig>(py) {
+    Ok(if let Ok(config) = config.extract::<WriterConfigEnum>(py) {
+        config.into()
+    } else if let Ok(config) = config.extract::<RootConfig>(py) {
         fastlogging::WriterConfigEnum::Root(config.0)
     } else if let Ok(config) = config.extract::<ConsoleWriterConfig>(py) {
         fastlogging::WriterConfigEnum::Console(config.0)
