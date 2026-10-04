@@ -1,6 +1,6 @@
-![fastlogging-rs](docs/title.png)
-
 # fastlogging-rs
+
+![fastlogging-rs](docs/title.png)
 
 `fastlogging-rs` is a very fast and versatile logging framework. It supports the following programming languages with similar APIs:
 
@@ -105,7 +105,7 @@ log.shutdown(False)
 
 ## Documentation
 
-[![Documentation](https://docs.rs/fastlogging-rs/badge.svg)](https://docs.rs/fastlogging-rs)
+[![Documentation](https://docs.rs/fastlogging-rs/badge.svg)](https://docs.rs/fastlogging)
 
 Detailed documentation is available for each language binding:
 
