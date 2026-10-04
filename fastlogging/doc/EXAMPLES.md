@@ -4,7 +4,7 @@ All examples assume `fastlogging` is in `Cargo.toml`:
 
 ```toml
 [dependencies]
-fastlogging = "0.3"
+fastlogging = "0.9"
 ```
 
 1. Default Logger (one line)

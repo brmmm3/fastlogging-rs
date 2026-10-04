@@ -23,7 +23,7 @@ Add to `Cargo.toml`:
 
 ```toml
 [dependencies]
-fastlogging = "0.3"
+fastlogging = "0.9"
 ```
 
 ## One-liner default logger
@@ -102,7 +102,7 @@ channel. The level check on the hot path is a single integer comparison with no 
 Disable all three to get a dependency-light build:
 
 ```toml
-fastlogging = { version = "0.3", default-features = false }
+fastlogging = { version = "0.9", default-features = false }
 ```
 
 ## Platform Notes

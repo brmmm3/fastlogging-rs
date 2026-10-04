@@ -21,7 +21,7 @@ Add to `Cargo.toml`:
 
 ```toml
 [dependencies]
-fastlogging = "0.8"
+fastlogging = "0.9"
 ```
 
 ### One-liner default logger
@@ -132,7 +132,7 @@ Each writer runs in its own background thread and consumes messages from a bound
 Disable all three to get a dependency-light build:
 
 ```toml
-fastlogging = { version = "0.8", default-features = false }
+fastlogging = { version = "0.9", default-features = false }
 ```
 
 ## Platform Notes

@@ -6,8 +6,9 @@ authors = ["Martin Bammer <mrbm74@gmail.com>"]
 description = "A lightning fast logger, written in Rust, for multiple platforms and languages."
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/brmmm3/fastlogging-rs"
-documentation = "https://docs.rs/fastlogging-rs"
-keywords = ["logging", "logger"]
+documentation = "https://docs.rs/fastlogging"
+homepage = "https://github.com/brmmm3/fastlogging-rs"
+keywords = ["logging", "logger", "async", "non-blocking", "performance"]
 categories = ["development-tools::debugging"]
 include = [
     "Cargo.toml",
