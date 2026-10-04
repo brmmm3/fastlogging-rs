@@ -3,286 +3,286 @@
         "noexc": {
             "nolog": {
                 "DEBUG": {
-                    "logging": 0.6121037602424622,
-                    "logging-optimized": 0.5834388732910156,
-                    "loguru": 0.05134968757629395,
-                    "fastlogging": 0.45078139305114745,
-                    "fastlogging-threads": 0.3340705462864467,
-                    "fastlogging-rs": 0.12017250061035156,
-                    "fastlogging-rs-root": 0.13135392665863038
+                    "logging": 0.3955659866333008,
+                    "logging-optimized": 0.3820874293645223,
+                    "loguru": 0.04010028839111328,
+                    "fastlogging": 0.3212020056588309,
+                    "fastlogging-threads": 0.227745877371894,
+                    "fastlogging-rs": 0.14769468307495118,
+                    "fastlogging-rs-root": 0.14221689701080323
                 },
                 "INFO": {
-                    "logging": 0.5121194124221802,
-                    "logging-optimized": 0.48801331520080565,
-                    "loguru": 0.04867286682128906,
-                    "fastlogging": 0.37215272585550946,
-                    "fastlogging-threads": 0.3081021308898926,
-                    "fastlogging-rs": 0.09577162265777588,
-                    "fastlogging-rs-root": 0.09847774505615234
+                    "logging": 0.3184425490243094,
+                    "logging-optimized": 0.31038008417401997,
+                    "loguru": 0.03313019275665283,
+                    "fastlogging": 0.26144587993621826,
+                    "fastlogging-threads": 0.18776559829711914,
+                    "fastlogging-rs": 0.11579935550689698,
+                    "fastlogging-rs-root": 0.11097640991210937
                 },
                 "WARNING": {
-                    "logging": 0.4023933410644531,
-                    "logging-optimized": 0.38919512430826825,
-                    "loguru": 0.052756667137145996,
-                    "fastlogging": 0.3075768266405378,
-                    "fastlogging-threads": 0.2373076015048557,
-                    "fastlogging-rs": 0.08099091053009033,
-                    "fastlogging-rs-root": 0.08369665145874024
+                    "logging": 0.24026589923434788,
+                    "logging-optimized": 0.2391612794664171,
+                    "loguru": 0.03294806480407715,
+                    "fastlogging": 0.204365873336792,
+                    "fastlogging-threads": 0.1552570104598999,
+                    "fastlogging-rs": 0.08173105716705323,
+                    "fastlogging-rs-root": 0.07877891063690186
                 },
                 "ERROR": {
-                    "logging": 0.28756516320364817,
-                    "logging-optimized": 0.2641717791557312,
-                    "loguru": 0.054181361198425294,
-                    "fastlogging": 0.2332335048251682,
-                    "fastlogging-threads": 0.1783613681793213,
-                    "fastlogging-rs": 0.06233437061309814,
-                    "fastlogging-rs-root": 0.058999824523925784
+                    "logging": 0.17180509567260743,
+                    "logging-optimized": 0.17002952098846436,
+                    "loguru": 0.03297345638275147,
+                    "fastlogging": 0.1472609043121338,
+                    "fastlogging-threads": 0.10808436870574951,
+                    "fastlogging-rs": 0.05126519203186035,
+                    "fastlogging-rs-root": 0.04952769279479981
                 },
                 "CRITICAL": {
-                    "logging": 0.16974935531616211,
-                    "logging-optimized": 0.16254258155822754,
-                    "loguru": 0.05082058906555176,
-                    "fastlogging": 0.13270199298858643,
-                    "fastlogging-threads": 0.1196373701095581,
-                    "fastlogging-rs": 0.05275259017944336,
-                    "fastlogging-rs-root": 0.05245296955108643
+                    "logging": 0.10010485649108887,
+                    "logging-optimized": 0.10002140998840332,
+                    "loguru": 0.033225488662719724,
+                    "fastlogging": 0.09282982349395752,
+                    "fastlogging-threads": 0.06917350292205811,
+                    "fastlogging-rs": 0.033283662796020505,
+                    "fastlogging-rs-root": 0.03459122180938721
                 }
             },
             "file": {
                 "DEBUG": {
-                    "logging": 2.128812313079834,
-                    "logging-optimized": 2.2801012992858887,
-                    "loguru": 5.468776702880859,
-                    "fastlogging": 0.7632788817087809,
-                    "fastlogging-threads": 0.9659597078959147,
-                    "fastlogging-rs": 0.21655697822570802,
-                    "fastlogging-rs-root": 0.22018055915832518
+                    "logging": 1.3819773197174072,
+                    "logging-optimized": 1.3066833019256592,
+                    "loguru": 3.312403917312622,
+                    "fastlogging": 0.5141346454620361,
+                    "fastlogging-threads": 0.6324912905693054,
+                    "fastlogging-rs": 0.22582199838426378,
+                    "fastlogging-rs-root": 0.21047687530517578
                 },
                 "INFO": {
-                    "logging": 1.8998526334762573,
-                    "logging-optimized": 1.895878553390503,
-                    "loguru": 4.630348443984985,
-                    "fastlogging": 0.690915028254191,
-                    "fastlogging-threads": 0.7902309894561768,
-                    "fastlogging-rs": 0.19316041469573975,
-                    "fastlogging-rs-root": 0.18046674728393555
+                    "logging": 1.0431846380233765,
+                    "logging-optimized": 1.0338553190231323,
+                    "loguru": 2.539738893508911,
+                    "fastlogging": 0.418336296081543,
+                    "fastlogging-threads": 0.5155288577079773,
+                    "fastlogging-rs": 0.18167989253997802,
+                    "fastlogging-rs-root": 0.17063982486724855
                 },
                 "WARNING": {
-                    "logging": 1.3969613313674927,
-                    "logging-optimized": 1.4660296440124512,
-                    "loguru": 3.643528699874878,
-                    "fastlogging": 0.5171178579330444,
-                    "fastlogging-threads": 0.7302676836649576,
-                    "fastlogging-rs": 0.14528627395629884,
-                    "fastlogging-rs-root": 0.14049694538116456
+                    "logging": 0.9033847649892172,
+                    "logging-optimized": 0.8281090259552002,
+                    "loguru": 2.007399320602417,
+                    "fastlogging": 0.33466120560963947,
+                    "fastlogging-threads": 0.4004568576812744,
+                    "fastlogging-rs": 0.14251866340637206,
+                    "fastlogging-rs-root": 0.1323706865310669
                 },
                 "ERROR": {
-                    "logging": 0.9857586224873861,
-                    "logging-optimized": 0.9933582146962484,
-                    "loguru": 2.4588584899902344,
-                    "fastlogging": 0.4207723140716553,
-                    "fastlogging-threads": 0.49070353507995607,
-                    "fastlogging-rs": 0.08837766647338867,
-                    "fastlogging-rs-root": 0.08835270404815673
+                    "logging": 0.5393008589744568,
+                    "logging-optimized": 0.5360093712806702,
+                    "loguru": 1.2995615005493164,
+                    "fastlogging": 0.22727979554070366,
+                    "fastlogging-threads": 0.280002236366272,
+                    "fastlogging-rs": 0.09382176399230957,
+                    "fastlogging-rs-root": 0.08717067241668701
                 },
                 "CRITICAL": {
-                    "logging": 0.502018928527832,
-                    "logging-optimized": 0.5071583986282349,
-                    "loguru": 1.1773799657821655,
-                    "fastlogging": 0.25038185715675354,
-                    "fastlogging-threads": 0.2883426121303013,
-                    "fastlogging-rs": 0.052808094024658206,
-                    "fastlogging-rs-root": 0.05312080383300781
+                    "logging": 0.2832444906234741,
+                    "logging-optimized": 0.28582743235996794,
+                    "loguru": 0.6957796414693197,
+                    "fastlogging": 0.13130674362182618,
+                    "fastlogging-threads": 0.17730305194854737,
+                    "fastlogging-rs": 0.0426445484161377,
+                    "fastlogging-rs-root": 0.03793497085571289
                 }
             },
             "rotate": {
                 "DEBUG": {
-                    "logging": 3.369109869003296,
-                    "logging-optimized": 3.3031344413757324,
-                    "loguru": 6.435782432556152,
-                    "fastlogging": 0.8096690972646078,
-                    "fastlogging-threads": 1.3852275609970093,
-                    "fastlogging-rs": 0.22624542978074816,
-                    "fastlogging-rs-root": 0.20020101070404053
+                    "logging": 1.8811053037643433,
+                    "logging-optimized": 1.861253261566162,
+                    "loguru": 3.770271062850952,
+                    "fastlogging": 0.4447951316833496,
+                    "fastlogging-threads": 0.8064289887746176,
+                    "fastlogging-rs": 0.21475675106048583,
+                    "fastlogging-rs-root": 0.2007071018218994
                 },
                 "INFO": {
-                    "logging": 2.5706746578216553,
-                    "logging-optimized": 2.5036444664001465,
-                    "loguru": 5.356399297714233,
-                    "fastlogging": 0.6375566720962524,
-                    "fastlogging-threads": 1.107900619506836,
-                    "fastlogging-rs": 0.16153287887573242,
-                    "fastlogging-rs-root": 0.16246628761291504
+                    "logging": 1.5112897157669067,
+                    "logging-optimized": 1.5133187770843506,
+                    "loguru": 3.0731630325317383,
+                    "fastlogging": 0.3671555121739705,
+                    "fastlogging-threads": 0.6616242527961731,
+                    "fastlogging-rs": 0.17015998363494872,
+                    "fastlogging-rs-root": 0.16232836246490479
                 },
                 "WARNING": {
-                    "logging": 2.002633571624756,
-                    "logging-optimized": 1.9235833883285522,
-                    "loguru": 4.007559061050415,
-                    "fastlogging": 0.5009251236915588,
-                    "fastlogging-threads": 0.9190765221913656,
-                    "fastlogging-rs": 0.1350733995437622,
-                    "fastlogging-rs-root": 0.12483706474304199
+                    "logging": 1.1456202268600464,
+                    "logging-optimized": 1.1240969896316528,
+                    "loguru": 2.291482925415039,
+                    "fastlogging": 0.28100016713142395,
+                    "fastlogging-threads": 0.5495903491973877,
+                    "fastlogging-rs": 0.13144235610961913,
+                    "fastlogging-rs-root": 0.12035009860992432
                 },
                 "ERROR": {
-                    "logging": 1.3975492715835571,
-                    "logging-optimized": 1.4471707344055176,
-                    "loguru": 2.6477785110473633,
-                    "fastlogging": 0.37737449010213214,
-                    "fastlogging-threads": 0.5858149528503418,
-                    "fastlogging-rs": 0.0805391550064087,
-                    "fastlogging-rs-root": 0.08181679248809814
+                    "logging": 0.761351744333903,
+                    "logging-optimized": 0.7649916807810465,
+                    "loguru": 1.5372004508972168,
+                    "fastlogging": 0.1981264114379883,
+                    "fastlogging-threads": 0.34799762566884357,
+                    "fastlogging-rs": 0.08861377239227294,
+                    "fastlogging-rs-root": 0.07631845474243164
                 },
                 "CRITICAL": {
-                    "logging": 0.7217737833658854,
-                    "logging-optimized": 0.6863842010498047,
-                    "loguru": 1.4020744562149048,
-                    "fastlogging": 0.19593069553375245,
-                    "fastlogging-threads": 0.3335585594177246,
-                    "fastlogging-rs": 0.052590680122375486,
-                    "fastlogging-rs-root": 0.05066282749176025
+                    "logging": 0.41246843338012695,
+                    "logging-optimized": 0.3973780870437622,
+                    "loguru": 0.7924839655558268,
+                    "fastlogging": 0.11720633506774902,
+                    "fastlogging-threads": 0.19845879077911377,
+                    "fastlogging-rs": 0.041902780532836914,
+                    "fastlogging-rs-root": 0.034047913551330564
                 }
             }
         },
         "exc": {
             "nolog": {
                 "DEBUG": {
-                    "logging": 0.7107622623443604,
-                    "logging-optimized": 0.6894689400990804,
-                    "loguru": 0.06424682140350342,
-                    "fastlogging": 2.0565192699432373,
-                    "fastlogging-threads": 1.8381881713867188,
-                    "fastlogging-rs": 1.4852657318115234,
-                    "fastlogging-rs-root": 1.467389702796936
+                    "logging": 0.3804420232772827,
+                    "logging-optimized": 0.3920103708902995,
+                    "loguru": 0.03451945781707764,
+                    "fastlogging": 0.3173628534589495,
+                    "fastlogging-threads": 0.2283415264553494,
+                    "fastlogging-rs": 0.14555630683898926,
+                    "fastlogging-rs-root": 0.14262468814849855
                 },
                 "INFO": {
-                    "logging": 0.5271115899085999,
-                    "logging-optimized": 0.5839681029319763,
-                    "loguru": 0.06133742332458496,
-                    "fastlogging": 1.8288090229034424,
-                    "fastlogging-threads": 1.8571851253509521,
-                    "fastlogging-rs": 1.4476535320281982,
-                    "fastlogging-rs-root": 1.3545435667037964
+                    "logging": 0.31456344468253,
+                    "logging-optimized": 0.3086932386670794,
+                    "loguru": 0.03422400951385498,
+                    "fastlogging": 0.26069730520248413,
+                    "fastlogging-threads": 0.18802058696746826,
+                    "fastlogging-rs": 0.1161613941192627,
+                    "fastlogging-rs-root": 0.1108548402786255
                 },
                 "WARNING": {
-                    "logging": 0.46453108787536623,
-                    "logging-optimized": 0.4310581207275391,
-                    "loguru": 0.061680173873901366,
-                    "fastlogging": 2.2456822395324707,
-                    "fastlogging-threads": 1.7850223779678345,
-                    "fastlogging-rs": 1.3982887268066406,
-                    "fastlogging-rs-root": 1.391757607460022
+                    "logging": 0.24154967731899685,
+                    "logging-optimized": 0.24672921498616537,
+                    "loguru": 0.03341960906982422,
+                    "fastlogging": 0.2043151617050171,
+                    "fastlogging-threads": 0.149918270111084,
+                    "fastlogging-rs": 0.08093383312225341,
+                    "fastlogging-rs-root": 0.08242266178131104
                 },
                 "ERROR": {
-                    "logging": 0.322918244770595,
-                    "logging-optimized": 0.33376848697662354,
-                    "loguru": 0.06572349071502685,
-                    "fastlogging": 1.7772396802902222,
-                    "fastlogging-threads": 1.6136045455932617,
-                    "fastlogging-rs": 1.316162109375,
-                    "fastlogging-rs-root": 1.3722957372665405
+                    "logging": 0.17224323749542236,
+                    "logging-optimized": 0.17130060195922853,
+                    "loguru": 0.034828472137451175,
+                    "fastlogging": 0.14494714736938477,
+                    "fastlogging-threads": 0.10454504489898682,
+                    "fastlogging-rs": 0.05111360549926758,
+                    "fastlogging-rs-root": 0.04983057975769043
                 },
                 "CRITICAL": {
-                    "logging": 0.1885840654373169,
-                    "logging-optimized": 0.19090449810028076,
-                    "loguru": 0.0674260139465332,
-                    "fastlogging": 1.5479843616485596,
-                    "fastlogging-threads": 1.439581036567688,
-                    "fastlogging-rs": 1.3797883987426758,
-                    "fastlogging-rs-root": 1.3052802085876465
+                    "logging": 0.10196952819824219,
+                    "logging-optimized": 0.10117554664611816,
+                    "loguru": 0.03439068794250488,
+                    "fastlogging": 0.09526238441467286,
+                    "fastlogging-threads": 0.0677220344543457,
+                    "fastlogging-rs": 0.03333284854888916,
+                    "fastlogging-rs-root": 0.0312593936920166
                 }
             },
             "file": {
                 "DEBUG": {
-                    "logging": 4.360913038253784,
-                    "logging-optimized": 4.498440742492676,
-                    "loguru": 9.300880670547485,
-                    "fastlogging": 2.4907031059265137,
-                    "fastlogging-threads": 2.858527183532715,
-                    "fastlogging-rs": 1.451730489730835,
-                    "fastlogging-rs-root": 1.4394786357879639
+                    "logging": 1.3144505023956299,
+                    "logging-optimized": 1.3018289804458618,
+                    "loguru": 3.269360065460205,
+                    "fastlogging": 0.5281532406806946,
+                    "fastlogging-threads": 0.6234790682792664,
+                    "fastlogging-rs": 0.2310394181145562,
+                    "fastlogging-rs-root": 0.22233428955078124
                 },
                 "INFO": {
-                    "logging": 3.3518295288085938,
-                    "logging-optimized": 3.8555843830108643,
-                    "loguru": 7.888337135314941,
-                    "fastlogging": 2.33733868598938,
-                    "fastlogging-threads": 2.7606284618377686,
-                    "fastlogging-rs": 1.5016131401062012,
-                    "fastlogging-rs-root": 1.3966195583343506
+                    "logging": 1.066294550895691,
+                    "logging-optimized": 1.054789423942566,
+                    "loguru": 2.5596892833709717,
+                    "fastlogging": 0.42586655616760255,
+                    "fastlogging-threads": 0.49966797828674314,
+                    "fastlogging-rs": 0.17878527641296388,
+                    "fastlogging-rs-root": 0.17177374362945558
                 },
                 "WARNING": {
-                    "logging": 3.3268747329711914,
-                    "logging-optimized": 3.368288516998291,
-                    "loguru": 6.9881978034973145,
-                    "fastlogging": 2.2128958702087402,
-                    "fastlogging-threads": 2.554809331893921,
-                    "fastlogging-rs": 1.3960282802581787,
-                    "fastlogging-rs-root": 1.415916919708252
+                    "logging": 0.7899049123128256,
+                    "logging-optimized": 0.7895140647888184,
+                    "loguru": 2.0219664573669434,
+                    "fastlogging": 0.32861971855163574,
+                    "fastlogging-threads": 0.40244102478027344,
+                    "fastlogging-rs": 0.13556737899780275,
+                    "fastlogging-rs-root": 0.12936246395111084
                 },
                 "ERROR": {
-                    "logging": 2.8032023906707764,
-                    "logging-optimized": 2.649894952774048,
-                    "loguru": 5.553496360778809,
-                    "fastlogging": 2.2270779609680176,
-                    "fastlogging-threads": 2.925161123275757,
-                    "fastlogging-rs": 1.5260957479476929,
-                    "fastlogging-rs-root": 1.3690789937973022
+                    "logging": 0.5429273247718811,
+                    "logging-optimized": 0.5337521433830261,
+                    "loguru": 1.3161118030548096,
+                    "fastlogging": 0.2305340501997206,
+                    "fastlogging-threads": 0.2877277987343924,
+                    "fastlogging-rs": 0.09379534721374512,
+                    "fastlogging-rs-root": 0.088539457321167
                 },
                 "CRITICAL": {
-                    "logging": 0.5881398320198059,
-                    "logging-optimized": 0.5126380324363708,
-                    "loguru": 1.292344093322754,
-                    "fastlogging": 1.7512024641036987,
-                    "fastlogging-threads": 1.7761482000350952,
-                    "fastlogging-rs": 1.3768435716629028,
-                    "fastlogging-rs-root": 1.2800958156585693
+                    "logging": 0.29120618956429617,
+                    "logging-optimized": 0.28136545419692993,
+                    "loguru": 0.6845340728759766,
+                    "fastlogging": 0.13406336307525635,
+                    "fastlogging-threads": 0.1689239740371704,
+                    "fastlogging-rs": 0.04306645393371582,
+                    "fastlogging-rs-root": 0.03975834846496582
                 }
             },
             "rotate": {
                 "DEBUG": {
-                    "logging": 5.6646788120269775,
-                    "logging-optimized": 5.415498733520508,
-                    "loguru": 10.3504159450531,
-                    "fastlogging": 2.2153167724609375,
-                    "fastlogging-threads": 3.211134910583496,
-                    "fastlogging-rs": 1.3839892148971558,
-                    "fastlogging-rs-root": 1.542641043663025
+                    "logging": 1.8700381517410278,
+                    "logging-optimized": 1.8802541494369507,
+                    "loguru": 3.8029026985168457,
+                    "fastlogging": 0.4593203067779541,
+                    "fastlogging-threads": 0.7822443644205729,
+                    "fastlogging-rs": 0.21851329803466796,
+                    "fastlogging-rs-root": 0.20640759468078612
                 },
                 "INFO": {
-                    "logging": 4.925729990005493,
-                    "logging-optimized": 4.877684116363525,
-                    "loguru": 9.087255239486694,
-                    "fastlogging": 2.0892210006713867,
-                    "fastlogging-threads": 2.6898460388183594,
-                    "fastlogging-rs": 1.4144474267959595,
-                    "fastlogging-rs-root": 1.4970256090164185
+                    "logging": 1.5213117599487305,
+                    "logging-optimized": 1.50418221950531,
+                    "loguru": 3.1045751571655273,
+                    "fastlogging": 0.361475149790446,
+                    "fastlogging-threads": 0.639622688293457,
+                    "fastlogging-rs": 0.1776043653488159,
+                    "fastlogging-rs-root": 0.16265430450439453
                 },
                 "WARNING": {
-                    "logging": 4.2658936977386475,
-                    "logging-optimized": 4.257640838623047,
-                    "loguru": 7.612521409988403,
-                    "fastlogging": 1.9897269010543823,
-                    "fastlogging-threads": 2.798839807510376,
-                    "fastlogging-rs": 1.4177651405334473,
-                    "fastlogging-rs-root": 1.4082059860229492
+                    "logging": 1.1648977994918823,
+                    "logging-optimized": 1.134759545326233,
+                    "loguru": 2.2662737369537354,
+                    "fastlogging": 0.27965033054351807,
+                    "fastlogging-threads": 0.49395904541015623,
+                    "fastlogging-rs": 0.13415353298187255,
+                    "fastlogging-rs-root": 0.12284958362579346
                 },
                 "ERROR": {
-                    "logging": 3.3680644035339355,
-                    "logging-optimized": 2.967400074005127,
-                    "loguru": 5.323845863342285,
-                    "fastlogging": 1.824489712715149,
-                    "fastlogging-threads": 1.8136082887649536,
-                    "fastlogging-rs": 1.2431750297546387,
-                    "fastlogging-rs-root": 1.292771339416504
+                    "logging": 0.7675476868947347,
+                    "logging-optimized": 0.7771974404652914,
+                    "loguru": 1.544670581817627,
+                    "fastlogging": 0.19616420269012452,
+                    "fastlogging-threads": 0.34929458300272626,
+                    "fastlogging-rs": 0.08543148040771484,
+                    "fastlogging-rs-root": 0.07367260456085205
                 },
                 "CRITICAL": {
-                    "logging": 0.6665285229682922,
-                    "logging-optimized": 0.7879985968271891,
-                    "loguru": 1.378787875175476,
-                    "fastlogging": 1.5746060609817505,
-                    "fastlogging-threads": 2.058982014656067,
-                    "fastlogging-rs": 1.276543378829956,
-                    "fastlogging-rs-root": 1.4236572980880737
+                    "logging": 0.4041097640991211,
+                    "logging-optimized": 0.403909969329834,
+                    "loguru": 0.799570639928182,
+                    "fastlogging": 0.11764664649963379,
+                    "fastlogging-threads": 0.19292898178100587,
+                    "fastlogging-rs": 0.04219145774841308,
+                    "fastlogging-rs-root": 0.03611011505126953
                 }
             }
         }
@@ -291,286 +291,286 @@
         "noexc": {
             "nolog": {
                 "DEBUG": {
-                    "logging": 1.2740108966827393,
-                    "logging-optimized": 0.5978261828422546,
-                    "loguru": 0.0533968448638916,
-                    "fastlogging": 0.46808657646179197,
-                    "fastlogging-threads": 0.3416587511698405,
-                    "fastlogging-rs": 0.1267094850540161,
-                    "fastlogging-rs-root": 0.13383607864379882
+                    "logging": 1.0312767028808594,
+                    "logging-optimized": 0.3989686171213786,
+                    "loguru": 0.03638565540313721,
+                    "fastlogging": 0.2829698920249939,
+                    "fastlogging-threads": 0.18969881534576416,
+                    "fastlogging-rs": 0.15168097019195556,
+                    "fastlogging-rs-root": 0.14881517887115478
                 },
                 "INFO": {
-                    "logging": 0.5347458124160767,
-                    "logging-optimized": 0.46639699935913087,
-                    "loguru": 0.05645794868469238,
-                    "fastlogging": 0.38453443845113117,
-                    "fastlogging-threads": 0.2828337848186493,
-                    "fastlogging-rs": 0.09973266124725341,
-                    "fastlogging-rs-root": 0.09564931392669677
+                    "logging": 0.324932336807251,
+                    "logging-optimized": 0.32089757919311523,
+                    "loguru": 0.03571219444274902,
+                    "fastlogging": 0.2368952433268229,
+                    "fastlogging-threads": 0.16037387847900392,
+                    "fastlogging-rs": 0.1171187162399292,
+                    "fastlogging-rs-root": 0.11137101650238038
                 },
                 "WARNING": {
-                    "logging": 0.39177664120992023,
-                    "logging-optimized": 0.3849389950434367,
-                    "loguru": 0.053103089332580566,
-                    "fastlogging": 0.2967303821018764,
-                    "fastlogging-threads": 0.2238074408637153,
-                    "fastlogging-rs": 0.07234585285186768,
-                    "fastlogging-rs-root": 0.07168459892272949
+                    "logging": 0.25250908732414246,
+                    "logging-optimized": 0.2538236677646637,
+                    "loguru": 0.035130882263183595,
+                    "fastlogging": 0.18212172985076905,
+                    "fastlogging-threads": 0.1243509292602539,
+                    "fastlogging-rs": 0.08124256134033203,
+                    "fastlogging-rs-root": 0.07642548084259033
                 },
                 "ERROR": {
-                    "logging": 0.2826213538646698,
-                    "logging-optimized": 0.28706387111118864,
-                    "loguru": 0.048609232902526854,
-                    "fastlogging": 0.2171156406402588,
-                    "fastlogging-threads": 0.1620701551437378,
-                    "fastlogging-rs": 0.05971953868865967,
-                    "fastlogging-rs-root": 0.05745234489440918
+                    "logging": 0.17421061992645265,
+                    "logging-optimized": 0.17977020740509034,
+                    "loguru": 0.03590013980865479,
+                    "fastlogging": 0.13271701335906982,
+                    "fastlogging-threads": 0.0930476188659668,
+                    "fastlogging-rs": 0.05549488067626953,
+                    "fastlogging-rs-root": 0.049788618087768556
                 },
                 "CRITICAL": {
-                    "logging": 0.17215440273284913,
-                    "logging-optimized": 0.17186760902404785,
-                    "loguru": 0.053906369209289554,
-                    "fastlogging": 0.12718985080718995,
-                    "fastlogging-threads": 0.10844185352325439,
-                    "fastlogging-rs": 0.05629556179046631,
-                    "fastlogging-rs-root": 0.05436816215515137
+                    "logging": 0.10851728916168213,
+                    "logging-optimized": 0.10752840042114258,
+                    "loguru": 0.035660600662231444,
+                    "fastlogging": 0.07860195636749268,
+                    "fastlogging-threads": 0.05874505043029785,
+                    "fastlogging-rs": 0.05262377262115479,
+                    "fastlogging-rs-root": 0.05049335956573486
                 }
             },
             "file": {
                 "DEBUG": {
-                    "logging": 2.2800300121307373,
-                    "logging-optimized": 2.187936782836914,
-                    "loguru": 5.528281211853027,
-                    "fastlogging": 0.7626445293426514,
-                    "fastlogging-threads": 0.8917835553487142,
-                    "fastlogging-rs": 0.20436851978302,
-                    "fastlogging-rs-root": 0.19493634700775148
+                    "logging": 1.4496794939041138,
+                    "logging-optimized": 1.3971447944641113,
+                    "loguru": 3.4380979537963867,
+                    "fastlogging": 0.40038561820983887,
+                    "fastlogging-threads": 0.5123330354690552,
+                    "fastlogging-rs": 0.20279486179351808,
+                    "fastlogging-rs-root": 0.20636649131774903
                 },
                 "INFO": {
-                    "logging": 1.766123652458191,
-                    "logging-optimized": 1.901724100112915,
-                    "loguru": 4.608741283416748,
-                    "fastlogging": 0.6006622314453125,
-                    "fastlogging-threads": 0.786122719446818,
-                    "fastlogging-rs": 0.16790404319763183,
-                    "fastlogging-rs-root": 0.15118024349212647
+                    "logging": 1.046801209449768,
+                    "logging-optimized": 1.054348111152649,
+                    "loguru": 2.54211688041687,
+                    "fastlogging": 0.33000452177865164,
+                    "fastlogging-threads": 0.42229399681091306,
+                    "fastlogging-rs": 0.16295950412750243,
+                    "fastlogging-rs-root": 0.15932860374450683
                 },
                 "WARNING": {
-                    "logging": 1.4463858604431152,
-                    "logging-optimized": 1.3898006677627563,
-                    "loguru": 3.4337120056152344,
-                    "fastlogging": 0.4965211868286133,
-                    "fastlogging-threads": 0.6059818863868713,
-                    "fastlogging-rs": 0.11415903568267823,
-                    "fastlogging-rs-root": 0.12596065998077394
+                    "logging": 0.7855257193247477,
+                    "logging-optimized": 0.8019735018412272,
+                    "loguru": 1.9250088930130005,
+                    "fastlogging": 0.2506544291973114,
+                    "fastlogging-threads": 0.3286815030234201,
+                    "fastlogging-rs": 0.1299745798110962,
+                    "fastlogging-rs-root": 0.12469611167907715
                 },
                 "ERROR": {
-                    "logging": 1.061405897140503,
-                    "logging-optimized": 1.024551510810852,
-                    "loguru": 2.493332624435425,
-                    "fastlogging": 0.3201050077165876,
-                    "fastlogging-threads": 0.4337879180908203,
-                    "fastlogging-rs": 0.08028156757354736,
-                    "fastlogging-rs-root": 0.07088327407836914
+                    "logging": 0.5432639718055725,
+                    "logging-optimized": 0.5563129186630249,
+                    "loguru": 1.3081016540527344,
+                    "fastlogging": 0.17788941860198976,
+                    "fastlogging-threads": 0.24334658516777885,
+                    "fastlogging-rs": 0.08507483005523682,
+                    "fastlogging-rs-root": 0.08065187931060791
                 },
                 "CRITICAL": {
-                    "logging": 0.49326319694519044,
-                    "logging-optimized": 0.5567206144332886,
-                    "loguru": 1.2274178266525269,
-                    "fastlogging": 0.2022496223449707,
-                    "fastlogging-threads": 0.2455391354031033,
-                    "fastlogging-rs": 0.05398893356323242,
-                    "fastlogging-rs-root": 0.052377748489379886
+                    "logging": 0.2830507755279541,
+                    "logging-optimized": 0.28283530473709106,
+                    "loguru": 0.687561829884847,
+                    "fastlogging": 0.10116751194000244,
+                    "fastlogging-threads": 0.14614245891571045,
+                    "fastlogging-rs": 0.04050438404083252,
+                    "fastlogging-rs-root": 0.03675699234008789
                 }
             },
             "rotate": {
                 "DEBUG": {
-                    "logging": 3.31961727142334,
-                    "logging-optimized": 3.1491596698760986,
-                    "loguru": 6.5161051750183105,
-                    "fastlogging": 0.6460414528846741,
-                    "fastlogging-threads": 1.1515759229660034,
-                    "fastlogging-rs": 0.21049184799194337,
-                    "fastlogging-rs-root": 0.2210477828979492
+                    "logging": 1.945255994796753,
+                    "logging-optimized": 1.8427153825759888,
+                    "loguru": 3.715174674987793,
+                    "fastlogging": 0.3459234635035197,
+                    "fastlogging-threads": 0.6751703421274821,
+                    "fastlogging-rs": 0.2058638095855713,
+                    "fastlogging-rs-root": 0.2034928321838379
                 },
                 "INFO": {
-                    "logging": 2.8200137615203857,
-                    "logging-optimized": 2.496209144592285,
-                    "loguru": 5.247580528259277,
-                    "fastlogging": 0.49628186225891113,
-                    "fastlogging-threads": 0.8985168139139811,
-                    "fastlogging-rs": 0.16359272003173828,
-                    "fastlogging-rs-root": 0.15467367172241211
+                    "logging": 1.4831063747406006,
+                    "logging-optimized": 1.5235706567764282,
+                    "loguru": 3.0373566150665283,
+                    "fastlogging": 0.2858473573412214,
+                    "fastlogging-threads": 0.5102929472923279,
+                    "fastlogging-rs": 0.16865975856781007,
+                    "fastlogging-rs-root": 0.1617138385772705
                 },
                 "WARNING": {
-                    "logging": 1.882095217704773,
-                    "logging-optimized": 1.8501883745193481,
-                    "loguru": 3.833008050918579,
-                    "fastlogging": 0.4126446723937988,
-                    "fastlogging-threads": 0.6691977977752686,
-                    "fastlogging-rs": 0.11780591011047363,
-                    "fastlogging-rs-root": 0.11501672267913818
+                    "logging": 1.14006507396698,
+                    "logging-optimized": 1.1734153032302856,
+                    "loguru": 2.3307108879089355,
+                    "fastlogging": 0.2147235631942749,
+                    "fastlogging-threads": 0.4025290807088216,
+                    "fastlogging-rs": 0.12816483974456788,
+                    "fastlogging-rs-root": 0.12134828567504882
                 },
                 "ERROR": {
-                    "logging": 1.2886983156204224,
-                    "logging-optimized": 1.1690140962600708,
-                    "loguru": 2.75545597076416,
-                    "fastlogging": 0.2927324431283133,
-                    "fastlogging-threads": 0.4468523979187012,
-                    "fastlogging-rs": 0.07356717586517333,
-                    "fastlogging-rs-root": 0.06901421546936035
+                    "logging": 0.7509539127349854,
+                    "logging-optimized": 0.7556188106536865,
+                    "loguru": 1.521988868713379,
+                    "fastlogging": 0.15038907527923584,
+                    "fastlogging-threads": 0.2724037170410156,
+                    "fastlogging-rs": 0.08723535537719726,
+                    "fastlogging-rs-root": 0.08068258762359619
                 },
                 "CRITICAL": {
-                    "logging": 0.7039164702097574,
-                    "logging-optimized": 0.6860869725545248,
-                    "loguru": 1.2764874696731567,
-                    "fastlogging": 0.16516120433807374,
-                    "fastlogging-threads": 0.25052563349405926,
-                    "fastlogging-rs": 0.05797574520111084,
-                    "fastlogging-rs-root": 0.05189778804779053
+                    "logging": 0.40729126930236814,
+                    "logging-optimized": 0.4002816677093506,
+                    "loguru": 0.801377534866333,
+                    "fastlogging": 0.08942663669586182,
+                    "fastlogging-threads": 0.15389184951782225,
+                    "fastlogging-rs": 0.04005579948425293,
+                    "fastlogging-rs-root": 0.045439624786376955
                 }
             }
         },
         "exc": {
             "nolog": {
                 "DEBUG": {
-                    "logging": 0.681394894917806,
-                    "logging-optimized": 0.6517158150672913,
-                    "loguru": 0.06290335655212402,
-                    "fastlogging": 1.8444788455963135,
-                    "fastlogging-threads": 1.9342601299285889,
-                    "fastlogging-rs": 1.3816345930099487,
-                    "fastlogging-rs-root": 1.3402589559555054
+                    "logging": 0.37963120142618817,
+                    "logging-optimized": 0.37232355276743573,
+                    "loguru": 0.03453605175018311,
+                    "fastlogging": 0.2670723795890808,
+                    "fastlogging-threads": 0.18047780990600587,
+                    "fastlogging-rs": 0.14273087978363036,
+                    "fastlogging-rs-root": 0.14012084007263184
                 },
                 "INFO": {
-                    "logging": 0.5478249192237854,
-                    "logging-optimized": 0.5385936498641968,
-                    "loguru": 0.0581627607345581,
-                    "fastlogging": 1.6968275308609009,
-                    "fastlogging-threads": 1.780786156654358,
-                    "fastlogging-rs": 1.3787683248519897,
-                    "fastlogging-rs-root": 1.3855574131011963
+                    "logging": 0.3122750350407192,
+                    "logging-optimized": 0.30471158027648926,
+                    "loguru": 0.034974980354309085,
+                    "fastlogging": 0.22044603824615477,
+                    "fastlogging-threads": 0.14979894161224366,
+                    "fastlogging-rs": 0.11391632556915283,
+                    "fastlogging-rs-root": 0.10895664691925049
                 },
                 "WARNING": {
-                    "logging": 0.43196425437927244,
-                    "logging-optimized": 0.42950730323791503,
-                    "loguru": 0.06112480163574219,
-                    "fastlogging": 1.677147388458252,
-                    "fastlogging-threads": 1.5801501274108887,
-                    "fastlogging-rs": 1.3351365327835083,
-                    "fastlogging-rs-root": 1.3783138990402222
+                    "logging": 0.2397278149922689,
+                    "logging-optimized": 0.24108081393771702,
+                    "loguru": 0.03422026634216309,
+                    "fastlogging": 0.17083251476287842,
+                    "fastlogging-threads": 0.11555862426757812,
+                    "fastlogging-rs": 0.08610250949859619,
+                    "fastlogging-rs-root": 0.07705914974212646
                 },
                 "ERROR": {
-                    "logging": 0.3196267400469099,
-                    "logging-optimized": 0.3579666217168172,
-                    "loguru": 0.06246309280395508,
-                    "fastlogging": 1.9495298862457275,
-                    "fastlogging-threads": 1.4935803413391113,
-                    "fastlogging-rs": 1.419356107711792,
-                    "fastlogging-rs-root": 1.2901055812835693
+                    "logging": 0.17757563591003417,
+                    "logging-optimized": 0.1779008150100708,
+                    "loguru": 0.034831666946411134,
+                    "fastlogging": 0.12703337669372558,
+                    "fastlogging-threads": 0.08381540775299072,
+                    "fastlogging-rs": 0.056075215339660645,
+                    "fastlogging-rs-root": 0.0492779016494751
                 },
                 "CRITICAL": {
-                    "logging": 0.18698503971099853,
-                    "logging-optimized": 0.17646052837371826,
-                    "loguru": 0.05874912738800049,
-                    "fastlogging": 1.5185716152191162,
-                    "fastlogging-threads": 1.4215162992477417,
-                    "fastlogging-rs": 1.4086616039276123,
-                    "fastlogging-rs-root": 1.373844027519226
+                    "logging": 0.10065250396728516,
+                    "logging-optimized": 0.10177111625671387,
+                    "loguru": 0.034488463401794435,
+                    "fastlogging": 0.0750396728515625,
+                    "fastlogging-threads": 0.06351592540740966,
+                    "fastlogging-rs": 0.03636062145233154,
+                    "fastlogging-rs-root": 0.03251557350158692
                 }
             },
             "file": {
                 "DEBUG": {
-                    "logging": 4.383979558944702,
-                    "logging-optimized": 4.648616313934326,
-                    "loguru": 9.144610404968262,
-                    "fastlogging": 2.4062325954437256,
-                    "fastlogging-threads": 2.4906911849975586,
-                    "fastlogging-rs": 1.5409586429595947,
-                    "fastlogging-rs-root": 1.361219882965088
+                    "logging": 1.2762070894241333,
+                    "logging-optimized": 1.2676860094070435,
+                    "loguru": 3.1201400756835938,
+                    "fastlogging": 0.502332866191864,
+                    "fastlogging-threads": 0.5933353900909424,
+                    "fastlogging-rs": 0.21081900596618652,
+                    "fastlogging-rs-root": 0.1980659246444702
                 },
                 "INFO": {
-                    "logging": 3.7407195568084717,
-                    "logging-optimized": 4.041203022003174,
-                    "loguru": 8.08000922203064,
-                    "fastlogging": 2.1740665435791016,
-                    "fastlogging-threads": 2.3648147583007812,
-                    "fastlogging-rs": 1.4172790050506592,
-                    "fastlogging-rs-root": 1.4169893264770508
+                    "logging": 1.0753072500228882,
+                    "logging-optimized": 1.037576675415039,
+                    "loguru": 2.5585875511169434,
+                    "fastlogging": 0.40935688018798827,
+                    "fastlogging-threads": 0.48819637298583984,
+                    "fastlogging-rs": 0.1644374370574951,
+                    "fastlogging-rs-root": 0.16820435523986815
                 },
                 "WARNING": {
-                    "logging": 3.084089994430542,
-                    "logging-optimized": 3.5601308345794678,
-                    "loguru": 6.990237236022949,
-                    "fastlogging": 2.060173749923706,
-                    "fastlogging-threads": 2.1070951223373413,
-                    "fastlogging-rs": 1.5822750329971313,
-                    "fastlogging-rs-root": 1.404151201248169
+                    "logging": 0.7861932913462321,
+                    "logging-optimized": 0.8078940709431967,
+                    "loguru": 1.9848756790161133,
+                    "fastlogging": 0.3147501604897635,
+                    "fastlogging-threads": 0.39805757999420166,
+                    "fastlogging-rs": 0.12020831108093262,
+                    "fastlogging-rs-root": 0.12530918121337892
                 },
                 "ERROR": {
-                    "logging": 2.6046509742736816,
-                    "logging-optimized": 2.7611286640167236,
-                    "loguru": 5.332346677780151,
-                    "fastlogging": 1.8804004192352295,
-                    "fastlogging-threads": 1.9196420907974243,
-                    "fastlogging-rs": 1.3776172399520874,
-                    "fastlogging-rs-root": 1.3266174793243408
+                    "logging": 0.5355222821235657,
+                    "logging-optimized": 0.538813591003418,
+                    "loguru": 1.2878262996673584,
+                    "fastlogging": 0.2179166555404663,
+                    "fastlogging-threads": 0.28023165464401245,
+                    "fastlogging-rs": 0.08255877494812011,
+                    "fastlogging-rs-root": 0.08367443084716797
                 },
                 "CRITICAL": {
-                    "logging": 0.5689877867698669,
-                    "logging-optimized": 0.560691773891449,
-                    "loguru": 1.2339686155319214,
-                    "fastlogging": 1.621726155281067,
-                    "fastlogging-threads": 1.671921730041504,
-                    "fastlogging-rs": 1.3720574378967285,
-                    "fastlogging-rs-root": 1.3999924659729004
+                    "logging": 0.28439050912857056,
+                    "logging-optimized": 0.2828320562839508,
+                    "loguru": 0.6867205301920573,
+                    "fastlogging": 0.12867071628570556,
+                    "fastlogging-threads": 0.1755061149597168,
+                    "fastlogging-rs": 0.04087212085723877,
+                    "fastlogging-rs-root": 0.038787674903869626
                 }
             },
             "rotate": {
                 "DEBUG": {
-                    "logging": 5.320562124252319,
-                    "logging-optimized": 5.158263206481934,
-                    "loguru": 9.695650815963745,
-                    "fastlogging": 2.168382167816162,
-                    "fastlogging-threads": 2.4069764614105225,
-                    "fastlogging-rs": 1.5868406295776367,
-                    "fastlogging-rs-root": 1.4626173973083496
+                    "logging": 1.869898796081543,
+                    "logging-optimized": 1.8539559841156006,
+                    "loguru": 3.79880428314209,
+                    "fastlogging": 0.42960209846496583,
+                    "fastlogging-threads": 0.7198677857716879,
+                    "fastlogging-rs": 0.2066866159439087,
+                    "fastlogging-rs-root": 0.2012031316757202
                 },
                 "INFO": {
-                    "logging": 4.692246913909912,
-                    "logging-optimized": 4.712355136871338,
-                    "loguru": 9.161632061004639,
-                    "fastlogging": 1.9485301971435547,
-                    "fastlogging-threads": 2.348284959793091,
-                    "fastlogging-rs": 1.4770561456680298,
-                    "fastlogging-rs-root": 1.5140373706817627
+                    "logging": 1.4917993545532227,
+                    "logging-optimized": 1.517378330230713,
+                    "loguru": 3.0576891899108887,
+                    "fastlogging": 0.3449592590332031,
+                    "fastlogging-threads": 0.5975088477134705,
+                    "fastlogging-rs": 0.16347756385803222,
+                    "fastlogging-rs-root": 0.16138956546783448
                 },
                 "WARNING": {
-                    "logging": 3.8615658283233643,
-                    "logging-optimized": 4.329976797103882,
-                    "loguru": 7.617228746414185,
-                    "fastlogging": 1.9075313806533813,
-                    "fastlogging-threads": 2.343027114868164,
-                    "fastlogging-rs": 1.5321118831634521,
-                    "fastlogging-rs-root": 1.413025140762329
+                    "logging": 1.134566307067871,
+                    "logging-optimized": 1.1552186012268066,
+                    "loguru": 2.247560739517212,
+                    "fastlogging": 0.27204790711402893,
+                    "fastlogging-threads": 0.4591805934906006,
+                    "fastlogging-rs": 0.12636196613311768,
+                    "fastlogging-rs-root": 0.12076585292816162
                 },
                 "ERROR": {
-                    "logging": 3.748448371887207,
-                    "logging-optimized": 3.318328380584717,
-                    "loguru": 6.2682740688323975,
-                    "fastlogging": 1.811043620109558,
-                    "fastlogging-threads": 2.0290441513061523,
-                    "fastlogging-rs": 1.404908299446106,
-                    "fastlogging-rs-root": 1.3951575756072998
+                    "logging": 0.7575012048085531,
+                    "logging-optimized": 0.7563227017720541,
+                    "loguru": 1.5260015726089478,
+                    "fastlogging": 0.18861021995544433,
+                    "fastlogging-threads": 0.3092766148703439,
+                    "fastlogging-rs": 0.08307509422302246,
+                    "fastlogging-rs-root": 0.0798222541809082
                 },
                 "CRITICAL": {
-                    "logging": 0.7261841297149658,
-                    "logging-optimized": 0.7575210730234782,
-                    "loguru": 1.3426275253295898,
-                    "fastlogging": 1.633462905883789,
-                    "fastlogging-threads": 1.782673954963684,
-                    "fastlogging-rs": 1.4502815008163452,
-                    "fastlogging-rs-root": 1.3666303157806396
+                    "logging": 0.39063239097595215,
+                    "logging-optimized": 0.3912147680918376,
+                    "loguru": 0.7930017312367758,
+                    "fastlogging": 0.11608552932739258,
+                    "fastlogging-threads": 0.16084413528442382,
+                    "fastlogging-rs": 0.039065217971801756,
+                    "fastlogging-rs-root": 0.03729445934295654
                 }
             }
         }
