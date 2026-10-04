@@ -2,6 +2,28 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "type": "java",
+      "name": "BenchmarksFastLoggingRs",
+      "request": "launch",
+      "mainClass": "org.logging.benchmarks.BenchmarksFastLoggingRs",
+      "projectName": "org.logging-FastLogging",
+      "vmArgs": "-Djava.library.path=${workspaceFolder}/jfastlogging-jni/FastLogging/lib --enable-native-access=ALL-UNNAMED"
+    },
+    {
+      "type": "java",
+      "name": "BenchmarksLog4j2",
+      "request": "launch",
+      "mainClass": "org.logging.benchmarks.BenchmarksLog4j2",
+      "projectName": "org.logging-FastLogging"
+    },
+    {
+      "type": "java",
+      "name": "BenchmarksLog4j",
+      "request": "launch",
+      "mainClass": "org.logging.benchmarks.BenchmarksLog4j",
+      "projectName": "org.logging-FastLogging"
+    },
+    {
       "type": "lldb",
       "request": "launch",
       "name": "Debug test file_writer_rotation (integration)",

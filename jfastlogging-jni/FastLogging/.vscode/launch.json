@@ -57,7 +57,7 @@
             "request": "launch",
             "mainClass": "org.logging.benchmarks.BenchmarksFastLoggingRs",
             "projectName": "FastLogging",
-            "vmArgs": "-Dcom.sun.management.jmxremote=false -Djava.awt.headless=true -XX:+DisableAttachMechanism",
+            "vmArgs": "-Dcom.sun.management.jmxremote=false -Djava.awt.headless=true -XX:+DisableAttachMechanism -Djava.library.path=lib --enable-native-access=ALL-UNNAMED",
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal"
         },
