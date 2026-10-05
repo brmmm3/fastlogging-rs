@@ -1,7 +1,5 @@
 package org.logging;
 
-import java.util.HashMap;
-
 public class FastLogging {
 
 	static {
@@ -285,8 +283,6 @@ public class FastLogging {
 
 		long instance_ptr = 0;
 		int instance_level = NOTSET;
-		// key=WriterId, value=Writer pointer
-		HashMap<Integer, Long> writers = new HashMap<>();
 
 		public Logging() {
 			instance_ptr = loggingNew(NOTSET, "root", null, null, null);
@@ -318,8 +314,7 @@ public class FastLogging {
 				console_ptr = console.instance_ptr;
 			}
 			instance_ptr = loggingNew(level, domain, null, null, null);
-			int writer_id = loggingAddWriter(instance_ptr, console_ptr);
-			writers.put(writer_id, console_ptr);
+			loggingAddWriter(instance_ptr, console_ptr);
 			instance_level = level;
 		}
 
@@ -329,7 +324,7 @@ public class FastLogging {
 				file_ptr = file.instance_ptr;
 			}
 			instance_ptr = loggingNew(level, domain, null, null, null);
-			writers.put(loggingAddWriter(instance_ptr, file_ptr), file_ptr);
+			loggingAddWriter(instance_ptr, file_ptr);
 			instance_level = level;
 		}
 
@@ -339,7 +334,7 @@ public class FastLogging {
 				callback_ptr = callback.instance_ptr;
 			}
 			instance_ptr = loggingNew(level, domain, null, null, null);
-			writers.put(loggingAddWriter(instance_ptr, callback_ptr), callback_ptr);
+			loggingAddWriter(instance_ptr, callback_ptr);
 			instance_level = level;
 		}
 
@@ -349,7 +344,7 @@ public class FastLogging {
 				otel_ptr = otel.instance_ptr;
 			}
 			instance_ptr = loggingNew(level, domain, null, null, null);
-			writers.put(loggingAddWriter(instance_ptr, otel_ptr), otel_ptr);
+			loggingAddWriter(instance_ptr, otel_ptr);
 			instance_level = level;
 		}
 
@@ -363,8 +358,8 @@ public class FastLogging {
 				file_ptr = file.instance_ptr;
 			}
 			instance_ptr = loggingNew(level, domain, null, null, null);
-			writers.put(loggingAddWriter(instance_ptr, console_ptr), console_ptr);
-			writers.put(loggingAddWriter(instance_ptr, file_ptr), file_ptr);
+			loggingAddWriter(instance_ptr, console_ptr);
+			loggingAddWriter(instance_ptr, file_ptr);
 			instance_level = level;
 		}
 
@@ -378,8 +373,8 @@ public class FastLogging {
 				server_ptr = server.instance_ptr;
 			}
 			instance_ptr = loggingNew(level, domain, null, null, null);
-			writers.put(loggingAddWriter(instance_ptr, file_ptr), file_ptr);
-			writers.put(loggingAddWriter(instance_ptr, server_ptr), server_ptr);
+			loggingAddWriter(instance_ptr, file_ptr);
+			loggingAddWriter(instance_ptr, server_ptr);
 			instance_level = level;
 		}
 
@@ -393,8 +388,8 @@ public class FastLogging {
 				client_ptr = client.instance_ptr;
 			}
 			instance_ptr = loggingNew(level, domain, null, null, null);
-			writers.put(loggingAddWriter(instance_ptr, file_ptr), file_ptr);
-			writers.put(loggingAddWriter(instance_ptr, client_ptr), client_ptr);
+			loggingAddWriter(instance_ptr, file_ptr);
+			loggingAddWriter(instance_ptr, client_ptr);
 			instance_level = level;
 		}
 
@@ -408,8 +403,8 @@ public class FastLogging {
 				callback_ptr = callback.instance_ptr;
 			}
 			instance_ptr = loggingNew(level, domain, null, null, null);
-			writers.put(loggingAddWriter(instance_ptr, file_ptr), file_ptr);
-			writers.put(loggingAddWriter(instance_ptr, callback_ptr), callback_ptr);
+			loggingAddWriter(instance_ptr, file_ptr);
+			loggingAddWriter(instance_ptr, callback_ptr);
 			instance_level = level;
 		}
 
@@ -423,8 +418,8 @@ public class FastLogging {
 				client_ptr = client.instance_ptr;
 			}
 			instance_ptr = loggingNew(level, domain, null, null, null);
-			writers.put(loggingAddWriter(instance_ptr, console_ptr), console_ptr);
-			writers.put(loggingAddWriter(instance_ptr, client_ptr), client_ptr);
+			loggingAddWriter(instance_ptr, console_ptr);
+			loggingAddWriter(instance_ptr, client_ptr);
 			instance_level = level;
 		}
 
@@ -443,9 +438,9 @@ public class FastLogging {
 				client_ptr = client.instance_ptr;
 			}
 			instance_ptr = loggingNew(level, domain, null, null, null);
-			writers.put(loggingAddWriter(instance_ptr, console_ptr), console_ptr);
-			writers.put(loggingAddWriter(instance_ptr, file_ptr), file_ptr);
-			writers.put(loggingAddWriter(instance_ptr, client_ptr), client_ptr);
+			loggingAddWriter(instance_ptr, console_ptr);
+			loggingAddWriter(instance_ptr, file_ptr);
+			loggingAddWriter(instance_ptr, client_ptr);
 			instance_level = level;
 		}
 
@@ -464,9 +459,9 @@ public class FastLogging {
 				server_ptr = server.instance_ptr;
 			}
 			instance_ptr = loggingNew(level, domain, null, null, null);
-			writers.put(loggingAddWriter(instance_ptr, console_ptr), console_ptr);
-			writers.put(loggingAddWriter(instance_ptr, file_ptr), file_ptr);
-			writers.put(loggingAddWriter(instance_ptr, server_ptr), server_ptr);
+			loggingAddWriter(instance_ptr, console_ptr);
+			loggingAddWriter(instance_ptr, file_ptr);
+			loggingAddWriter(instance_ptr, server_ptr);
 			instance_level = level;
 		}
 
@@ -476,7 +471,7 @@ public class FastLogging {
 				client_ptr = client.instance_ptr;
 			}
 			instance_ptr = loggingNew(level, domain, null, null, null);
-			writers.put(loggingAddWriter(instance_ptr, client_ptr), client_ptr);
+			loggingAddWriter(instance_ptr, client_ptr);
 			instance_level = level;
 		}
 
@@ -504,9 +499,9 @@ public class FastLogging {
 				client_ptr = client.instance_ptr;
 			}
 			instance_ptr = loggingNew(level, domain, null, extConfig_ptr, null);
-			writers.put(loggingAddWriter(instance_ptr, console_ptr), console_ptr);
-			writers.put(loggingAddWriter(instance_ptr, file_ptr), file_ptr);
-			writers.put(loggingAddWriter(instance_ptr, client_ptr), client_ptr);
+			loggingAddWriter(instance_ptr, console_ptr);
+			loggingAddWriter(instance_ptr, file_ptr);
+			loggingAddWriter(instance_ptr, client_ptr);
 			instance_level = level;
 		}
 
@@ -698,7 +693,7 @@ public class FastLogging {
 
 	public class Logger {
 
-		Long instance_ptr = null;
+		long instance_ptr = 0;
 		int instance_level = NOTSET;
 
 		public Logger() {
@@ -712,6 +707,7 @@ public class FastLogging {
 
 		public Logger(String domain) {
 			instance_ptr = loggerNew(0, domain);
+			instance_level = NOTSET;
 		}
 
 		public Logger(int level, String domain) {
